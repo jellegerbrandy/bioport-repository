@@ -1,0 +1,5 @@
+ * decide on naming scheme for identifier
+ * 
+ 
+ "delete p.* FROM person p join bioportid b on p.bioport_id=b.bioport_id  left outer join relbioportidbiography r on b.bioport_id = r.bioport_id where r.id is null"
+ 

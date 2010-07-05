@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="latin1"?>
+<biodes version="1.0">
+  <fileDesc>
+    <title>Kraemer, Hendrik</title>
+    <author>Visser - 't Hooft, W.A.</author>
+    <ref target="http://www.digitallibrary.nl/levensberichten/authors_detail.cfm?RecordId=1046"/>
+    <publisher>
+      <name>KNAW - Levensberichten en Herdenkingen</name>
+      <ref target="http://www.digitallibrary.nl/levensberichten/works.cfm"/>
+    </publisher>
+  </fileDesc>
+  <person>
+    <idno type="id">003</idno>
+    <persName>
+        <name type="voornaam">Hilbrand</name> <name type="geslachtsnaam">Boschma</name>
+        <name type="voornaam">Hendrik</name> <name type="geslachtsnaam">Kraemer</name>
+    </persName>
+    <sex value="1"/>
+    <event type="birth" when="1888-05-17">
+      <place>Amsterdam</place>
+    </event>
+    <event type="death" when="1965-11-11">
+      <place>Driebergen</place>
+    </event>
+    <state type="occupation">Theologie</state>
+    <state type="occupation">Zendingswetenschappen</state>
+  </person>
+ <biography>
+    <graphic url="../images/image2.jpg"/>
+    <text>&lt;html&gt;&lt;head&gt;&lt;meta http-equiv="Content-Type" content="text/html; charset=UTF-8"&gt;&lt;link rel="stylesheet" type="text/css" href="stylesheet"&gt;&lt;/head&gt;&lt;body bottommargin="15" leftmargin="10" topmargin="15" rightmargin="10"&gt;&lt;p&gt;&lt;b&gt;POPPES, Eelkje &lt;/b&gt;(geb. Lemmer, Friesland, 9-2-1791 &#8211; gest. Leeuwarden 20-9-1828), gelegenheidsdichteres. Dochter van Poppe Jans Poppes (1747-1810) en Antje Annes Visser (1758-1832). Op 22-6-1815 trouwde Eelkje Poppes in Lemmer met &lt;b&gt;Christianus Petrus Eliza Robid&#233; van der Aa&lt;/b&gt; (1791-1851), advocaat, letterkundige, dichter. Uit het huwelijk werden 8 kinderen geboren, van wie 3 dochters de volwassen leeftijd bereikten. Er was wellicht ook 1 pleegzoon.&lt;/p&gt;&lt;p&gt;&lt;img class="dvn" src="plaatjes/EelkjePoppes.jpg"/&gt;Eelkje Poppes stamde uit een &#8216;achtenswaardig&#8217; (Van der Aa) Fries geslacht. In 1814 verscheen van haar, autodidact in de dichtkunst, een bundeltje van drie gedichten onder de titel: &lt;i&gt;Eerstelingen aan mijn vaderland&lt;/i&gt;, voorafgegaan door een lofdicht van haar toekomstige man. Deze patriottisch-orangistische verzen schreef zij naar aanleiding van de val van Napoleon en het vertrek van de Fransen uit Nederland eind 1813.&lt;/p&gt;&lt;p&gt;In 1815 trouwde zij met Christianus Robid&#233; van der Aa, die toen secretaris van Lemsterland was. Het echtpaar ging in 1818 in Leeuwarden wonen en betrok daar wat tegenwoordig het Fries Letterkundig Museum en Documentatiecentrum is en waar in de jaren 1880 Margaretha Zelle, beter bekend als Mata Hari, heeft gewoond. Voorzover bekend heeft Eelkje Poppes na haar &lt;i&gt;Eerstelingen&lt;/i&gt; nooit meer iets gepubliceerd. Wel schijnt zij nog enkele kindergedichtjes geschreven te hebben.&lt;/p&gt;Eelkje Poppes overleed op 20 september 1828, 37 jaar oud. De gedenksteen die haar echtgenoot liet aanbrengen in de muur van de kerk in Huizum vermeldt niet alleen haar dood maar ook die van &#8216;vijf onzer kinderen&#8217;. En in een vierregelig vers gedenkt hij het &#8216;aards geluk&#8217; dat ze &#8216;meer dan dertien jaar&#8217; deelden.&lt;br/&gt;&lt;br/&gt;&lt;p&gt;&lt;b&gt;Naslagwerken&lt;/b&gt;&lt;/p&gt;&lt;p&gt;Van der Aa; NBAC.&lt;/p&gt;&lt;p&gt;&lt;b&gt;&lt;br/&gt;Archivalia&lt;/b&gt;&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Koninklijke Bibliotheek, Den Haag: brieven aan Poppes van Robid&#233; van der Aa uit 1815 [sign. 129 E 29].&lt;/li&gt;&lt;li&gt;Universiteitsbibliotheek Amsterdam (UvA), Handschriften: enkele familiedocumenten [Hss. Ce2e, Ce2f].&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;&lt;b&gt;Publicatie&lt;/b&gt;&lt;br/&gt;&lt;i&gt;&lt;br/&gt;Eerstelingen aan mijn vaderland&lt;/i&gt; (Sneek z.j. [1814]) [Knuttel Pflt. 23760].&lt;/p&gt;&lt;b&gt;&lt;br/&gt;Literatuur&lt;/b&gt;&lt;br/&gt;&lt;br/&gt;Sytse ten Hoeve, 'By it portret fan Eelkje Poppes', &lt;i&gt;De Moanne&lt;/i&gt; 6 (2007) 6, 18-21.&lt;br/&gt;&lt;br/&gt;&lt;b&gt;Illustratie&lt;/b&gt;&lt;br/&gt;&lt;br/&gt;Olieverfportret op paneel, anonieme kunstenaar, ca. 1800 (Particuliere collectie).&lt;br/&gt;&lt;br/&gt;&lt;p&gt;Auteur: Anna de Haas&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</text>
+  </biography>
+</biodes>
