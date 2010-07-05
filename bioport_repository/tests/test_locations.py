@@ -1,5 +1,5 @@
 from common_testcase import CommonTestCase, unittest 
-from BioPortRepository.db import *
+from bioport_repository.db import *
 
 class DBRepositoryTestCase(CommonTestCase):
 

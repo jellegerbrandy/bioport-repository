@@ -1,14 +1,20 @@
-import PIL.Image
-from cStringIO import StringIO
+#!/usr/bin/env python
+
 import os
 import urllib2
 from hashlib import md5
+
+import PIL.Image
+from cStringIO import StringIO
 from zLOG import WARNING, LOG, INFO
 
 DEFAULT_WIDTH = 120
 DEFAULT_HEIGHT = 100
 
+
 class  Illustration:
+    """XXX - needs docstring"""
+
     def __init__(self,
         url, 
         images_cache_local,
@@ -96,6 +102,7 @@ class  Illustration:
         fh = open(self.cached_local(), 'w')
         fh.write(f.read())
         fh.close()
+
     def create_thumbnail(self,
                          width=DEFAULT_WIDTH, height=DEFAULT_HEIGHT,
                          refresh=False):
@@ -121,6 +128,7 @@ class  Illustration:
         thumbnail_file = StringIO()
         image.save(thumbnail_file, "JPEG", quality=88)
         self._store_thumbnail(keys['width'],keys['height'], thumbnail_file.getvalue())
+
     def has_thumbnail(self, width=DEFAULT_WIDTH, height=DEFAULT_HEIGHT):
         return os.path.isfile(self.cached_thumbnail_local(width, height))
     
@@ -137,6 +145,7 @@ class  Illustration:
             
         fh.write(data)
         fh.close()
+
     def thumbnail_url(self, width=DEFAULT_WIDTH, height=DEFAULT_HEIGHT):
         """public url of the thumbnail of this image
            If the thumbnail doesn't exist yet it wil be generated"""

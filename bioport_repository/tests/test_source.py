@@ -1,9 +1,8 @@
 from common_testcase import CommonTestCase, unittest , this_dir
 
-from BioPortRepository.source import *
+from bioport_repository.source import *
 
 class SourceTestCase(CommonTestCase):
-    
         
     def Xtest_source(self): 
         #XXX temporary disabled  tests pertaining to SVN

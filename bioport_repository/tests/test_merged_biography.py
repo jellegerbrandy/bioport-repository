@@ -1,6 +1,8 @@
 from common_testcase import CommonTestCase, unittest 
-from BioPortRepository.merged_biography import MergedBiography
+from bioport_repository.merged_biography import MergedBiography
 from lxml import etree
+
+
 class MergedBiographyTestCase(CommonTestCase):
         
     def test_biography(self):

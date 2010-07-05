@@ -1,8 +1,11 @@
-from common_testcase import CommonTestCase, unittest 
-from BioPortRepository.person import Person
 from datetime import datetime
 
+from common_testcase import CommonTestCase, unittest 
+from bioport_repository.person import Person
+
+
 class CommentTestCase(CommonTestCase):
+
     def test_comment_creation_and_listing(self):
         p1 = Person('1234', repository=self.repo)
         comments = p1.get_comments()

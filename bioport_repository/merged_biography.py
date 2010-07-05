@@ -1,8 +1,11 @@
+#!/usr/bin/env python
 
 from plone.memoize import instance
 from biodes import BioDesDoc
-from BioPortRepository.data_extraction import BioDataExtractor
+from bioport_repository.data_extraction import BioDataExtractor
 from lxml.etree import SubElement
+
+
 class MergedBiography:    
     """ """
     

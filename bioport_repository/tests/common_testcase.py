@@ -1,14 +1,18 @@
-import os, sys
-this_dir = os.path.split(os.path.abspath(__file__))[0]
+import os
+import sys
 import unittest
 import shutil
-from BioPortRepository.repository import Repository
-from BioPortRepository.source import Source
+
+from bioport_repository.repository import Repository
+from bioport_repository.source import Source
 from unittest import TestCase
-SVN_REPOSITORY  = os.path.abspath(os.path.join(this_dir, 'data/bioport_repository'))
-SVN_REPOSITORY_LOCAL_COPY = os.path.abspath(os.path.join(this_dir, 'data/bioport_repository_local_copy'))
-IMAGES_CACHE_LOCAL = os.path.join(this_dir, 'tmp')
-SQLDUMP_FILENAME =os.path.join(this_dir, 'data/bioport_mysqldump.sql')
+
+
+THIS_DIR = os.path.split(os.path.abspath(__file__))[0]
+SVN_REPOSITORY  = os.path.abspath(os.path.join(THIS_DIR, 'data/bioport_repository'))
+SVN_REPOSITORY_LOCAL_COPY = os.path.abspath(os.path.join(THIS_DIR, 'data/bioport_repository_local_copy'))
+IMAGES_CACHE_LOCAL = os.path.join(THIS_DIR, 'tmp')
+SQLDUMP_FILENAME =os.path.join(THIS_DIR, 'data/bioport_mysqldump.sql')
 
 class CommonTestCase(TestCase):
     
@@ -48,8 +52,8 @@ class CommonTestCase(TestCase):
         if self._fill_repository is False:
             return self.repo
         sql_string = open(SQLDUMP_FILENAME).read().decode('latin1')
-        import BioPortRepository.tests
-        testdir = os.path.dirname(BioPortRepository.tests.__file__)
+        import bioport_repository.tests
+        testdir = os.path.dirname(bioport_repository.tests.__file__)
         datadir = os.path.join(testdir, 'data')
         sql_string = sql_string.replace('{{{test_data_dir}}}', testdir)
         self.repo.db.get_session().execute(sql_string)
@@ -61,11 +65,11 @@ class CommonTestCase(TestCase):
         #create a repo filled with some data
 
         self.repo.db.metadata.create_all()
-        url = 'file://%s' % os.path.abspath(os.path.join(this_dir, 'data/knaw/list.xml'))
+        url = 'file://%s' % os.path.abspath(os.path.join(THIS_DIR, 'data/knaw/list.xml'))
         source = Source(id=u'knaw', url=url , description='test')
         self.repo.add_source(source)
         self.repo.download_biographies(source)
-        url = 'file://%s' % os.path.abspath(os.path.join(this_dir, 'data/knaw2/list.xml'))
+        url = 'file://%s' % os.path.abspath(os.path.join(THIS_DIR, 'data/knaw2/list.xml'))
         if sources > 1:
             source = Source(id=u'knaw2', url=url , description='test')
             self.repo.add_source(source)
@@ -93,3 +97,4 @@ def create_mysqldump():
 if __name__ == "__main__":
     create_mysqldump()
     unittest.main()
+

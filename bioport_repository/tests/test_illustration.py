@@ -1,12 +1,17 @@
+#!/usr/bin/env python
 #encoding=utf8
-import os, urllib2
-import PIL.Image
+
+import os
+import urllib2
 import unittest
-from common_testcase import CommonTestCase, IMAGES_CACHE_LOCAL
-from BioPortRepository.illustration import Illustration
 from cStringIO import StringIO
-from shutil import rmtree
 import shutil
+
+import PIL.Image
+
+from common_testcase import CommonTestCase, IMAGES_CACHE_LOCAL
+from bioport_repository.illustration import Illustration
+
 
 this_dir = os.path.abspath(os.path.dirname(__file__))
 url_root = 'file://%s/data/images' % this_dir
@@ -16,11 +21,14 @@ images_cache_url = 'file://%s' % IMAGES_CACHE_LOCAL
 fn = 'image1.jpg'
 fn2 = u'im\xebge.jpg'
 
+
 class IllustrationTestCase(CommonTestCase):
+
     def setUp(self): 
         CommonTestCase.setUp(self)
         #fn2 has a unicode name, which trips up svn, so we copy it and later remove it
         shutil.copyfile(os.path.join(images, fn), os.path.join(images, fn2))
+
     def test_create_id(self):
         ill = Illustration('xxx', None, None)
         assert ill.create_id().endswith('xxx')

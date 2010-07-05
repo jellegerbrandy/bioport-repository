@@ -1,11 +1,10 @@
 ##! /usr/bin/python    
 ##encoding=utf-8
 
-
 # occupations
 #this is the bereoepnlijst van DBNL
 #
-from db_definitions import Occupation 
+from bioport_repository.db_definitions import Occupation 
 
     
 def fill_occupations_table(session):

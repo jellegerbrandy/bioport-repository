@@ -1,10 +1,13 @@
-
 from vdaa_and_nnbw_doubles import doubles
-from BioPortRepository.repository import *
+from bioport_repository.repository import *
+from bioport_repository.db import DBNLIds
+from sqlalchemy.exceptions import IntegrityError
+
+
 DB_CONNECTION = 'mysql://root@localhost/bioport'
 repo = Repository(db_connection=DB_CONNECTION) 
-from BioPortRepository.db import DBNLIds
-from sqlalchemy.exceptions import IntegrityError
+
+
 def identify_doubles(doubles=doubles, repo=repo):
     doubles = doubles.values()
     total = len(doubles)
@@ -23,6 +26,7 @@ def identify_doubles(doubles=doubles, repo=repo):
         for p2 in persons[1:]:
             print 'identifying', p1, p2
             repo.identify(p1, p2)
+
 def doubles_in_suggestions_list(doubles=doubles, repo=repo):
     doubles = doubles.values()
     total = len(doubles)
@@ -78,6 +82,7 @@ def update_table_dbnl_ids(doubles=doubles, repo=repo):
                 
 
 if __name__ == '__main__':
-    
     update_table_dbnl_ids(doubles)
     test_sanity()
+    
+    

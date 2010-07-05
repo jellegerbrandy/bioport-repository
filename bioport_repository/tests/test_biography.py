@@ -1,8 +1,8 @@
 # encoding=utf8
 from common_testcase import CommonTestCase, unittest 
-from BioPortRepository.biography import Biography
-from BioPortRepository.source import Source
-from BioPortRepository.db_definitions import *
+from bioport_repository.biography import Biography
+from bioport_repository.source import Source
+from bioport_repository.db_definitions import *
 
 class BiographyTestCase(CommonTestCase):
     def test_biography(self):

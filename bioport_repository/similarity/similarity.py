@@ -1,6 +1,11 @@
+#!/usr/bin/env python
+
 from names.similarity import Similarity
 from names.common import to_ymd
+
+
 class Similarity(Similarity):
+
     def __init__(self, person=None, persons=None):
         self._computed =False
         self._person = person
@@ -69,3 +74,5 @@ class Similarity(Similarity):
         ls.sort(reverse=True)
         self._persons = [p[1] for p in ls]
         return self._persons
+        
+

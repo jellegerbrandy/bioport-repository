@@ -1,12 +1,16 @@
-from local_settings import *
-from repocommon import is_valid_bioport_id
-from merged_biography import MergedBiography
+#!/usr/bin/env python
+
 from plone.memoize import instance
+from bioport_repository.local_settings import *
+from bioport_repository.repocommon import is_valid_bioport_id
+from bioport_repository.merged_biography import MergedBiography
+
 
 class Person(object): 
     """A Person is an object that is identified with a bioport identifier
     
-    it is usually associated with one or more Biography objects"""
+    it is usually associated with one or more Biography objects
+    """
     
     def __init__(self, 
         bioport_id, 
@@ -152,22 +156,29 @@ class Person(object):
                 
     def get_comments(self):
         return self.repository.db.get_comments(bioport_id=self.id)
+
     def add_comment(self, **kwargs):
         kwargs['bioport_id'] = self.id
         return self.repository.db.add_comment(bioport_id=self.id, values=kwargs)
 
     def geboortedatum(self):
         return self.record.geboortedatum
+
     def sterfdatum(self):
         return self.record.sterfdatum
+
     def names(self):
         return self.record.names
+
     def thumbnail(self):
         return self.record.thumbnail
+
     def db_snippet(self):
         return self.record.snippet
+
     def geslachtsnaam(self):
         return self.record.geslachtsnaam
+
     def db_name(self):
         return self.record.naam
 

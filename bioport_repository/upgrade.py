@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 2009114:
 Excute the following querys:
@@ -10,8 +12,10 @@ ALTER TABLE `person` MODIFY COLUMN `search_source` TEXT  CHARACTER SET utf8 COLL
 
 
 A
- """
-from repository import *
+"""
+
+from bioport_repository.repository import *
+
 DB_CONNECTION = 'mysql://root@localhost/bioport_play'
 repo = Repository(db_connection=DB_CONNECTION) 
 

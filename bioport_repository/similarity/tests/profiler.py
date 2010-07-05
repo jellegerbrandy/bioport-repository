@@ -1,16 +1,23 @@
+#!/usr/bin/env python
+
 import cProfile
 import pstats
 import tempfile
-import sys, os
+import sys
+import os
+
 from common import CommonTestCase, unittest, SQLDUMP_FILENAME
-from similarity.similarity import Similarity
-from person import Person
-from biography import Biography
-from source import Source
-from BioPortRepository.repository import Repository
+
 from names.name import Naam
-def profile(s):
-    
+
+from bioport_repository.repository import Repository
+from bioport_repository.similarity.similarity import Similarity
+from bioport_repository.person import Person
+from bioport_repository.biography import Biography
+from bioport_repository.source import Source
+
+
+def profile(s):   
     tf = tempfile.NamedTemporaryFile()
     cProfile.run(s, tf.name)
     p = pstats.Stats(tf.name)

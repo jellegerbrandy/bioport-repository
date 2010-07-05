@@ -1,7 +1,10 @@
 from common_testcase import CommonTestCase, unittest , this_dir
-from BioPortRepository.repository import *
-from BioPortRepository.db_definitions import *
-from BioPortRepository.person import Person
+
+from bioport_repository.repository import *
+from bioport_repository.db_definitions import *
+from bioport_repository.person import Person
+
+
 class RepositoryTestCase(CommonTestCase):
     def test_download_bios(self):
         url = os.path.abspath(os.path.join(this_dir, 'data/knaw/list.xml'))

@@ -15,8 +15,9 @@
 #import sqlalchemy
 import csv
 import os
+
 this_dir = os.path.dirname(__file__)
-from db_definitions import Location
+from bioport_repository.db_definitions import Location
 
 #connection = 'mysql://root@localhost/bioport_play'
 

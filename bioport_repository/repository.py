@@ -1,31 +1,32 @@
-#This package handles the data reposotiry for Bioport
+#!/usr/bin/env python
+
+"""This package handles the data reposotiry for Bioport."""
 
 import os
 import time
 
-
 from plone.memoize import instance
-from biography import Biography
-from db import DBRepository
-from local_settings import *
 from lxml import etree
-from person import Person
-from repocommon import BioPortException
-from source import BioPortSource, Source
-from svn_repository import SVNRepository
 from sqlalchemy.exceptions import IntegrityError, InvalidRequestError
-#import logging
-#LOG = logging.getLogger('BioPortRepository')
 from zLOG import WARNING, LOG, INFO 
-from BioPortRepository.db_definitions import STATUS_NEW, STATUS_VALUES
 import biodes
 
+from bioport_repository.db_definitions import STATUS_NEW, STATUS_VALUES
+from bioport_repository.biography import Biography
+from bioport_repository.db import DBRepository
+from bioport_repository.local_settings import *
+from bioport_repository.person import Person
+from bioport_repository.repocommon import BioPortException
+from bioport_repository.source import BioPortSource, Source
+from bioport_repository.svn_repository import SVNRepository
 
-class Repository(object ):
-#    __metaclass__ = Singleton
+
+class Repository(object):
+    #__metaclass__ = Singleton
     
     ENABLE_SVN = False
     ENABLE_DB = True
+
     def __init__(self, 
         svn_repository=None,
         svn_repository_local_copy=None,

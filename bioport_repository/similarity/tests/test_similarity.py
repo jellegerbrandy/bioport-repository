@@ -1,9 +1,11 @@
 from common import CommonTestCase, unittest
-from BioPortRepository.similarity.similarity import Similarity
-from person import Person
+from bioport_repository.similarity.similarity import Similarity
+from bioport_repository.person import Person
 from biography import Biography
 from source import Source
 import os, pickle
+
+
 class SimilarityTestCase(CommonTestCase):
     def setUp(self):
         CommonTestCase.setUp(self)

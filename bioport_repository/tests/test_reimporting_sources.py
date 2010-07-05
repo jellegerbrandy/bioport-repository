@@ -1,7 +1,10 @@
 import os
+
 from common_testcase import CommonTestCase, this_dir, unittest
-from BioPortRepository.repository import Source
-from BioPortRepository.db_definitions import STATUS_NEW
+from bioport_repository.repository import Source
+from bioport_repository.db_definitions import STATUS_NEW
+
+
 class RepositoryTestCase(CommonTestCase):
     def test_download_changed_bios(self):
         print 'DONWNLOADING knaw/list.xml'

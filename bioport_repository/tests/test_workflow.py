@@ -1,9 +1,15 @@
 from common_testcase import CommonTestCase, unittest 
-from BioPortRepository.repository import *
-from BioPortRepository.source import Source
+from bioport_repository.repository import *
+from bioport_repository.source import Source
+
+
 this_dir = os.path.split(os.path.abspath(__file__))[0]
+
+
 class WorkflowTestCase(CommonTestCase):
+
     _fill_repository = False
+
     def test_workflow(self):
         #a test where we run trhough the whole workflow 
         #of downloading, identifyying, adding and editing descriptions, combining information

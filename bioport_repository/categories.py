@@ -1,9 +1,9 @@
 ##! /usr/bin/python    
 ##encoding=utf-8
 
-#rubrieken (van Els)
-#
-from db_definitions import Category 
+from bioport_repository.db_definitions import Category 
+
+
 def fill_table(session):    
     categories = """ 
        1. Adel en vorstenhuizen

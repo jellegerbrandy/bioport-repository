@@ -1,10 +1,17 @@
-from repository import Repository
-from db_definitions import DBNLIds
+#!/usr/bin/env python
+
 import sqlalchemy
+
+from bioport_repository.db_definitions import DBNLIds
+from bioport_repository.repository import Repository
+
+
 base_url_nnbw = 'http://www.inghist.nl/media/bioport/bronnen/nnbw/bio'
 base_url_vdaa = 'http://www.inghist.nl/media/bioport/bronnen/vdaa/bio'
 base_url_nnbw = 'file:///home/jelle/projects_active/nnbw/bioport/output/bio'
 base_url_vdaa = 'file:///home/jelle/projects_active/vdaa/bioport/output/bio'
+
+
 def create_dictionary(repository, source, limit):
     bios = repository.get_biographies(source=source, limit=limit)
     

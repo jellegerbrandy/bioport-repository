@@ -2,6 +2,7 @@ import random
 import os
 import types
 import re
+from datetime import datetime
 
 from lxml import etree
 from plone.memoize import instance
@@ -15,24 +16,31 @@ from sqlalchemy.orm.exc import NoResultFound
 from names.similarity import soundexes_nl, soundex_nl
 from names.common import encodable, to_ymd , TUSSENVOEGSELS
 
-from db_definitions import *
-from datetime import datetime
-from BioPortRepository.similarity.similarity import Similarity
-from person import Person
-from biography import Biography 
-from source import Source
-from BioPortRepository.db_definitions import CacheSimilarityPersons,\
-    BioPortIdRecord, RelBioPortIdBiographyRecord, BiographyRecord, SourceRecord, STATUS_NEW, STATUS_VALUES
+from bioport_repository.db_definitions import *
+from bioport_repository.similarity.similarity import Similarity
+from bioport_repository.person import Person
+from bioport_repository.biography import Biography 
+from bioport_repository.source import Source
+from bioport_repository.db_definitions import CacheSimilarityPersons, \
+                                              BioPortIdRecord, \
+                                              RelBioPortIdBiographyRecord, \
+                                              BiographyRecord, \
+                                              SourceRecord, \
+                                              STATUS_NEW, \
+                                              STATUS_VALUES
 
-LENGTH = 8 #the length of a bioport id
+LENGTH = 8  # the length of a bioport id
 ECHO = False
 
+
 class DBRepository:
+    """XXX - needs docstring"""
+    
     NaamRecord = NaamRecord
     SoundexRecord = SoundexRecord
     SimilarityCache = SimilarityCache
-    def __init__(self, db_connection, ZOPE_SESSIONS=False, user=None):
-        
+
+    def __init__(self, db_connection, ZOPE_SESSIONS=False, user=None):       
         self.connection = db_connection 
         self.user = user
         self.metadata = Base.metadata

@@ -1,5 +1,5 @@
 from common_testcase import CommonTestCase, unittest 
-from BioPortRepository.person import Person
+from bioport_repository.person import Person
 
 class PersonTestCase(CommonTestCase):
         

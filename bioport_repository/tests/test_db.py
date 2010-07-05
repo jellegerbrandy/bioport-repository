@@ -1,8 +1,8 @@
 from common_testcase import CommonTestCase, unittest 
-from BioPortRepository.db import *
+from bioport_repository.db import *
+
 
 class DBRepositoryTestCase(CommonTestCase):
-
         
     def test_basics(self): 
         db = self.db
@@ -199,6 +199,7 @@ class DBRepositoryTestCase(CommonTestCase):
         repo.save_person(person)
         self.assertEqual(len(repo.get_persons(hide_invisible=True)), 9)
         self.assertEqual(len(repo.get_persons(hide_invisible=False)), 10)
+
     def test_get_all_places(self):
         self.create_filled_repository()
         db = self.db

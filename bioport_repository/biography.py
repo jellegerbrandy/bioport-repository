@@ -1,15 +1,21 @@
+#!/usr/bin/env python
+
 import sys
 import os
-from biodes import BioDesDoc
-from BioPortRepository.illustration import Illustration
-from BioPortRepository.data_extraction import BioDataExtractor
 import time
-from names.common import html2unicode
-from lxml import etree
 import re
+import types
+
+from names.common import html2unicode
+
+from biodes import BioDesDoc
+from bioport_repository.illustration import Illustration
+from bioport_repository.data_extraction import BioDataExtractor
+
+from lxml import etree
 from string import rsplit
 from zLOG import WARNING, LOG, INFO
-import types
+
 
 def create_biography_id(source_id, local_id):        
     id = '%s/%s' % (source_id, local_id)
@@ -18,6 +24,7 @@ def create_biography_id(source_id, local_id):
         LOG('BioPort',  WARNING, 'Ids can be maximally 50 characters long; this one is %s: "%s"\nShorted it to 50 characters' % (len(id), id))
         id = id[:50]
     return id
+
     
 class Biography(object, BioDesDoc): #, SVNEntry):
     def __init__(self,

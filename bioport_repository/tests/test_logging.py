@@ -1,7 +1,8 @@
 from common_testcase import CommonTestCase, unittest , this_dir
-from BioPortRepository.db import *
-class LoggingTestCase(CommonTestCase):
+from bioport_repository.db import *
 
+
+class LoggingTestCase(CommonTestCase):
     
     def log_message_exists(self, msg, user, table, id):
         session= self.repo.get_session()
