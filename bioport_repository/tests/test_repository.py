@@ -1,4 +1,4 @@
-from common_testcase import CommonTestCase, unittest , this_dir
+from bioport_repository.tests.common_testcase import CommonTestCase, unittest , THIS_DIR
 
 from bioport_repository.repository import *
 from bioport_repository.db_definitions import *
@@ -7,7 +7,7 @@ from bioport_repository.person import Person
 
 class RepositoryTestCase(CommonTestCase):
     def test_download_bios(self):
-        url = os.path.abspath(os.path.join(this_dir, 'data/knaw/list.xml'))
+        url = os.path.abspath(os.path.join(THIS_DIR, 'data/knaw/list.xml'))
         #add some sources source
         src = Source(id=u'test', url=url , description=u'test')
         self.repo.add_source(src)
@@ -87,7 +87,7 @@ class RepositoryTestCase(CommonTestCase):
         
     def test_source_manipulation(self):  
         i = self.repo 
-        url = 'file://%s' % os.path.abspath(os.path.join(this_dir, 'data/knaw/list.xml'))
+        url = 'file://%s' % os.path.abspath(os.path.join(THIS_DIR, 'data/knaw/list.xml'))
         sources = i.get_sources()
         
         #add some sources source

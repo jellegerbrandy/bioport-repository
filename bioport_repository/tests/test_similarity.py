@@ -1,6 +1,6 @@
 
 #XXX move this test to similarity/tests
-from common_testcase import CommonTestCase, unittest
+from bioport_repository.tests.common_testcase import CommonTestCase, unittest
 from bioport_repository.db_definitions import CacheSimilarityPersons
 from bioport_repository.similarity.similarity import Similarity
 

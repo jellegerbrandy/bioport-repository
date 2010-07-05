@@ -1,9 +1,9 @@
-from common_testcase import CommonTestCase, unittest 
+from bioport_repository.tests.common_testcase import CommonTestCase, unittest 
 from bioport_repository.repository import *
 from bioport_repository.source import Source
 
 
-this_dir = os.path.split(os.path.abspath(__file__))[0]
+THIS_DIR = os.path.split(os.path.abspath(__file__))[0]
 
 
 class WorkflowTestCase(CommonTestCase):
@@ -20,13 +20,13 @@ class WorkflowTestCase(CommonTestCase):
         #------------------------ 
         #download data from a source
         #------------------------ 
-        url = 'file://%s' % os.path.join(this_dir, 'data/knaw/list.xml')
+        url = 'file://%s' % os.path.join(THIS_DIR, 'data/knaw/list.xml')
         source = Source(id=u'test', url=url , description=u'test', repository=repository)
         
         repository.add_source(source)
         repository.download_biographies(source)
         
-        url = 'file://%s' % os.path.join(this_dir, 'data/knaw2/list.xml')
+        url = 'file://%s' % os.path.join(THIS_DIR, 'data/knaw2/list.xml')
         source = Source(id=u'knaw2', url=url , description=u'test', repository=repository)
         
         repository.add_source(source)

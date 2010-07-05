@@ -1,4 +1,4 @@
-from common_testcase import CommonTestCase, unittest 
+from bioport_repository.tests.common_testcase import CommonTestCase, unittest 
 from bioport_repository.merged_biography import MergedBiography
 from lxml import etree
 

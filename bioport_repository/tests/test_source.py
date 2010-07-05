@@ -1,4 +1,4 @@
-from common_testcase import CommonTestCase, unittest , this_dir
+from bioport_repository.tests.common_testcase import CommonTestCase, unittest , THIS_DIR
 
 from bioport_repository.source import *
 
@@ -6,7 +6,7 @@ class SourceTestCase(CommonTestCase):
         
     def Xtest_source(self): 
         #XXX temporary disabled  tests pertaining to SVN
-        url = os.path.abspath(os.path.join(this_dir, 'data/knaw/list.xml'))
+        url = os.path.abspath(os.path.join(THIS_DIR, 'data/knaw/list.xml'))
         assert os.path.exists(url), url
         url = 'file://%s' % url
         #add some sources source

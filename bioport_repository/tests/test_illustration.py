@@ -9,13 +9,13 @@ import shutil
 
 import PIL.Image
 
-from common_testcase import CommonTestCase, IMAGES_CACHE_LOCAL
+from bioport_repository.tests.common_testcase import CommonTestCase, IMAGES_CACHE_LOCAL
 from bioport_repository.illustration import Illustration
 
 
-this_dir = os.path.abspath(os.path.dirname(__file__))
-url_root = 'file://%s/data/images' % this_dir
-images = '%s/data/images' % this_dir
+THIS_DIR = os.path.abspath(os.path.dirname(__file__))
+url_root = 'file://%s/data/images' % THIS_DIR
+images = '%s/data/images' % THIS_DIR
 images_cache_local = IMAGES_CACHE_LOCAL 
 images_cache_url = 'file://%s' % IMAGES_CACHE_LOCAL 
 fn = 'image1.jpg'

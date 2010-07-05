@@ -1,4 +1,4 @@
-from common_testcase import CommonTestCase, unittest , this_dir
+from bioport_repository.tests.common_testcase import CommonTestCase, unittest , THIS_DIR
 from bioport_repository.db import *
 
 
@@ -35,7 +35,7 @@ class LoggingTestCase(CommonTestCase):
     def test_logging(self):
         repo = self.repo
         
-        url = 'file://%s' % os.path.abspath(os.path.join(this_dir, 'data/knaw/list.xml'))
+        url = 'file://%s' % os.path.abspath(os.path.join(THIS_DIR, 'data/knaw/list.xml'))
         source = Source(id=u'test1', url=url , description='test')
         self.repo.add_source(source)
         self.assertEqual(self.last_log_message().table, 'source')

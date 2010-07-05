@@ -1,6 +1,6 @@
 import os
 
-from common_testcase import CommonTestCase, this_dir, unittest
+from bioport_repository.tests.common_testcase import CommonTestCase, THIS_DIR, unittest
 from bioport_repository.repository import Source
 from bioport_repository.db_definitions import STATUS_NEW
 
@@ -9,7 +9,7 @@ class RepositoryTestCase(CommonTestCase):
     def test_download_changed_bios(self):
         print 'DONWNLOADING knaw/list.xml'
         repo = self.repo
-        url = os.path.abspath(os.path.join(this_dir, 'data/knaw/list.xml'))
+        url = os.path.abspath(os.path.join(THIS_DIR, 'data/knaw/list.xml'))
         #add some sources source
         SOURCE_ID = u'test1'
         BASE = 10
@@ -27,7 +27,7 @@ class RepositoryTestCase(CommonTestCase):
         self.assertEqual(set([p.bioport_id for p in old_persons]), set([p.bioport_id for p in repo.get_persons()]))
         
         #now we change the biographies that are available in some of the sources
-        url2 = os.path.abspath(os.path.join(this_dir, 'data/knaw_changed/list.xml'))
+        url2 = os.path.abspath(os.path.join(THIS_DIR, 'data/knaw_changed/list.xml'))
         src.url = url2
         repo.download_biographies(src)
 #        ls = [p.title() for p in  old_persons]
@@ -72,14 +72,14 @@ class RepositoryTestCase(CommonTestCase):
         
     def test_delete_effects(self):
         repo = self.repo
-        url = os.path.abspath(os.path.join(this_dir, 'data/knaw/list.xml'))
+        url = os.path.abspath(os.path.join(THIS_DIR, 'data/knaw/list.xml'))
         SOURCE_ID = u'test1'
         src_knaw = src = Source(id=SOURCE_ID, url=url , description='knaw test dinges...')
         self.assertEqual(src.url, url)
         repo.add_source(src)
         repo.download_biographies(src)
         repo.delete_biographies(src)
-        src_knaw.url = os.path.join(this_dir, 'data/knaw2/list.xml')
+        src_knaw.url = os.path.join(THIS_DIR, 'data/knaw2/list.xml')
         repo.download_biographies(src_knaw)
         
         i= 0
@@ -95,7 +95,7 @@ class RepositoryTestCase(CommonTestCase):
         SOURCE_ID = u'test1'
         SOURCE_ID2 = u'test2'
         self.assertEqual(len(repo.get_persons()), BASE)
-        url = os.path.abspath(os.path.join(this_dir, 'data/knaw/list.xml'))
+        url = os.path.abspath(os.path.join(THIS_DIR, 'data/knaw/list.xml'))
         src_knaw = src = Source(id=SOURCE_ID, url=url , description='knaw test dinges...')
         self.assertEqual(src.url, url)
         repo.add_source(src)
@@ -105,7 +105,7 @@ class RepositoryTestCase(CommonTestCase):
         persons = repo.get_persons()
         self.assertEqual(len(persons), BASE+5)
        
-        url = os.path.abspath(os.path.join(this_dir, 'data/knaw2/list.xml'))
+        url = os.path.abspath(os.path.join(THIS_DIR, 'data/knaw2/list.xml'))
         src = Source(id=SOURCE_ID2, url=url , description='knaw test dinges')
         repo.add_source(src)
         repo.download_biographies(src)
@@ -151,7 +151,7 @@ class RepositoryTestCase(CommonTestCase):
             bio.set_value('geboortedatum_tekst',  '000%s'% i)
             repo.save_biography(bio)        
 #        print [p.get_biographies()[-1].get_local_id() for p in  repo.get_persons()]
-        src_knaw.url = os.path.join(this_dir, 'data/knaw_changed/list.xml')
+        src_knaw.url = os.path.join(THIS_DIR, 'data/knaw_changed/list.xml')
         repo.download_biographies(src_knaw)
 #        print [p.get_biographies()[-1].get_local_id() for p in  repo.get_persons()]
         self.assertEqual(len(repo.get_persons()), BASE + 8)
@@ -175,8 +175,8 @@ class RepositoryTestCase(CommonTestCase):
         #2. the bioport_id shoudl still exist
         #3. if we have no more biographies for this person, the person shoudl disappear 
         repo = self.repo
-        url1 = os.path.abspath(os.path.join(this_dir, 'data/knaw/list.xml'))
-        url2 = os.path.abspath(os.path.join(this_dir, 'data/knaw2/list.xml'))
+        url1 = os.path.abspath(os.path.join(THIS_DIR, 'data/knaw/list.xml'))
+        url2 = os.path.abspath(os.path.join(THIS_DIR, 'data/knaw2/list.xml'))
         
         src = Source(id=u'test', url=url1 , description='knaw test dinges')
         repo.add_source(src)

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from common_testcase import CommonTestCase, unittest 
+from bioport_repository.tests.common_testcase import CommonTestCase, unittest 
 from bioport_repository.person import Person
 
 
