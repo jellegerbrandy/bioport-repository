@@ -96,7 +96,6 @@ class RepositoryTestCase(CommonTestCase):
         
         src2 = i.add_source(Source(id=u'test2', url=url , description=u'test2 description'))
        
-        #now we havefile:///home/jelle/zope-instances/bioport/Products/BioPortRepository/tests/data/knaw two sources 
         self.assertEqual(len(i.get_sources()), len(sources) + 2, i.get_sources())
         #and the source we added is among  them
         assert 'test' in [s.id for s in i.get_sources()], i.get_sources()
