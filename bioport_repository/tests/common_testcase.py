@@ -2,10 +2,11 @@ import os
 import sys
 import unittest
 import shutil
+import atexit
+import subprocess
 
 from bioport_repository.repository import Repository
 from bioport_repository.source import Source
-from unittest import TestCase
 
 
 THIS_DIR = os.path.split(os.path.abspath(__file__))[0]
@@ -14,14 +15,24 @@ SVN_REPOSITORY_LOCAL_COPY = os.path.abspath(os.path.join(THIS_DIR, 'data/bioport
 IMAGES_CACHE_LOCAL = os.path.join(THIS_DIR, 'tmp')
 SQLDUMP_FILENAME =os.path.join(THIS_DIR, 'data/bioport_mysqldump.sql')
 
-class CommonTestCase(TestCase):
+
+    
+
+def sh(cmd):
+    """Run a shell command and wait for completion.
+    Raises an exception if something goes bad.
+    """
+    return subprocess.check_call(cmd, shell=True)
+    
+
+class CommonTestCase(unittest.TestCase):
     
     _fill_repository =True
     
-    def setUp(self):
+    def setUp(self):               
         if os.path.isdir(SVN_REPOSITORY):
             shutil.rmtree(SVN_REPOSITORY)
-        os.popen('svnadmin create %s --pre-1.4-compatible' % SVN_REPOSITORY)
+        sh('svnadmin create %s --pre-1.4-compatible' % SVN_REPOSITORY)
         if not os.path.isdir(IMAGES_CACHE_LOCAL):
             os.mkdir(IMAGES_CACHE_LOCAL)
 
@@ -31,15 +42,19 @@ class CommonTestCase(TestCase):
               db_connection='mysql://localhost/bioport_test',
               images_cache_local=IMAGES_CACHE_LOCAL,
               )
-    
+              
+        self.repo.db.metadata.drop_all()
+        if not os.path.isfile(SQLDUMP_FILENAME):
+            self.create_filled_repository_from_scratch()
+
         self.create_filled_repository()
-        self.db = self.repo.db
+        self.db = self.repo.db       
         
     def tearDown(self):
         #clean out the repository
         #get whatever data there was
-        os.popen('rm -rf %s' % SVN_REPOSITORY ) 
-        os.popen('rm -rf %s' % SVN_REPOSITORY_LOCAL_COPY ) 
+        sh('rm -rf %s' % SVN_REPOSITORY ) 
+        sh('rm -rf %s' % SVN_REPOSITORY_LOCAL_COPY ) 
         
         #remove also all data from the database
         self.repo.db.metadata.drop_all()
@@ -75,9 +90,8 @@ class CommonTestCase(TestCase):
             self.repo.add_source(source)
             self.repo.download_biographies(source)
         self.repo.db._update_category_table()
-        print os.popen3('mysqldump bioport_test > %s' % SQLDUMP_FILENAME)
+        sh('mysqldump bioport_test > %s' % SQLDUMP_FILENAME)
         self._is_filled =True
-        
         return self.repo
     
 class CommonTestCaseTest(CommonTestCase):
@@ -94,6 +108,15 @@ def create_mysqldump():
     open(SQLDUMP_FILENAME,'w').write('show tables')
     unittest.main(defaultTest='CommonTestCase.create_filled_repository_from_scratch')
     
+
+# remove any sqldump test file which might have been left behind 
+# by previous test runs, plus schedule its removal when the process
+# exits
+if os.path.isfile(SQLDUMP_FILENAME):
+    os.remove(SQLDUMP_FILENAME)
+atexit.register(lambda: os.remove(SQLDUMP_FILENAME))
+
+
 if __name__ == "__main__":
     create_mysqldump()
     unittest.main()
