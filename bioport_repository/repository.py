@@ -277,7 +277,7 @@ class Repository(object):
     def delete_orphaned_persons(self, **args):
         #remove all elements from the person table that do not have any biographies associated with them anymore
         for p in self.get_persons(**args):
-            LOG('BioPort', INFO, '%s'% p)
+#            LOG('BioPort', INFO, '%s'% p)
             if not p.get_biographies():
                 self.delete_person(p)
         return 

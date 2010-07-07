@@ -72,10 +72,14 @@ class  Illustration:
         url = self._url
 #        url = url[:len('http://'):] + urllib2.quote(url[len('http://'):].encode('utf8'))
 #        url  =self._url.encode('utf8')
+#        import pdb; pdb.set_trace()
         try:
-            print 'downloading image at %s to %s' % (url, self.cached_local())
+            msg = 'downloading image at %s to %s' % (url, self.cached_local())
         except:
-            print 'donwloading image - filename could ot be printed'
+            LOG('BioPort', INFO, 'donwloading image - filename could ot be printed')
+        else:
+            LOG('BioPort', INFO, msg)
+            
         try:
             f = urllib2.urlopen(url)
         except (urllib2.HTTPError, OSError):
@@ -86,7 +90,6 @@ class  Illustration:
             except (urllib2.HTTPError, OSError), error:
                 msg= 'WARNING: error downloading %s [%s]' % (repr(url), error)
                 LOG('BioPort', WARNING, msg)
-                print msg
                 return
         except UnicodeEncodeError: 
             url = url.encode('latin1')
@@ -96,7 +99,6 @@ class  Illustration:
             except (urllib2.HTTPError, OSError), error:
                 msg= 'WARNING: error downloading %s [%s]' % (repr(url), error)
                 LOG('BioPort', WARNING, msg)
-                print msg
                 return 
         
         fh = open(self.cached_local(), 'w')
