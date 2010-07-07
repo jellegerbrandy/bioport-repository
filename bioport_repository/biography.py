@@ -284,7 +284,8 @@ class Biography(object, BioDesDoc): #, SVNEntry):
             result.append(Illustration(
                  url=url, 
                  images_cache_local=images_cache_local,
-                 images_cache_url=images_cache_url, prefix=prefix,
+                 images_cache_url=images_cache_url, 
+                 prefix=prefix,
                  caption=caption,
                  link_url=self.get_value('url_biografie'),
                  ))

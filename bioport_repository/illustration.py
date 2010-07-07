@@ -12,7 +12,7 @@ DEFAULT_WIDTH = 120
 DEFAULT_HEIGHT = 100
 
 
-class  Illustration:
+class Illustration:
     """XXX - needs docstring"""
 
     def __init__(self,
