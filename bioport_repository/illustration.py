@@ -8,6 +8,8 @@ import PIL.Image
 from cStringIO import StringIO
 from zLOG import WARNING, LOG, INFO
 
+import simplejson
+
 DEFAULT_WIDTH = 120
 DEFAULT_HEIGHT = 100
 
@@ -36,7 +38,16 @@ class Illustration:
         self._images_cache_url = images_cache_url  or ''
         self._prefix = prefix
         self._link_url = link_url
-        self.caption = caption
+        self._caption = caption
+
+    @property
+    def caption(self):
+        return self._caption
+        
+    @property
+    def json_stripped_caption(self):
+#        import pdb; pdb.set_trace()
+        return simplejson.dumps(self.caption)
         
     def create_id(self):
         url = self._url
@@ -54,6 +65,7 @@ class Illustration:
     def source_url(self):
         """the original url of the image (typically on an external sever)"""
         return self._url
+        
     def cached_local(self):
         """path on the local file system to a copy of the image"""
         return os.path.join(self._images_cache_local,  self.create_id())
@@ -142,7 +154,7 @@ class Illustration:
 	            os.mkdir("/".join((self._images_cache_local, 'thumbnails')))
 	            fh = open(self.cached_thumbnail_local(width, height), 'w')
             except OSError, error:
-                #XXX LOG error
+                # XXX LOG error
                 return
             
         fh.write(data)
@@ -163,7 +175,7 @@ class Illustration:
     def cached_thumbnail_local(self, width=DEFAULT_WIDTH, height=DEFAULT_HEIGHT):
         return os.path.join(self._images_cache_local,  'thumbnails', '%ix%i_%s'
                             % (width, height, self.create_id()))
-                            
+
 
 def get_digest(astring):
     return md5(astring).hexdigest()
