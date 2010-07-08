@@ -114,6 +114,13 @@ class BiographyTestCase(CommonTestCase):
         bio = repo.get_biography(local_id='knaw/005')
         self.assertEqual(bio.get_names()[0].to_string(), '<persName>Arien A</persName>')
     
+    def test_clean_snippet(self): 
+        self.create_filled_repository()
+        repo = self.repo
+        bio = repo.get_biography(local_id='knaw/005')
+        snippet = bio.snippet()
+        self.assertFalse('USELESS_TEXT' in snippet)
+    
     def test_get_set_snippet(self):
         #make a new biography
         bio = self.repo.get_biographies()[5]

@@ -89,6 +89,10 @@ class Biography(object, BioDesDoc): #, SVNEntry):
     def get_text_without_markup(self):
         text = self.get_value('tekst')
         if text:
+            for tagname in ('head', 'style', 'script'):
+                start, end = "<%s>" % tagname, "</%s>" % tagname
+                expr = "%(start)s.*?%(end)s" % locals()
+                text = re.compile(expr, re.IGNORECASE|re.DOTALL).sub( '', text)
             text = re.compile('<.*?>',re.DOTALL).sub( '', text)
             text = html2unicode(text)
             text = text.strip()
