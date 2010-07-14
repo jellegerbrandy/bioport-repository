@@ -6,6 +6,7 @@ from bioport_repository.person import Person
 
 
 class RepositoryTestCase(CommonTestCase):
+
     def test_download_bios(self):
         url = os.path.abspath(os.path.join(THIS_DIR, 'data/knaw/list.xml'))
         #add some sources source
