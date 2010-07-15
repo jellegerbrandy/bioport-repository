@@ -45,9 +45,9 @@ class IllustrationTestCase(CommonTestCase):
             prefix = 'test',
             )
         ill.download()
-        local_fn =  ill.cached_local()
+        local_fn =  ill.cached_local
         self.failUnless(os.path.exists(local_fn))
-        self.failUnless(urllib2.urlopen(ill.cached_url()).read())
+        self.failUnless(urllib2.urlopen(ill.cached_url).read())
         
         
         ill = Illustration(
@@ -57,10 +57,10 @@ class IllustrationTestCase(CommonTestCase):
             prefix = 'test'
             )
         ill.download()
-        image_path = ill.cached_local()
+        image_path = ill.cached_local
         self.failUnless(os.path.exists(image_path))
         self.failUnless(os.listdir(images_cache_local))
-        image_url = ill.cached_url()
+        image_url = ill.cached_url
         image_contents = urllib2.urlopen(image_url).read()      
         self.failUnless(image_contents)
         
@@ -78,12 +78,11 @@ class IllustrationTestCase(CommonTestCase):
                     #should have downloaded this image
                     illustration.download()
  
-                    self.failUnless(os.path.exists(illustration.cached_local()))
-                    url = illustration.cached_url()
+                    self.failUnless(os.path.exists(illustration.cached_local))
+                    url = illustration.cached_url
                     self.failUnless(urllib2.urlopen(url).read())
-                    path = illustration.cached_local()
+                    path = illustration.cached_local
                     self.failUnless(os.path.exists(path))
-
 
     def test_illustration_with_same_name_as_another(self):
         repo = self.repo
@@ -96,9 +95,11 @@ class IllustrationTestCase(CommonTestCase):
             for biography  in person.get_biographies():
                 for illustration in biography.get_illustrations():
                     illustrations.append(illustration)
-        illustration_paths = [a.cached_local() for a in illustrations]
+        illustration_paths = [a.cached_local for a in illustrations]
+
 
 class ThumbnailTestCase(unittest.TestCase):
+
     def setUp(self):
         if not os.path.exists(images_cache_local):
             os.mkdir(images_cache_local)
@@ -109,6 +110,7 @@ class ThumbnailTestCase(unittest.TestCase):
             images_cache_url =images_cache_url,
             prefix = 'test'
             )
+
     def test_thumbnail_generation(self):
         ill = self.ill
 #        self.failIf(ill.has_thumbnail(width=50, height=50))
@@ -118,6 +120,7 @@ class ThumbnailTestCase(unittest.TestCase):
         thumbnail_data = urllib2.urlopen(thumbnail_url).read()
         img = PIL.Image.open(StringIO(thumbnail_data))
         self.failUnless(img.size[0]==50 or img.size[1]==50)
+
     def test_on_demand_thumbnail_generation(self):
         ill = self.ill
         thumbnail_url = ill.thumbnail_url(width=50, height=50)
@@ -128,3 +131,5 @@ class ThumbnailTestCase(unittest.TestCase):
 if __name__ == "__main__":
     unittest.main(defaultTest='IllustrationTestCase.test_illustration_in_repository')
     unittest.main()
+    
+

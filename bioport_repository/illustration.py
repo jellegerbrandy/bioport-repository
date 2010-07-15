@@ -3,28 +3,29 @@
 import os
 import urllib2
 from hashlib import md5
+import simplejson
 
 import PIL.Image
 from cStringIO import StringIO
 from zLOG import WARNING, LOG, INFO
 
-import simplejson
-
 DEFAULT_WIDTH = 120
 DEFAULT_HEIGHT = 100
+
+
+def get_digest(astring):
+    return md5(astring).hexdigest()
 
 
 class Illustration:
     """XXX - needs docstring"""
 
-    def __init__(self,
-        url, 
-        images_cache_local,
-        images_cache_url,
-        prefix = '',
-        caption=None,
-        link_url=None,
-        ): 
+    def __init__(self, url, 
+                       images_cache_local,
+                       images_cache_url,
+                       prefix = '',
+                       caption=None,
+                       link_url=None): 
         """
         arguments:
            url  : the original url of the image
@@ -46,47 +47,54 @@ class Illustration:
         
     @property
     def json_stripped_caption(self):
-#        import pdb; pdb.set_trace()
         return simplejson.dumps(self.caption)
-        
-    def create_id(self):
-        url = self._url
-        filename = url.split('/')[-1]
-        #create a unique hash on the basis of the url
-        #(the hash code is created in this somewhat illogical way to maintian compatibility with earlier versions)
-        url_to_hash = '/'.join(url.split('/')[:-1])
-        if '?' in url:
-            url_to_hash=url
-        digest = get_digest(url_to_hash)
-        filename = filename.split('?')[0]
-        filename = '%s_%s_%s' % (self._prefix, digest, filename)
-        return filename
     
+    @property
     def source_url(self):
         """the original url of the image (typically on an external sever)"""
         return self._url
         
+    @property          
     def cached_local(self):
         """path on the local file system to a copy of the image"""
         return os.path.join(self._images_cache_local,  self.create_id())
     
+    @property
     def cached_url(self):
         """public url of the local copy of the image"""
         return os.path.join(self._images_cache_url, self.create_id())
 
+    @property
     def link_url(self):
         return self._link_url
+  
+    def cached_thumbnail_local(self, width=DEFAULT_WIDTH, height=DEFAULT_HEIGHT):
+        return os.path.join(self._images_cache_local,  'thumbnails', '%ix%i_%s'
+                            % (width, height, self.create_id()))
         
+    def thumbnail_url(self, width=DEFAULT_WIDTH, height=DEFAULT_HEIGHT):
+        """public url of the thumbnail of this image
+           If the thumbnail doesn't exist yet it wil be generated"""
+        if not self.has_thumbnail(width,height):
+            try:
+	            self.create_thumbnail(width,height, refresh=True)
+            except IOError: #probably because we cannot find the original file either
+                #we let this go, because we do not want the whole page to throw an error
+                #because of a broken link
+                pass
+        return "/".join((self._images_cache_url, 'thumbnails', '%ix%i_%s'
+                        % (width, height, self.create_id()) ))
+
     def download(self, refresh=True):
-        if not refresh and os.path.exists(self.cached_local()):
-            #print 'image already exists at %s - no image downloaded' % self.cached_local()
+        if not refresh and os.path.exists(self.cached_local):
+            #print 'image already exists at %s - no image downloaded' % self.cached_local
             return
         url = self._url
 #        url = url[:len('http://'):] + urllib2.quote(url[len('http://'):].encode('utf8'))
 #        url  =self._url.encode('utf8')
 #        import pdb; pdb.set_trace()
         try:
-            msg = 'downloading image at %s to %s' % (url, self.cached_local())
+            msg = 'downloading image at %s to %s' % (url, self.cached_local)
         except:
             LOG('BioPort', INFO, 'donwloading image - filename could ot be printed')
         else:
@@ -113,7 +121,7 @@ class Illustration:
                 LOG('BioPort', WARNING, msg)
                 return 
         
-        fh = open(self.cached_local(), 'w')
+        fh = open(self.cached_local, 'w')
         fh.write(f.read())
         fh.close()
 
@@ -129,14 +137,14 @@ class Illustration:
         if not refresh and self.has_thumbnail(keys['width'],keys['height']):
             return 
         # download the image if it doesn't exist
-        if not os.path.isfile(self.cached_local()):
+        if not os.path.isfile(self.cached_local):
             self.download()
         pilfilter = 0 # NEAREST
         #check for the pil version and enable antialias if > 1.1.3
         if PIL.Image.VERSION >= "1.1.3":
             pilfilter = 1 # ANTIALIAS
 
-        image = PIL.Image.open(self.cached_local())
+        image = PIL.Image.open(self.cached_local)
         image = image.convert('RGB')
         image.thumbnail((keys['width'],keys['height']), pilfilter)
         thumbnail_file = StringIO()
@@ -160,23 +168,17 @@ class Illustration:
         fh.write(data)
         fh.close()
 
-    def thumbnail_url(self, width=DEFAULT_WIDTH, height=DEFAULT_HEIGHT):
-        """public url of the thumbnail of this image
-           If the thumbnail doesn't exist yet it wil be generated"""
-        if not self.has_thumbnail(width,height):
-            try:
-	            self.create_thumbnail(width,height, refresh=True)
-            except IOError: #probably because we cannot find the original file either
-                #we let this go, because we do not want the whole page to throw an error
-                #because of a broken link
-                pass
-        return "/".join((self._images_cache_url, 'thumbnails', '%ix%i_%s'
-                        % (width, height, self.create_id()) ))
-    def cached_thumbnail_local(self, width=DEFAULT_WIDTH, height=DEFAULT_HEIGHT):
-        return os.path.join(self._images_cache_local,  'thumbnails', '%ix%i_%s'
-                            % (width, height, self.create_id()))
+    def create_id(self):
+        url = self._url
+        filename = url.split('/')[-1]
+        #create a unique hash on the basis of the url
+        #(the hash code is created in this somewhat illogical way to maintian compatibility with earlier versions)
+        url_to_hash = '/'.join(url.split('/')[:-1])
+        if '?' in url:
+            url_to_hash=url
+        digest = get_digest(url_to_hash)
+        filename = filename.split('?')[0]
+        filename = '%s_%s_%s' % (self._prefix, digest, filename)
+        return filename
 
-
-def get_digest(astring):
-    return md5(astring).hexdigest()
 

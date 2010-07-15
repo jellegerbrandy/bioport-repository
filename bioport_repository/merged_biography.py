@@ -39,7 +39,7 @@ class MergedBiography:
                 doc._add_event_element(event)
         #add illustrations
         for ill in self.get_illustrations():
-            doc._add_figure(url=ill.source_url(), head=ill.caption)
+            doc._add_figure(url=ill.source_url, head=ill.caption)
         #add links to all sources
         for bio in self.get_biographies():
             if bio.get_source().id != 'bioport':

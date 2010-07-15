@@ -292,7 +292,7 @@ class Repository(object):
                 break
 #            print i, bio, bio.get_illustrations(), bio.get_value('illustraties')
             for ill in bio.get_illustrations():
-#                url = ill.source_url()
+#                url = ill.source_url
                 ill.download(refresh=refresh)
                 
     def add_biography(self, bio):
