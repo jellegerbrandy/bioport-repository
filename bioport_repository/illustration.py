@@ -1,13 +1,17 @@
 #!/usr/bin/env python
 
+from __future__ import with_statement
+
 import os
 import urllib2
+import traceback
+import sys
 from hashlib import md5
 import simplejson
 
 import PIL.Image
 from cStringIO import StringIO
-from zLOG import WARNING, LOG, INFO
+from zLOG import WARNING, LOG, INFO, ERROR
 
 DEFAULT_WIDTH = 120
 DEFAULT_HEIGHT = 100
@@ -15,6 +19,11 @@ DEFAULT_HEIGHT = 100
 
 def get_digest(astring):
     return md5(astring).hexdigest()
+
+def logexception():
+    msg = traceback.format_exc()
+    print >>sys.stderr
+    LOG('BioPort', ERROR, msg)
 
 
 class Illustration:
@@ -74,14 +83,16 @@ class Illustration:
         
     def thumbnail_url(self, width=DEFAULT_WIDTH, height=DEFAULT_HEIGHT):
         """public url of the thumbnail of this image
-           If the thumbnail doesn't exist yet it wil be generated"""
+        If the thumbnail doesn't exist yet it wil be generated
+        """
         if not self.has_thumbnail(width,height):
             try:
 	            self.create_thumbnail(width,height, refresh=True)
-            except IOError: #probably because we cannot find the original file either
-                #we let this go, because we do not want the whole page to throw an error
-                #because of a broken link
-                pass
+            except IOError: 
+                # probably because we cannot find the original file either
+                # we let this go, because we do not want the whole page to throw an error
+                # because of a broken link
+                logexception() 
         return "/".join((self._images_cache_url, 'thumbnails', '%ix%i_%s'
                         % (width, height, self.create_id()) ))
 
@@ -92,7 +103,6 @@ class Illustration:
         url = self._url
 #        url = url[:len('http://'):] + urllib2.quote(url[len('http://'):].encode('utf8'))
 #        url  =self._url.encode('utf8')
-#        import pdb; pdb.set_trace()
         try:
             msg = 'downloading image at %s to %s' % (url, self.cached_local)
         except:
@@ -125,44 +135,51 @@ class Illustration:
         fh.write(f.read())
         fh.close()
 
-    def create_thumbnail(self,
-                         width=DEFAULT_WIDTH, height=DEFAULT_HEIGHT,
-                         refresh=False):
+    def create_thumbnail(self, width=DEFAULT_WIDTH, height=DEFAULT_HEIGHT,
+                               refresh=False):
         """ create a thumbnail of the image and store a local copy
             width and height are sizes in pixels - the image should fit within
             the rectangle defined by these sizes.
-            inspired from Products.Archetypes.Field"""
-        #make sure we have valid int's
-        keys = {'height':int(height), 'width':int(width)}
-        if not refresh and self.has_thumbnail(keys['width'],keys['height']):
+            inspired from Products.Archetypes.Field
+        """
+        width, height = int(width), int(height)       
+        if not refresh and self.has_thumbnail(width, height):
             return 
         # download the image if it doesn't exist
         if not os.path.isfile(self.cached_local):
             self.download()
-        pilfilter = 0 # NEAREST
-        #check for the pil version and enable antialias if > 1.1.3
+        pilfilter = 0  # NEAREST
+        # check for the pil version and enable antialias if > 1.1.3
         if PIL.Image.VERSION >= "1.1.3":
-            pilfilter = 1 # ANTIALIAS
+            pilfilter = 1  # ANTIALIAS
 
         image = PIL.Image.open(self.cached_local)
         image = image.convert('RGB')
-        image.thumbnail((keys['width'],keys['height']), pilfilter)
-        thumbnail_file = StringIO()
-        image.save(thumbnail_file, "JPEG", quality=88)
-        self._store_thumbnail(keys['width'],keys['height'], thumbnail_file.getvalue())
+        image.thumbnail((width, height), pilfilter)
+
+        file = StringIO()
+        image.save(file, "JPEG", quality=88)
+        file.seek(0)
+        data = file.read()
+        file.close()
+
+        self._store_thumbnail(width, height, data)
 
     def has_thumbnail(self, width=DEFAULT_WIDTH, height=DEFAULT_HEIGHT):
         return os.path.isfile(self.cached_thumbnail_local(width, height))
     
     def _store_thumbnail(self, width, height, data):
+        # we don't want to crash the entire app because we don't 
+        # have the permission to create the file, for example        
         try:
             fh = open(self.cached_thumbnail_local(width, height), 'w')
         except IOError, error:
+            logexception()
             try:
 	            os.mkdir("/".join((self._images_cache_local, 'thumbnails')))
 	            fh = open(self.cached_thumbnail_local(width, height), 'w')
             except OSError, error:
-                # XXX LOG error
+                logexception()
                 return
             
         fh.write(data)
