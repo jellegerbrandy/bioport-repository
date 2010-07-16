@@ -10,6 +10,7 @@ import shutil
 import PIL.Image
 
 from bioport_repository.tests.common_testcase import CommonTestCase, IMAGES_CACHE_LOCAL
+from bioport_repository.illustration import MEDIUM_THUMB_SIZE
 from bioport_repository.illustration import Illustration
 
 
@@ -31,11 +32,11 @@ class IllustrationTestCase(CommonTestCase):
 
     def test_create_id(self):
         ill = Illustration('xxx', None, None)
-        assert ill.create_id().endswith('xxx')
+        assert ill.id.endswith('xxx')
         ill = Illustration('xxx?asdf=xfajl&adsfklj=x', None, None)
         ill2 = Illustration('xxx?asdf=aaa&adsfklj=x', None, None)
-        assert ill.create_id().endswith('xxx')
-        self.assertNotEqual(ill.create_id(), ill2.create_id())
+        assert ill.id.endswith('xxx')
+        self.assertNotEqual(ill.id, ill2.id)
         
     def test_illustration_standalone(self):
         ill = Illustration(
@@ -113,20 +114,11 @@ class ThumbnailTestCase(unittest.TestCase):
 
     def test_thumbnail_generation(self):
         ill = self.ill
-#        self.failIf(ill.has_thumbnail(width=50, height=50))
-        ill.create_thumbnail(width=50, height=50)
-        self.failUnless(ill.has_thumbnail(width=50, height=50))
-        thumbnail_url = ill.thumbnail_url(width=50, height=50)
-        thumbnail_data = urllib2.urlopen(thumbnail_url).read()
-        img = PIL.Image.open(StringIO(thumbnail_data))
+        self._create_thumbnail(*MEDIUM_THUMB_SIZE)
+        data = urllib2.urlopen(ill.image_medium_url).read()
+        img = PIL.Image.open(StringIO(data))
         self.failUnless(img.size[0]==50 or img.size[1]==50)
 
-    def test_on_demand_thumbnail_generation(self):
-        ill = self.ill
-        thumbnail_url = ill.thumbnail_url(width=50, height=50)
-        thumbnail_data = urllib2.urlopen(thumbnail_url).read()
-        img = PIL.Image.open(StringIO(thumbnail_data))
-        self.failUnless(img.size[0]==50 or img.size[1]==50)
 
 if __name__ == "__main__":
     unittest.main(defaultTest='IllustrationTestCase.test_illustration_in_repository')
