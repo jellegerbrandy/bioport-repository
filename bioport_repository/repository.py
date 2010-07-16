@@ -294,6 +294,8 @@ class Repository(object):
             for ill in bio.get_illustrations():
 #                url = ill.source_url
                 ill.download(refresh=refresh)
+                ill.create_thumbnail(100, 100)
+                ill.create_thumbnail(200, 200)
                 
     def add_biography(self, bio):
         """add the biography - or update it if an biography with the same id already is present in the system

@@ -86,15 +86,17 @@ class Illustration:
         If the thumbnail doesn't exist yet it wil be generated
         """
         if not self.has_thumbnail(width,height):
-            try:
-	            self.create_thumbnail(width,height, refresh=True)
-            except IOError: 
+            return ""
+            # XXX
+#            try:
+#	            self.create_thumbnail(width,height, refresh=True)
+#            except IOError: 
                 # probably because we cannot find the original file either
                 # we let this go, because we do not want the whole page to throw an error
                 # because of a broken link
-                logexception() 
+#                logexception()                
         return "/".join((self._images_cache_url, 'thumbnails', '%ix%i_%s'
-                        % (width, height, self.create_id()) ))
+                        % (width, height, self.create_id())))
 
     def download(self, refresh=True):
         if not refresh and os.path.exists(self.cached_local):
