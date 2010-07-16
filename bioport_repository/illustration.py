@@ -9,13 +9,16 @@ import sys
 from hashlib import md5
 import simplejson
 
+from zLOG import LOG, INFO, ERROR, WARNING
 import PIL.Image
 from cStringIO import StringIO
-from zLOG import WARNING, LOG, INFO, ERROR
 
-DEFAULT_WIDTH = 120
-DEFAULT_HEIGHT = 100
 
+MEDIUM_THUMB_SIZE = (200, 200)
+SMALL_THUMB_SIZE = (100, 100)
+
+DEFAULT_WIDTH = 100
+DEFAULT_HEIGHT = 120
 
 def get_digest(astring):
     return md5(astring).hexdigest()
@@ -44,11 +47,22 @@ class Illustration:
            prefix : will be prefixed to the local cached filename 
         """
         self._url = url
-        self._images_cache_local = images_cache_local  or ''
+        self._images_cache_local = images_cache_local  or ''  # XXX it should be renamed in _images_directory
+        self._thumbnails_directory = os.path.join(self._images_cache_local, 'thumbnails')
+        if not os.path.isdir(self._thumbnails_directory):
+            os.mkdir(self._thumbnails_directory)
         self._images_cache_url = images_cache_url  or ''
         self._prefix = prefix
         self._link_url = link_url
         self._caption = caption
+
+
+    # --- public API used by the view
+
+    @property
+    def link_url(self):
+        """The url of the site the biography points to"""
+        return self._link_url
 
     @property
     def caption(self):
@@ -57,11 +71,27 @@ class Illustration:
     @property
     def json_stripped_caption(self):
         return simplejson.dumps(self.caption)
-    
+
+    @property
+    def original_image_url(self):
+        pass
+
+    # --- public API used *internally* (not by the view) 
+
     @property
     def source_url(self):
         """the original url of the image (typically on an external sever)"""
         return self._url
+
+    @property
+    def images_directory(self):
+        """The physical path on disk where the images are held/saved"""
+        return self._images_cache_local
+
+    @property
+    def thumbnails_directory(self):
+        """The physical path on disk where the thumbnails are held/saved"""
+        return self._thumbnails_directory
         
     @property          
     def cached_local(self):
@@ -73,10 +103,6 @@ class Illustration:
         """public url of the local copy of the image"""
         return os.path.join(self._images_cache_url, self.create_id())
 
-    @property
-    def link_url(self):
-        return self._link_url
-  
     def cached_thumbnail_local(self, width=DEFAULT_WIDTH, height=DEFAULT_HEIGHT):
         return os.path.join(self._images_cache_local,  'thumbnails', '%ix%i_%s'
                             % (width, height, self.create_id()))
@@ -98,20 +124,22 @@ class Illustration:
         return "/".join((self._images_cache_url, 'thumbnails', '%ix%i_%s'
                         % (width, height, self.create_id())))
 
-    def download(self, refresh=True):
-        if not refresh and os.path.exists(self.cached_local):
-            #print 'image already exists at %s - no image downloaded' % self.cached_local
+    def download(self, overwrite=True):
+        """Download the original image with original dimensions and saves it on
+        disk.
+
+        Also, create two resized images which will then by used in the view,
+        a medium and a smaller one, which will be saved im /thumbnails directory
+        """
+        if not overwrite and os.path.exists(self.cached_local):
+            print 'XXX - image already exists at %s - no image downloaded' % self.cached_local
             return
-        url = self._url
-#        url = url[:len('http://'):] + urllib2.quote(url[len('http://'):].encode('utf8'))
-#        url  =self._url.encode('utf8')
-        try:
-            msg = 'downloading image at %s to %s' % (url, self.cached_local)
-        except:
-            LOG('BioPort', INFO, 'donwloading image - filename could ot be printed')
-        else:
-            LOG('BioPort', INFO, msg)
-            
+
+        url = self.source_url
+        LOG('BioPort', INFO, 'downloading image from %s to %s' % (repr(url), repr(self.cached_local)))
+
+        #  XXX - temporary
+        """    
         try:
             f = urllib2.urlopen(url)
         except (urllib2.HTTPError, OSError):
@@ -131,62 +159,48 @@ class Illustration:
             except (urllib2.HTTPError, OSError), error:
                 msg= 'WARNING: error downloading %s [%s]' % (repr(url), error)
                 LOG('BioPort', WARNING, msg)
-                return 
-        
-        fh = open(self.cached_local, 'w')
-        fh.write(f.read())
-        fh.close()
-
-    def create_thumbnail(self, width=DEFAULT_WIDTH, height=DEFAULT_HEIGHT,
-                               refresh=False):
-        """ create a thumbnail of the image and store a local copy
-            width and height are sizes in pixels - the image should fit within
-            the rectangle defined by these sizes.
-            inspired from Products.Archetypes.Field
+                return
         """
-        width, height = int(width), int(height)       
-        if not refresh and self.has_thumbnail(width, height):
-            return 
-        # download the image if it doesn't exist
-        if not os.path.isfile(self.cached_local):
-            self.download()
+
+        # write main image file on disk
+        http = urllib2.urlopen(url)
+        with open(self.cached_local, 'w') as file:
+            file.write(http.read())
+
+        # wirte two smaller thumbs on disk
+        self._create_thumbnail(*MEDIUM_THUMB_SIZE)
+        self._create_thumbnail(*SMALL_THUMB_SIZE)
+
+    def _create_thumbnail(self, width, height):
+        """
+        Create a thumbnail of the image and store a local copy
+        width and height are sizes in pixels - the image should fit within
+        the rectangle defined by these sizes.
+        inspired from Products.Archetypes.Field
+        """
+        assert isinstance(width, int)
+        assert isinstance(height, int)       
+        if not os.path.isfile(self.cached_local): 
+              raise("the original image does not exists (it was supposed to be found here: %s)" 
+                     % self.cached_local)
+
+        # PIL stuff
         pilfilter = 0  # NEAREST
-        # check for the pil version and enable antialias if > 1.1.3
         if PIL.Image.VERSION >= "1.1.3":
             pilfilter = 1  # ANTIALIAS
-
         image = PIL.Image.open(self.cached_local)
         image = image.convert('RGB')
         image.thumbnail((width, height), pilfilter)
 
-        file = StringIO()
-        image.save(file, "JPEG", quality=88)
-        file.seek(0)
-        data = file.read()
-        file.close()
-
-        self._store_thumbnail(width, height, data)
+        # write on disk
+        basename = os.path.basename(self.cached_local)
+        basename = "%sx%s_%s" % (width, height, basename)
+        file = os.path.join(self.thumbnails_directory, basename)
+        image.save(file, "JPEG", quality=88) 
 
     def has_thumbnail(self, width=DEFAULT_WIDTH, height=DEFAULT_HEIGHT):
         return os.path.isfile(self.cached_thumbnail_local(width, height))
     
-    def _store_thumbnail(self, width, height, data):
-        # we don't want to crash the entire app because we don't 
-        # have the permission to create the file, for example        
-        try:
-            fh = open(self.cached_thumbnail_local(width, height), 'w')
-        except IOError, error:
-            logexception()
-            try:
-	            os.mkdir("/".join((self._images_cache_local, 'thumbnails')))
-	            fh = open(self.cached_thumbnail_local(width, height), 'w')
-            except OSError, error:
-                logexception()
-                return
-            
-        fh.write(data)
-        fh.close()
-
     def create_id(self):
         url = self._url
         filename = url.split('/')[-1]
