@@ -73,15 +73,28 @@ class Illustration:
         return simplejson.dumps(self.caption)
 
     @property
-    def original_image_url(self):
-        pass
-
-    # --- public API used *internally* (not by the view) 
-
-    @property
     def source_url(self):
         """the original url of the image (typically on an external sever)"""
         return self._url
+
+    @property
+    def cached_url(self):  # XXX - l'url dell'immagine originale: da rinominare !!!
+        """public url of the local copy of the image"""
+        return os.path.join(self._images_cache_url, self.create_id())
+        
+    @property
+    def image_medium_url(self):
+        width, height = MEDIUM_THUMB_SIZE
+        return os.path.join(self._images_cache_url,  'thumbnails', '%ix%i_%s'
+                            % (width, height, self.create_id()))
+
+    @property
+    def image_small_url(self):
+        width, height = SMALL_THUMB_SIZE
+        return os.path.join(self._images_cache_url,  'thumbnails', '%ix%i_%s'
+                            % (width, height, self.create_id()))
+
+    # --- public API used *internally* (not by the view) 
 
     @property
     def images_directory(self):
@@ -98,10 +111,6 @@ class Illustration:
         """path on the local file system to a copy of the image"""
         return os.path.join(self._images_cache_local,  self.create_id())
     
-    @property
-    def cached_url(self):
-        """public url of the local copy of the image"""
-        return os.path.join(self._images_cache_url, self.create_id())
 
     def cached_thumbnail_local(self, width=DEFAULT_WIDTH, height=DEFAULT_HEIGHT):
         return os.path.join(self._images_cache_local,  'thumbnails', '%ix%i_%s'
