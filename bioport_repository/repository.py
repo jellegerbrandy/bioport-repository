@@ -4,11 +4,12 @@
 
 import os
 import time
+import urllib2
 
 from plone.memoize import instance
 from lxml import etree
 from sqlalchemy.exceptions import IntegrityError, InvalidRequestError
-from zLOG import WARNING, LOG, INFO 
+from zLOG import WARNING, LOG, INFO, ERROR
 import biodes
 
 from bioport_repository.db_definitions import STATUS_NEW, STATUS_VALUES
@@ -19,6 +20,7 @@ from bioport_repository.person import Person
 from bioport_repository.repocommon import BioPortException
 from bioport_repository.source import BioPortSource, Source
 from bioport_repository.svn_repository import SVNRepository
+from bioport_repository.illustration import CantDownloadImage
 
 
 class Repository(object):
@@ -66,6 +68,7 @@ class Repository(object):
         
     def count_persons(self, **args):
         return self.db.count_persons(**args)
+
     def get_persons(self, **args): 
         """Get for all persons (as opposed to biographies)
         
@@ -292,10 +295,10 @@ class Repository(object):
                 break
 #            print i, bio, bio.get_illustrations(), bio.get_value('illustraties')
             for ill in bio.get_illustrations():
-#                url = ill.source_url
-                ill.download(overwrite=True)
-#                ill.create_thumbnail(100, 100)
-#                ill.create_thumbnail(200, 200)
+                try:
+                    ill.download(overwrite=True)
+                except CantDownloadImage, err:
+                    LOG("BioPort", WARNING, "can't download image: %s" % str(err))
                 
     def add_biography(self, bio):
         """add the biography - or update it if an biography with the same id already is present in the system

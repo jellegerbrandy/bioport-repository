@@ -18,6 +18,9 @@ SMALL_THUMB_SIZE = (100, 100)
 
 
 
+class CantDownloadImage(Exception):
+    """Raised by download() when it can't download the image from an external url"""
+
 
 def logexception():
     msg = traceback.format_exc()
@@ -78,6 +81,7 @@ class Illustration:
     def image_url(self):  # XXX - l'url dell'immagine originale: da rinominare !!!
         """public url of the local copy of the image"""
         return os.path.join(self._images_cache_url, self.id)
+
        
     @property
     def image_medium_url(self):
@@ -103,6 +107,11 @@ class Illustration:
         return self._id
 
     @property
+    def cached_local(self):
+        """path on the local file system to a copy of the image"""      
+        return os.path.join(self._images_cache_local,  self.id)
+
+    @property
     def images_directory(self):
         """The physical path on disk where the images are held/saved"""
         return self._images_cache_local
@@ -115,8 +124,11 @@ class Illustration:
     @property
     def cached_url(self):
         """Public url of the local copy of the image"""
-        return os.path.join(self._images_cache_url, self.create_id())
-       
+        return os.path.join(self._images_cache_url, self.id)
+
+    def has_image(self):
+        return os.path.isfile(self.cached_local)
+     
         
     # --- actions
    
@@ -127,12 +139,12 @@ class Illustration:
         Also, create two resized images which will then by used in the view,
         a medium and a smaller one, which will be saved im /thumbnails directory
         """
-        if not overwrite and os.path.exists(self.image_url):
-            print 'XXX - image already exists at %s - no image downloaded' % self.image_url
+        if not overwrite and os.path.exists(self.cached_local):
+            print 'XXX - image already exists at %s - no image downloaded' % self.cached_local
             return
 
         url = self.source_url
-        LOG('BioPort', INFO, 'downloading image from %s to %s' % (repr(url), repr(self.image_url)))
+        LOG('BioPort', INFO, 'downloading image from %s to %s' % (repr(url), repr(self.cached_local)))
 
         #  XXX - temporary
         """    
@@ -162,15 +174,26 @@ class Illustration:
         try:
             http = urllib2.urlopen(url)
         except (urllib2.HTTPError, OSError, UnicodeEncodeError):
-        
-            http = urllib2.urlopen(url)
+            try:
+                http = urllib2.urlopen(url)
+            except (urllib2.HTTPError, OSError, UnicodeEncodeError), err:                
+                raise CantDownloadImage(str(err))
 
-        with open(self.image_url, 'w') as file:
+        with open(self.cached_local, 'w') as file:
             file.write(http.read())
+        http.close()
 
-        # wirte two smaller thumbs on disk
-        self._create_thumbnail(*MEDIUM_THUMB_SIZE)
-        self._create_thumbnail(*SMALL_THUMB_SIZE)
+        # write two smaller thumbs on disk
+        try:
+            self._create_thumbnail(*MEDIUM_THUMB_SIZE)
+            self._create_thumbnail(*SMALL_THUMB_SIZE)
+        except IOError, err:
+            os.remove(filename)
+            raise CantDownloadImage(str(err))
+        except:
+            logexception()
+            os.remove(filename)
+            raise CantDownloadImage(str(err))
 
     def _create_thumbnail(self, width, height):
         """
@@ -181,20 +204,20 @@ class Illustration:
         """
         assert isinstance(width, int)
         assert isinstance(height, int)       
-        if not os.path.isfile(self.image_url): 
+        if not os.path.isfile(self.cached_local): 
               raise("the original image does not exists (it was supposed to be found here: %s)" 
-                     % self.image_url)
+                     % self.cached_local)
 
         # PIL stuff
         pilfilter = 0  # NEAREST
         if PIL.Image.VERSION >= "1.1.3":
             pilfilter = 1  # ANTIALIAS
-        image = PIL.Image.open(self.image_url)
+        image = PIL.Image.open(self.cached_local)
         image = image.convert('RGB')
         image.thumbnail((width, height), pilfilter)
 
         # write on disk
-        basename = os.path.basename(self.image_url)
+        basename = os.path.basename(self.cached_local)
         basename = "%sx%s_%s" % (width, height, basename)
         file = os.path.join(self.thumbnails_directory, basename)
         image.save(file, "JPEG", quality=88) 
@@ -237,11 +260,4 @@ class Illustration:
 #       return os.path.join(self._images_cache_local,  'thumbnails', '%ix%i_%s'
 #                            % (width, height, self.create_id()))
         raise ValueError("deprecated; not supposed to be used")        
-
-    @property
-    def cached_local(self):
-#        """path on the local file system to a copy of the image"""      
-#        return os.path.join(self._images_cache_local,  self.create_id())
-        raise ValueError("decprecated; it was cached_local property")
-
 
