@@ -111,12 +111,15 @@ class Illustration:
     def thumbnails_directory(self):
         """The physical path on disk where the thumbnails are held/saved"""
         return self._thumbnails_directory
+
+    @property
+    def cached_url(self):
+        """Public url of the local copy of the image"""
+        return os.path.join(self._images_cache_url, self.create_id())
+       
         
-    @property          
-    def image_url(self):
-        """path on the local file system to a copy of the image"""
-        return os.path.join(self.images_directory,  self.id)
-    
+    # --- actions
+   
     def download(self, overwrite=True):
         """Download the original image with original dimensions and saves it on
         disk.
@@ -159,8 +162,7 @@ class Illustration:
         try:
             http = urllib2.urlopen(url)
         except (urllib2.HTTPError, OSError, UnicodeEncodeError):
-            url = url.encode('latin1')
-            url = url.replace(' ', '%20')
+        
             http = urllib2.urlopen(url)
 
         with open(self.image_url, 'w') as file:
@@ -215,6 +217,7 @@ class Illustration:
         return filename
 
 
+
     # --- deprecated attrs
 
     @property
@@ -231,6 +234,14 @@ class Illustration:
         raise ValueError("deprecated; not supposed to be used")
 
     def cached_thumbnail_local(self, *args, **kwargs):
+#       return os.path.join(self._images_cache_local,  'thumbnails', '%ix%i_%s'
+#                            % (width, height, self.create_id()))
         raise ValueError("deprecated; not supposed to be used")        
+
+    @property
+    def cached_local(self):
+#        """path on the local file system to a copy of the image"""      
+#        return os.path.join(self._images_cache_local,  self.create_id())
+        raise ValueError("decprecated; it was cached_local property")
 
 
