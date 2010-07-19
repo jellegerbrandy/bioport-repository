@@ -156,7 +156,13 @@ class Illustration:
         """
 
         # write main image file on disk 
-        http = urllib2.urlopen(url)
+        try:
+            http = urllib2.urlopen(url)
+        except (urllib2.HTTPError, OSError, UnicodeEncodeError):
+            url = url.encode('latin1')
+            url = url.replace(' ', '%20')
+            http = urllib2.urlopen(url)
+
         with open(self.image_url, 'w') as file:
             file.write(http.read())
 
@@ -207,7 +213,6 @@ class Illustration:
         filename = filename.split('?')[0]
         filename = '%s_%s_%s' % (self._prefix, digest, filename)
         return filename
-
 
 
     # --- deprecated attrs

@@ -359,7 +359,7 @@ class DBRepository:
         r_person.geslachtsnaam = naam.geslachtsnaam()
         r_person.snippet = person.snippet()
         illustrations =  merged_biography.get_illustrations()
-        r_person.thumbnail = illustrations and illustrations[0].thumbnail_url() or ''
+        r_person.thumbnail = illustrations and illustrations[0].image_small_url or ''
         #update categories
         session.query(RelPersonCategory).filter(RelPersonCategory.bioport_id==bioport_id).delete()
         for category in person.get_merged_biography().get_states(type='category'):
