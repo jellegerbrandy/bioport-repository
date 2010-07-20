@@ -296,7 +296,7 @@ class Repository(object):
 #            print i, bio, bio.get_illustrations(), bio.get_value('illustraties')
             for ill in bio.get_illustrations():
                 try:
-                    ill.download(overwrite=True)
+                    ill.download(overwrite=False)
                 except CantDownloadImage, err:
                     LOG("BioPort", WARNING, "can't download image: %s" % str(err))
                 

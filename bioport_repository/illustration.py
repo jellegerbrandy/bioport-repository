@@ -15,6 +15,7 @@ import PIL.Image
 
 MEDIUM_THUMB_SIZE = (200, 200)
 SMALL_THUMB_SIZE = (100, 100)
+HOME_THUMB_SIZE = (300, 300)
 
 
 
@@ -82,7 +83,6 @@ class Illustration:
         """public url of the local copy of the image"""
         return os.path.join(self._images_cache_url, self.id)
 
-       
     @property
     def image_medium_url(self):
         """The url of the medium size thumbnail"""
@@ -99,6 +99,13 @@ class Illustration:
                             'thumbnails', 
                             '%ix%i_%s' % (width, height, self.id))
 
+    @property
+    def image_home_url(self):
+        """The url of the thumbnails shown in the home page"""
+        width, height = HOME_THUMB_SIZE
+        return os.path.join(self._images_cache_url,  
+                            'thumbnails', 
+                            '%ix%i_%s' % (width, height, self.id))
 
     # --- public API used *internally* (not by the view) 
     
@@ -140,59 +147,35 @@ class Illustration:
         a medium and a smaller one, which will be saved im /thumbnails directory
         """
         if not overwrite and os.path.exists(self.cached_local):
-            print 'XXX - image already exists at %s - no image downloaded' % self.cached_local
+            LOG('BioPort', INFO,  'image already exists at %s - no image downloaded' % self.cached_local)
             return
-
-        url = self.source_url
-        LOG('BioPort', INFO, 'downloading image from %s to %s' % (repr(url), repr(self.cached_local)))
-
-        #  XXX - temporary
-        """    
-        try:
-            f = urllib2.urlopen(url)
-        except (urllib2.HTTPError, OSError):
-            url = url.encode('latin1')
-            url = url.replace(' ', '%20')
-            try:
-                f = urllib2.urlopen(url)
-            except (urllib2.HTTPError, OSError), error:
-                msg= 'WARNING: error downloading %s [%s]' % (repr(url), error)
-                LOG('BioPort', WARNING, msg)
-                return
-        except UnicodeEncodeError: 
-            url = url.encode('latin1')
-            url = url.replace(' ', '%20')
-            try:
-                f = urllib2.urlopen(url)
-            except (urllib2.HTTPError, OSError), error:
-                msg= 'WARNING: error downloading %s [%s]' % (repr(url), error)
-                LOG('BioPort', WARNING, msg)
-                return
-        """
-
-        # write main image file on disk 
-        try:
-            http = urllib2.urlopen(url)
-        except (urllib2.HTTPError, OSError, UnicodeEncodeError):
+        else:
+            url = self.source_url
+            LOG('BioPort', INFO, 'downloading image from %s to %s' % (repr(url), repr(self.cached_local)))
             try:
                 http = urllib2.urlopen(url)
-            except (urllib2.HTTPError, OSError, UnicodeEncodeError), err:                
-                raise CantDownloadImage(str(err))
+            except (urllib2.HTTPError, OSError, UnicodeEncodeError):
+                try:
+                    http = urllib2.urlopen(url)
+                except (urllib2.HTTPError, OSError, UnicodeEncodeError), err:                
+                    raise CantDownloadImage(str(err))
 
-        with open(self.cached_local, 'w') as file:
-            file.write(http.read())
-        http.close()
+            # write main image file on disk 
+            with open(self.cached_local, 'w') as file:
+                file.write(http.read())
+            http.close()
 
         # write two smaller thumbs on disk
         try:
             self._create_thumbnail(*MEDIUM_THUMB_SIZE)
             self._create_thumbnail(*SMALL_THUMB_SIZE)
+            self._create_thumbnail(*HOME_THUMB_SIZE)
         except IOError, err:
-            os.remove(filename)
+            os.remove(self.cached_local)
             raise CantDownloadImage(str(err))
         except:
             logexception()
-            os.remove(filename)
+            os.remove(self.cached_local)
             raise CantDownloadImage(str(err))
 
     def _create_thumbnail(self, width, height):
@@ -205,8 +188,8 @@ class Illustration:
         assert isinstance(width, int)
         assert isinstance(height, int)       
         if not os.path.isfile(self.cached_local): 
-              raise("the original image does not exists (it was supposed to be found here: %s)" 
-                     % self.cached_local)
+            raise("the original image does not exists (it was supposed to be found here: %s)" 
+                  % self.cached_local)
 
         # PIL stuff
         pilfilter = 0  # NEAREST
