@@ -2,11 +2,11 @@ import random
 import os
 import types
 import re
+import logging
 from datetime import datetime
 
 from lxml import etree
 from plone.memoize import instance
-from zLOG import WARNING, LOG, INFO
 
 import sqlalchemy
 from sqlalchemy.exceptions import IntegrityError, InvalidRequestError
@@ -341,7 +341,7 @@ class DBRepository:
         else:
             msg = 'merged_biography should at least have one name defined! %s' % person.bioport_id
             raise Exception(msg)
-            LOG.error('This is strange and should not happen: bioport id %s has no name' % person.bioport_id)
+            logging.error('This is strange and should not happen: bioport id %s has no name' % person.bioport_id)
             
         r_person.categories = [RelPersonCategory(category_id=id) for state in merged_biography.get_states(type='categories')]
         r_person.has_illustrations = merged_biography.get_illustrations() and True or False
@@ -459,7 +459,7 @@ class DBRepository:
         """
         session = self.get_session()
         i = 0
-        LOG('BioPort', INFO, 'updating all soundexes (this can take a while)')
+        logging.info('updating all soundexes (this can take a while)')
         session.query(PersonSoundex).delete()
         persons = self.get_persons()
         for person in persons:
@@ -1032,8 +1032,8 @@ class DBRepository:
         
         if refresh:
             #if refresh is true, we delete all relevant records
-            LOG('BioPort', INFO, 'Refilling similarity table')
-            LOG('BioPort', INFO, 'Deleting all records from cachesimilaritypersons')
+            logging.info('Refilling similarity table')
+            logging.info('Deleting all records from cachesimilaritypersons')
             qry = session.query(CacheSimilarityPersons)
             if person:
                 #just remove the records of this person
@@ -1080,7 +1080,7 @@ class DBRepository:
             i += 1
             if limit and i > limit:
                 break
-            LOG('BioPort', INFO, 'computing similarities for %s out of %s: %s' % (i, len(persons), person))
+            logging.info('computing similarities for %s out of %s: %s' % (i, len(persons), person))
             bioport_id = person.bioport_id
             #check if we have alread done this naam
             qry = session.query(CacheSimilarityPersons.bioport_id1)
@@ -1108,12 +1108,12 @@ class DBRepository:
                  wildcards=False,
                  )
             
-            LOG('BioPort', INFO, 'searching for persons matching any of %s' % soundexes)
+            logging.info('searching for persons matching any of %s' % soundexes)
             if not soundexes:
                 persons_to_compare = []
             else:
                 persons_to_compare = self.get_persons(any_soundex = soundexes)
-            LOG('BioPort', INFO, 'comparing to %s other persons' % len(persons_to_compare))
+            logging.info('comparing to %s other persons' % len(persons_to_compare))
             #compute the similarity
             similarity_computer = Similarity(person, persons_to_compare)
             similarity_computer.compute()
@@ -1121,17 +1121,17 @@ class DBRepository:
             similar_persons =  similarity_computer._persons
             if len(similar_persons) > 1:
                 most_sim = similar_persons[1]
-                LOG('BioPort', INFO, 'highest similarity score: %s (%s)' % (most_sim.score, most_sim))
+                logging.info('highest similarity score: %s (%s)' % (most_sim.score, most_sim))
             else:
-                LOG('BioPort', INFO, 'no similar persons found')
+                logging.info('no similar persons found')
             for p in similarity_computer._persons[:k]:
                 if p.score > minimal_score:
                     self.add_to_similarity_cache(person.bioport_id, p.bioport_id, p.score)
                     try:
                         msg =  '%s|%s|%s|%s|%s|' % (person.bioport_id, p.bioport_id, p.score, person.naam(), p.naam())
-                        LOG('BioPort', INFO, msg)
+                        logging.info(msg)
                     except UnicodeEncodeError:
-                        LOG('BioPort', INFO, 'scores could not be printed due to UnicodeEncodeError')
+                        logging.info('scores could not be printed due to UnicodeEncodeError')
             #print '-' * 20
             session.commit()
             
@@ -1240,7 +1240,7 @@ class DBRepository:
         qry = qry.order_by(desc(CacheSimilarityPersons.score))
         qry = qry.order_by(CacheSimilarityPersons.bioport_id1)
         qry = qry.slice(start, start + size)
-        LOG('BioPort',INFO, 'executing %s'% qry.statement)
+        logging.info('executing %s'% qry.statement)
         ls = [(r.score, Person(r.bioport_id1, repository=self, score=r.score), Person(r.bioport_id2, repository=self, score=r.score)) for r in session.execute(qry)]
         return ls
      
@@ -1251,7 +1251,7 @@ class DBRepository:
         if not refresh and qry.count():
             return
         else:
-            LOG.info('fill most similar persons cache' )
+            logging.info('fill most similar persons cache' )
             qry.delete()
             session.commit()
         
@@ -1328,7 +1328,7 @@ order by score desc
                 
             #give some minimal user feedback
             if i % 100 == 0:
-                LOG.info(str(i))
+                logging.info(str(i))
                     
                     #if i > start+size:
                     #    return
@@ -1336,7 +1336,7 @@ order by score desc
         
         #notify caching machinery that the table is filled
         self._cache_filled_similarity_persons = True 
-        LOG.info('done')
+        logging.info('done')
         
     def identify(self, person1, person2):    
         """identify person1 and person2
@@ -1651,7 +1651,7 @@ order by score desc
         except NoResultFound:
             msg =  'No category with id "%s" could be found' % id
 #            raise Exception(msg)
-            LOG('BioPort', WARNING,msg) 
+            logging.warning(msg) 
     
     def get_log_messages(self, table=None, user=None, order_by='timestamp', order_desc=True):
         qry = self.get_session().query(ChangeLog)

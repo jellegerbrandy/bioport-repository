@@ -6,10 +6,10 @@ import os
 import urllib2
 import traceback
 import sys
+import logging
 from hashlib import md5
 import simplejson
 
-from zLOG import LOG, INFO, ERROR, WARNING
 import PIL.Image
 
 
@@ -26,7 +26,7 @@ class CantDownloadImage(Exception):
 def logexception():
     msg = traceback.format_exc()
     print >>sys.stderr
-    LOG('BioPort', ERROR, msg)
+    logging.error(msg)
 
 
 class Illustration:
@@ -40,11 +40,13 @@ class Illustration:
                        link_url=None): 
         """
         arguments:
-           url  : the original url of the image
-           images_cache_local : path to a place on the filesystem where the image will be downloaded to
-           images_cache_url : url at which the image will be accessabiel once downloaded
-           link_url: an optional url to link to
-           prefix : will be prefixed to the local cached filename 
+         - url  : the original url of the image
+         - images_cache_local : path to a place on the filesystem where the 
+           image will be downloaded to.
+         - images_cache_url : url at which the image will be accessabiel once 
+           downloaded
+         - link_url: an optional url to link to
+         - prefix : will be prefixed to the local cached filename 
         """
         self._url = url
         self._images_cache_local = images_cache_local  or ''  # XXX it should be renamed in _images_directory
@@ -147,11 +149,11 @@ class Illustration:
         a medium and a smaller one, which will be saved im /thumbnails directory
         """
         if not overwrite and os.path.exists(self.cached_local):
-            LOG('BioPort', INFO,  'image already exists at %s - no image downloaded' % self.cached_local)
+            logging.info('image already exists at %s - no image downloaded' % self.cached_local)
             return
         else:
             url = self.source_url
-            LOG('BioPort', INFO, 'downloading image from %s to %s' % (repr(url), repr(self.cached_local)))
+            logging.info('downloading image from %s to %s' % (repr(url), repr(self.cached_local)))
             try:
                 http = urllib2.urlopen(url)
             except (urllib2.HTTPError, OSError, UnicodeEncodeError):
@@ -223,7 +225,6 @@ class Illustration:
         return filename
 
 
-
     # --- deprecated attrs
 
     @property
@@ -243,4 +244,5 @@ class Illustration:
 #       return os.path.join(self._images_cache_local,  'thumbnails', '%ix%i_%s'
 #                            % (width, height, self.create_id()))
         raise ValueError("deprecated; not supposed to be used")        
+
 

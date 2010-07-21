@@ -5,11 +5,11 @@
 import os
 import time
 import urllib2
+import logging
 
 from plone.memoize import instance
 from lxml import etree
 from sqlalchemy.exceptions import IntegrityError, InvalidRequestError
-from zLOG import WARNING, LOG, INFO, ERROR
 import biodes
 
 from bioport_repository.db_definitions import STATUS_NEW, STATUS_VALUES
@@ -225,7 +225,7 @@ class Repository(object):
         #print 'Opening', source.url
         assert source.url, 'No URL was defined with the source "%s"' % source.id
         
-        LOG('BioPort', INFO, 'downloading data at %s' % source.url)
+        logging.info('downloading data at %s' % source.url)
         try:
             ls = biodes.parse_list(source.url)
             if limit:
@@ -233,7 +233,7 @@ class Repository(object):
         except etree.XMLSyntaxError, error:
             raise BioPortException('Error parsing data at %s -- check if this is valid XML\n%s' % (source.url, error))
         
-        LOG('BioPort', INFO, 'done parsing source url')
+        logging.info('done parsing source url')
         #the data seems ok; we now delete all biographies (!)
 #        print 'Deleting all biographies from source %s' % source.id
 #        self.delete_biographies(source=source)
@@ -253,7 +253,7 @@ class Repository(object):
             i += 1
             if limit and i > limit:
                 break
-            LOG('BioPort', INFO, 'progress %s/%s: adding biography at %s' %(i, len(ls), biourl))
+            logging.info('progress %s/%s: adding biography at %s' %(i, len(ls), biourl))
             #we download each o fthe documents
             #local_id = os.path.splitext(os.path.split(biourl)[1])[0]
             
@@ -265,12 +265,12 @@ class Repository(object):
                 bio.from_url(biourl)
             except Exception, error:
                 msg = 'Problems downloading biography from %s:\n%s' % (biourl, error)
-                LOG('BioPort', WARNING, msg)
+                logging.warning( msg)
                 continue
             try:
                 self.add_biography(bio)
             except Exception, error:
-                LOG('BioPort', WARNING, 'Problems adding biography from %s:\n%s' % (biourl, error))
+                logging.warning( 'Problems adding biography from %s:\n%s' % (biourl, error))
                 raise
 
 
@@ -280,7 +280,7 @@ class Repository(object):
     def delete_orphaned_persons(self, **args):
         #remove all elements from the person table that do not have any biographies associated with them anymore
         for p in self.get_persons(**args):
-#            LOG('BioPort', INFO, '%s'% p)
+#            logging.info('%s'% p)
             if not p.get_biographies():
                 self.delete_person(p)
         return 
@@ -298,7 +298,7 @@ class Repository(object):
                 try:
                     ill.download(overwrite=False)
                 except CantDownloadImage, err:
-                    LOG("BioPort", WARNING, "can't download image: %s" % str(err))
+                    logging.warning("can't download image: %s" % str(err))
                 
     def add_biography(self, bio):
         """add the biography - or update it if an biography with the same id already is present in the system
@@ -401,7 +401,7 @@ class Repository(object):
             return bio
         else:
             if len(ls) != 1: 
-                LOG('BioPort', WARNING, 'There was more than one Bioport Biography found for the person with bioport_id %s' %
+                logging.warning( 'There was more than one Bioport Biography found for the person with bioport_id %s' %
                           person.get_bioport_id())
             ls = [(b.id, b) for b in ls]
             ls.sort(reverse=True) #we sort reverse, because that is also how we sort in "get_biographies"

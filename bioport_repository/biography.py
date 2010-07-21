@@ -5,23 +5,24 @@ import os
 import time
 import re
 import types
+import logging
+import string
+
+from lxml import etree
 
 from names.common import html2unicode
-
 from biodes import BioDesDoc
 from bioport_repository.illustration import Illustration
 from bioport_repository.data_extraction import BioDataExtractor
 
-from lxml import etree
-from string import rsplit
-from zLOG import WARNING, LOG, INFO
 
 
 def create_biography_id(source_id, local_id):        
     id = '%s/%s' % (source_id, local_id)
     if len(id) > 50:
         
-        LOG('BioPort',  WARNING, 'Ids can be maximally 50 characters long; this one is %s: "%s"\nShorted it to 50 characters' % (len(id), id))
+        logging.warning('Ids can be maximally 50 characters long; this one ' \
+                        'is %s: "%s"\nShorted it to 50 characters' % (len(id), id))
         id = id[:50]
     return id
 
@@ -37,8 +38,8 @@ class Biography(object, BioDesDoc): #, SVNEntry):
         ): 
         """
         arguments:
-            id - a 'local id': should be unique with the biographies in the source, and preferably as persistent as possible
-            
+            id - a 'local id': should be unique with the biographies in the 
+            source, and preferably as persistent as possible
         """
         self.id = id
         self.repository = repository 
@@ -128,7 +129,7 @@ class Biography(object, BioDesDoc): #, SVNEntry):
             return ''
         s = text[:size]
         
-        s = rsplit(s, maxsplit=1)[0]
+        s = string.rsplit(s, maxsplit=1)[0]
         if len(s) < len(text):
             s += '...'
         return s
