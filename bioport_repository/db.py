@@ -133,7 +133,8 @@ class DBRepository:
         except:
             session.rollback()
             raise
-
+    
+    @instance.memoize
     def get_source(self, source_id):
         """Get a Source instance with id= source_id """
         session = self.get_session()
@@ -143,6 +144,7 @@ class DBRepository:
         source = Source(id=r.id, url=r.url, description = r.description, quality=r.quality, xml=r.xml)
         return source
     
+    @instance.memoize
     def get_sources(self, order_by='quality', desc=True): 
         session = self.get_session()
         qry = session.query(SourceRecord)
