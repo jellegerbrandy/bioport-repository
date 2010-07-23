@@ -4,7 +4,7 @@ import unittest
 import shutil
 import atexit
 import subprocess
-
+from plone.memoize import instance
 from bioport_repository.repository import Repository
 from bioport_repository.source import Source
 
@@ -29,6 +29,7 @@ class CommonTestCase(unittest.TestCase):
     
     _fill_repository =True
     
+    @instance.clearafter
     def setUp(self):               
         if os.path.isdir(SVN_REPOSITORY):
             shutil.rmtree(SVN_REPOSITORY)
@@ -44,11 +45,14 @@ class CommonTestCase(unittest.TestCase):
               )
               
         self.repo.db.metadata.drop_all()
-        if not os.path.isfile(SQLDUMP_FILENAME):
-            self.create_filled_repository_from_scratch()
+        if self._fill_repository:
+            if not os.path.isfile(SQLDUMP_FILENAME):
+	            self.create_filled_repository_from_scratch()
+            self.create_filled_repository()
+        else:
+            self.repo.db.metadata.create_all()
 
-        self.create_filled_repository()
-        self.db = self.repo.db       
+        self.db = self.repo.db
         
     def tearDown(self):
         #clean out the repository
@@ -64,7 +68,7 @@ class CommonTestCase(unittest.TestCase):
    
     def create_filled_repository(self, sources=None):
         """create  a repository filled with example data"""
-        if self._fill_repository is False:
+        if not self._fill_repository:
             return self.repo
         sql_string = open(SQLDUMP_FILENAME).read().decode('latin1')
         import bioport_repository.tests
@@ -126,4 +130,3 @@ atexit.register(cleanup)
 if __name__ == "__main__":
     create_mysqldump()
     unittest.main()
-

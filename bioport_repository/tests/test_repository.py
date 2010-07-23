@@ -12,9 +12,12 @@ class RepositoryTestCase(CommonTestCase):
         #add some sources source
         src = Source(id=u'test', url=url , description=u'test')
         self.repo.add_source(src)
+    
         self.repo.download_biographies(src)
         assert len(self.repo.get_biographies())
     
+
+        
     def test_get_persons(self):
         self.assertEqual(len(self.repo.get_persons()), 10)
         self.assertEqual(self.repo.count_persons(), 10)
@@ -509,4 +512,5 @@ class RepositoryTestCase(CommonTestCase):
         assert len(person2.get_biographies()) == 2, person2.get_biographies()
         
 if __name__ == "__main__":
+#    unittest.main(defaultTest='RepositoryTestCase.test_get_persons_sequence')    
     unittest.main()    

@@ -15,11 +15,13 @@ class WorkflowTestCase(CommonTestCase):
         #of downloading, identifyying, adding and editing descriptions, combining information
         
         repository = self.repo 
+
         self.repo.db._update_category_table()
         
         #------------------------ 
         #download data from a source
         #------------------------ 
+#        import pdb;pdb.set_trace()
         url = 'file://%s' % os.path.join(THIS_DIR, 'data/knaw/list.xml')
         source = Source(id=u'test', url=url , description=u'test', repository=repository)
         
@@ -28,7 +30,6 @@ class WorkflowTestCase(CommonTestCase):
         
         url = 'file://%s' % os.path.join(THIS_DIR, 'data/knaw2/list.xml')
         source = Source(id=u'knaw2', url=url , description=u'test', repository=repository)
-        
         repository.add_source(source)
         repository.download_biographies(source)
         

@@ -35,7 +35,6 @@ class PersonTestCase(CommonTestCase):
         p1 = self.repo.get_persons()[1]
     
     def test_memoization(self):
-        print 'x'* 100
         p1 = self.repo.get_persons()[1]
         p1.get_merged_biography()
         p1.get_merged_biography()
