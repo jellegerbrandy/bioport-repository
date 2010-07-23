@@ -113,6 +113,7 @@ class Repository(object):
         return self.db.redirects_to(bioport_id)
         
         
+    @instance.clearafter
     def add_source(self, source):
         """add a source of data to the db"""
         if source.id in [src.id for src in self.get_sources()]:
@@ -124,6 +125,7 @@ class Repository(object):
         self.invalidate_cache('_sources')
         return source        
     
+    @instance.clearafter
     def delete_source(self, source):
         if self.ENABLE_DB:
             self.db.delete_source(source)
@@ -131,7 +133,6 @@ class Repository(object):
         if self.ENABLE_SVN:
             self.svn_repository.delete_source(source)
             
-        delattr(self, '_sources') 
   
     @instance.memoize
     def get_source(self, id):
@@ -146,13 +147,10 @@ class Repository(object):
         return:
             a list of Source instances
         """
-        try:
-            return self._sources
-        except:
-            if self.ENABLE_DB:
-                self._sources = self.db.get_sources(order_by=order_by, desc=desc)
-            elif self.ENABLE_SVN:
-                self._sources = self.svn_repository.get_sources(order_by=order_by, desc=desc)
+        if self.ENABLE_DB:
+            self._sources = self.db.get_sources(order_by=order_by, desc=desc)
+        elif self.ENABLE_SVN:
+            self._sources = self.svn_repository.get_sources(order_by=order_by, desc=desc)
         return self._sources
    
     def get_status_values(self, k=None):
@@ -187,7 +185,8 @@ class Repository(object):
             raise NotImplementedError()
 
         biography.get_person().invalidate_cache('_biographies')
-        
+    
+    @instance.clearafter 
     def save_source(self, source):
         source.repository = self
         self.invalidate_cache('_sources')
@@ -288,6 +287,11 @@ class Repository(object):
         return 
 
     def download_illustrations(self,source, refresh=False, limit=None):
+        """download the illustrations associated with the biographies in the source
+        
+        arguments:
+             - source:  a Source instance
+        """
         if not self.images_cache_local:
             raise Exception('Cannot download illustrations, self.images_cache_local has not been set')
         i=0
