@@ -133,12 +133,14 @@ class Repository(object):
             
         delattr(self, '_sources') 
   
+    @instance.memoize
     def get_source(self, id):
         ls = [src for src in self.get_sources() if src.id == id]
         if not ls:
             raise BioPortException('No source found with id %s\nAvailabe sources are %s' % (id, [s.id for s in self.get_sources()]))
         return ls[0]
      
+    @instance.memoize
     def get_sources(self, order_by='quality', desc=True):
         """
         return:
@@ -461,21 +463,28 @@ class PersonList(object):
                                   query._params).fetchall()
  
             self.column_names = [a.column.name for a in self.query._entities]
-
+        else:
+            self._records = query 
+            
     @instance.memoize
     def __len__(self):
         if type(self.query) is list:
             return len(self.query)
         return self.query.count()
+    
     def get_record(self, i):
         if self._records:
             # If we already have the record we mimic SqlAlchemy result object 
             # (accessible by column name as an attribute)
             return AttributeDict(dict(zip(self.column_names, self._records[i])))
-        return self.query[i]
+        else:
+            raise
+    
     def __getitem__(self, key):
         if isinstance(key, slice):
-            new_list = PersonList(self.query[key], self.repository)
+            new_list = PersonList(self._records[key], self.repository)
+            new_list.column_names = self.column_names
+            
             return new_list
         i = int(key)
         if i<0:

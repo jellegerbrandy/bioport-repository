@@ -157,13 +157,15 @@ class DBRepository:
         #session.close()
         return [Source(r.id, r.url, r.description, quality=r.quality, xml = r.xml, repository=self) for r in ls]
 
+    @instance.clearafter
     def delete_source(self, source):
         session = self.get_session()
         qry =  session.query(SourceRecord).filter_by(id=source.id)
         try:
             r_source = qry.one()
         except sqlalchemy.orm.exc.NoResultFound:
-            return
+            raise Exception('Cannot delete srce %s because it cannot be found in the database')
+        
         
         self.delete_biographies(source=source)
         msg = 'Delete source %s' % source
