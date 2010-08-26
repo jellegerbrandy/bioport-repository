@@ -103,21 +103,28 @@ class Biography(object, BioDesDoc): #, SVNEntry):
         """
         """
         text = self.get_text_without_markup()
-        if text:
+        if not text:
+            return ""
+        else:
             # highlight years
             text = re.sub(r'(\d{4})', r'<span class="highlight">\1</span>', text)
-#            names = []
-#            names.append(u'%s' %self.naam())
-#            names.append(u'%s' %self.naam().volledige_naam())
-#            for name in names:
-#                text = text.replace(name, u'<span class="highlight">%s</span>' %name)
             words = text.split(' ')
             if len(words) > 200:
                 text = u' '.join(words[:200])
-                text += ' <i><b>[<a href="%s" target="_blank">...</a>]</b></i>' %self.get_value('url_biografie')
+                css_id = abs(hash(self.id))
+                extra_text_id = "%s-extra-text" % css_id
+                toggler_id = "%s-extra-text-toggler" % css_id
+                text += """\
+<i id="%(toggler_id)s">
+    <b>[<a onclick="jQuery('#%(extra_text_id)s').toggle(150); 
+                    jQuery('#%(toggler_id)s').hide();">...</a>]
+    </b>
+</i>""" % locals()
+                extra_text = u'<span id="%s" style="display:none;">%s</span>' \
+                            % (extra_text_id, u' '.join(words[200:]))
+                text += extra_text  
             return text
-        return ""
-    
+
     def snippet(self, size=200):
         """
         
