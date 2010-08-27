@@ -165,7 +165,7 @@ class DBRepository:
         try:
             r_source = qry.one()
         except sqlalchemy.orm.exc.NoResultFound:
-            raise ValueError('Cannot delete srce %s because it cannot be found in the database' % source.id)
+            raise ValueError('Cannot delete source %s because it cannot be found in the database' % source.id)
         
         self.delete_biographies(source=source)
         msg = 'Delete source %s' % source
