@@ -117,7 +117,7 @@ class Repository(object):
     def add_source(self, source):
         """add a source of data to the db"""
         if source.id in [src.id for src in self.get_sources()]:
-            raise BioPortException('A source with id %s already exists' % source.id)
+            raise ValueError('A source with id %s already exists' % source.id)
         if self.ENABLE_DB:
             self.db.add_source(source)
         if self.ENABLE_SVN:
@@ -138,7 +138,7 @@ class Repository(object):
     def get_source(self, id):
         ls = [src for src in self.get_sources() if src.id == id]
         if not ls:
-            raise BioPortException('No source found with id %s\nAvailabe sources are %s' % (id, [s.id for s in self.get_sources()]))
+            raise ValueError('No source found with id %s\nAvailabe sources are %s' % (id, [s.id for s in self.get_sources()]))
         return ls[0]
      
     @instance.memoize
@@ -176,7 +176,7 @@ class Repository(object):
         elif x.__class__ == Source:
             self.save_source(x)
         else:
-            raise BioPortException('Cannot save a object %s in the repository: unknown type' % x)
+            raise TypeError('Cannot save a object %s in the repository: unknown type' % x)
     def save_biography(self, biography):
         biography.repository = self
         if self.ENABLE_DB:
@@ -203,10 +203,13 @@ class Repository(object):
         
     
     def delete_biographies(self, source):
+	sources_ids = [src.id for src in self.get_sources()]
+	if source.id not in sources_ids:
+	    raise ValueError("no source with id %s was found" % source.id)
         if self.ENABLE_DB:
             self.db.delete_biographies(source)
         if self.ENABLE_SVN:
-            raise NotImplementedError()
+            raise NotImplementedError
         
     def download_biographies(self, source, limit=None, sleep=0):
         """download all biographies from source.url and add them to the repository
