@@ -12,6 +12,8 @@ import simplejson
 
 import PIL.Image
 
+from bioport.utils import url_fix
+
 
 MEDIUM_THUMB_SIZE = (200, 200)
 SMALL_THUMB_SIZE = (100, 100)
@@ -152,20 +154,25 @@ class Illustration:
             logging.info('image already exists at %s - no image downloaded' % self.cached_local)
             return
         else:
-            url = self.source_url
+            url = url_fix(self.source_url)
             logging.info('downloading image from %s to %s' % (repr(url), repr(self.cached_local)))
             try:
                 http = urllib2.urlopen(url)
             except (urllib2.HTTPError, OSError, UnicodeEncodeError):
-                try:
-                    http = urllib2.urlopen(url)
-                except (urllib2.HTTPError, OSError, UnicodeEncodeError), err:                
-                    raise CantDownloadImage(str(err))
+                if os.path.isfile(self.cached_local):
+                    os.remove(self.cached_local)
+                raise CantDownloadImage(str(err))
 
-            # write main image file on disk 
+        # write main image file on disk 
+        try:
             with open(self.cached_local, 'w') as file:
                 file.write(http.read())
             http.close()
+        except:
+            if os.path.isfile(self.cached_local):
+                os.remove(self.cached_local)
+            raise
+        
 
         # write two smaller thumbs on disk
         try:
@@ -190,8 +197,8 @@ class Illustration:
         assert isinstance(width, int)
         assert isinstance(height, int)       
         if not os.path.isfile(self.cached_local): 
-            raise("the original image does not exists (it was supposed to be found here: %s)" 
-                  % self.cached_local)
+            raise ValueError("the original image does not exists (it was supposed to be found here: %s)" 
+                             % self.cached_local)
 
         # PIL stuff
         pilfilter = 0  # NEAREST
@@ -218,12 +225,13 @@ class Illustration:
 
         def get_digest(astring):
             return md5(astring).hexdigest()
-            
         digest = get_digest(url_to_hash)
         filename = filename.split('?')[0]
         filename = '%s_%s_%s' % (self._prefix, digest, filename)
+        filename = filename.replace(' ', '-').lower()
+        # this is gonna look like this:
+        # "dvn_e46ebab5370e48685269f8b511762d3a_louise-van.oranjenassau.jpg"
         return filename
-
 
     # --- deprecated attrs
 
