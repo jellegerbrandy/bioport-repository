@@ -12,7 +12,7 @@ import simplejson
 
 import PIL.Image
 
-from gerbrandyutils import url_fix
+from gerbrandyutils import normalize_url
 
 
 MEDIUM_THUMB_SIZE = (200, 200)
