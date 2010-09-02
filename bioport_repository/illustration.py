@@ -12,7 +12,7 @@ import simplejson
 
 import PIL.Image
 
-from bioport.utils import url_fix
+from gerbrandyutils import url_fix
 
 
 MEDIUM_THUMB_SIZE = (200, 200)
