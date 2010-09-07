@@ -39,11 +39,13 @@ class Source(object): #, SVNEntry): #db.Source):
     
     def __str__(self):
         return '<Source object with id %s>' % self.id
+
     def __repr__(self):
         return self.__str__()
    
     def __eq__(self, other):
         return type(self) == type(other) and self.id == other.id
+
     def path(self):
         return os.path.join(self.svn_repository.root_path, self.id)
         
