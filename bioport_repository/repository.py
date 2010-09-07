@@ -6,6 +6,7 @@ import os
 import time
 import urllib2
 import logging
+import shutil
 
 from plone.memoize import instance
 from lxml import etree
@@ -278,7 +279,11 @@ class Repository(object):
                 skipped += 1
                 logging.warning( 'Problems adding biography from %s:\n%s' % (biourl, error))
                 raise
-            
+
+        # remove the temp directory which has been used to extract
+        # the xml files
+        if ls[0].startswith("/tmp/"):
+            shutil.rmtree(os.path.dirname(ls[0]))
 
         s = '%s biographies downloaded from source %s' % (i, source.id)
         self.delete_orphaned_persons(source_id=source.id)
@@ -317,6 +322,11 @@ class Repository(object):
                 except CantDownloadImage, err:
                     skipped += 1
                     logging.warning("can't download image: %s" % str(err))
+        # remove the temp directory which has been used to extract
+        # the xml files
+        if bios[0].startswith("/tmp/"):
+            shutil.rmtree(os.path.dirname(ls[0]))
+
         return total, skipped
                 
     def add_biography(self, bio):
