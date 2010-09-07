@@ -210,11 +210,11 @@ class Repository(object):
             self.db.delete_biographies(source)
         if self.ENABLE_SVN:
             raise NotImplementedError
-        
+    
     def download_biographies(self, source, limit=None, sleep=0):
-        """download all biographies from source.url and add them to the repository
-        
-        mark any biographies that we did not find (anymore), by removing the source_url property
+        """Download all biographies from source.url and add them to the repository.
+        Mark any biographies that we did not find (anymore), by removing the source_url property.
+        Return the number of total and skipped biographies.
        
         arguments:    
             source: a Source instance
@@ -222,7 +222,6 @@ class Repository(object):
         returns:
              a list of biography instances
              XXX: this should perhaps be in iteraor?
-            
         """
         
         #at the URL given we find a list of links to biodes files
@@ -247,6 +246,8 @@ class Repository(object):
         if not ls:
             raise BioPortException('The list at %s does not contain any links to biographies' % source.url)
 
+        total = len(ls)
+        skipped = 0
         for biourl in ls:
             if not biourl.startswith("http:"):
                 # we're dealing with a fs path
@@ -274,12 +275,14 @@ class Repository(object):
             try:
                 self.add_biography(bio)
             except Exception, error:
+                skipped += 1
                 logging.warning( 'Problems adding biography from %s:\n%s' % (biourl, error))
                 raise
-
+            
 
         s = '%s biographies downloaded from source %s' % (i, source.id)
         self.delete_orphaned_persons(source_id=source.id)
+        return total, skipped
     
     def delete_orphaned_persons(self, **args):
         #remove all elements from the person table that do not have any biographies associated with them anymore
@@ -289,25 +292,32 @@ class Repository(object):
                 self.delete_person(p)
         return 
 
-    def download_illustrations(self,source, refresh=False, limit=None):
-        """download the illustrations associated with the biographies in the source
+    def download_illustrations(self, source, overwrite=False, limit=None):
+        """Download the illustrations associated with the biographies in the source.
         
         arguments:
              - source:  a Source instance
+
+        returns:
+             (total, skipped)
         """
         if not self.images_cache_local:
             raise Exception('Cannot download illustrations, self.images_cache_local has not been set')
-        i=0
-        for bio in self.get_biographies(source=source):
+        bios = self.get_biographies(source=source)
+        i = 0
+        total = len(bios)
+        skipped = 0
+        for bio in bios:
             i += 1
             if limit and i > limit:
                 break
-#            print i, bio, bio.get_illustrations(), bio.get_value('illustraties')
             for ill in bio.get_illustrations():
                 try:
-                    ill.download(overwrite=False)
+                    ill.download(overwrite=overwrite)
                 except CantDownloadImage, err:
+                    skipped += 1
                     logging.warning("can't download image: %s" % str(err))
+        return total, skipped
                 
     def add_biography(self, bio):
         """add the biography - or update it if an biography with the same id already is present in the system
