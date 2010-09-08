@@ -7,25 +7,11 @@ from biography import Biography
 from repocommon import BioPortException
 from db_definitions import STATUS_NEW
 import urllib
-#from common import Singleton
 import time
-#class SourceSingleton(type):
-#    def __init__(self, name, bases, dict):
-#        super(SourceSingleton, self).__init__(name, bases, dict)
-#        self.instances = {} 
-# 
-#    def __call__(self, id,  *args, **kw):
-#        #we want only one single biography per id and source
-#        singleton_id = id  
-#        if singleton_id not in self.instances.keys():
-#            self.instances[singleton_id] = super(SourceSingleton, self).__call__(id, *args, **kw)
-#        return self.instances[singleton_id]
     
 class Source(object): #, SVNEntry): #db.Source):
     """A source with biographical data"""
     
-    #__metaclass__ = SourceSingleton
-   
     def __init__(self, id,url=None, description=None, quality=0, default_status=STATUS_NEW, xml=None, repository=None):
         self.xml = xml
         self.id = id
@@ -49,7 +35,6 @@ class Source(object): #, SVNEntry): #db.Source):
     def path(self):
         return os.path.join(self.svn_repository.root_path, self.id)
         
-
 ## NEXT function is not used - attributes of sources are stored separately in the databse
     def _to_xml(self):
         """create an xml file with enough info to reconstruct the source
