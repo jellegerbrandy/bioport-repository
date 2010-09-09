@@ -241,51 +241,33 @@ class Repository(object):
         #the data seems ok; we now delete all biographies (!)
 #        print 'Deleting all biographies from source %s' % source.id
 #        self.delete_biographies(source=source)
-        
-        
-        i = 0
         if not ls:
             raise BioPortException('The list at %s does not contain any links to biographies' % source.url)
-
         total = len(ls)
         skipped = 0
-        for biourl in ls:
+        for iteration, biourl in enumerate(ls):
+            iteration += 1
             if not biourl.startswith("http:"):
                 # we're dealing with a fs path
                 biourl = os.path.normpath(biourl)
                 if not os.path.isabs(biourl):
                     biourl = os.path.join(os.path.dirname(source.url), biourl)
-
-            i += 1
-            if limit and i > limit:
+            if limit and iteration > limit:
                 break
-            logging.info('progress %s/%s: adding biography at %s' %(i, len(ls), biourl))
-            #we download each o fthe documents
-            #local_id = os.path.splitext(os.path.split(biourl)[1])[0]
-            
+            logging.info('progress %s/%s: adding biography at %s' %(iteration, len(ls), biourl))
             #create a Biography object 
             bio = Biography(source_id=source.id, repository=source.repository)
             if sleep:
                 time.sleep(sleep)  
-            try:
-                bio.from_url(biourl)
-            except Exception, error:
-                msg = 'Problems downloading biography from %s:\n%s' % (biourl, error)
-                logging.warning( msg)
-                continue
-            try:
-                self.add_biography(bio)
-            except Exception, error:
-                skipped += 1
-                logging.warning( 'Problems adding biography from %s:\n%s' % (biourl, error))
-                raise
+            bio.from_url(biourl)
+            self.add_biography(bio)
 
         # remove the temp directory which has been used to extract
         # the xml files
         if ls[0].startswith("/tmp/"):
             shutil.rmtree(os.path.dirname(ls[0]))
 
-        s = '%s biographies downloaded from source %s' % (i, source.id)
+        s = '%s biographies downloaded from source %s' % (iteration, source.id)
         self.delete_orphaned_persons(source_id=source.id)
         return total, skipped
     
