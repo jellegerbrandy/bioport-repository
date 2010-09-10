@@ -31,20 +31,19 @@ class Repository(object):
     ENABLE_DB = True
 
     def __init__(self, 
-        svn_repository=None,
-        svn_repository_local_copy=None,
-        db_connection=None,
-        ZOPE_SESSIONS = False,
-        user='Uknown User',
-        images_cache_local=None,
-        images_cache_url=None,
-        ):
+                 svn_repository=None,
+                 svn_repository_local_copy=None,
+                 db_connection=None,
+                 ZOPE_SESSIONS = False,
+                 user='Uknown User',
+                 images_cache_local=None,
+                 images_cache_url=None,
+                ):
         
         #define the database connection
         self.svn_repository = SVNRepository(svn_repository=svn_repository, svn_repository_local_copy=svn_repository_local_copy)
         self.db = DBRepository(db_connection=db_connection, ZOPE_SESSIONS=ZOPE_SESSIONS, user=user)
         self.db.repository = self
-        
         if images_cache_local:
             assert os.path.exists(images_cache_local), 'this path (for "images_local_cache") does not exist; %s'% images_cache_local
         self.images_cache_local = images_cache_local
@@ -99,20 +98,18 @@ class Repository(object):
     
     def count_biographies(self, **args):
         return self.db.count_biographies(**args)
+
     def get_biographies(self, **args):
-            
         if self.ENABLE_DB:
             return self.db.get_biographies(**args)
         elif self.ENABLE_SVN:
             raise NotImplementedError()
-        
         
     def get_biography(self, local_id=None, **args):
         return self.db.get_biography(local_id=local_id, **args)
     
     def redirects_to(self, bioport_id):
         return self.db.redirects_to(bioport_id)
-        
         
     @instance.clearafter
     def add_source(self, source):
@@ -133,7 +130,6 @@ class Repository(object):
             
         if self.ENABLE_SVN:
             self.svn_repository.delete_source(source)
-            
   
     @instance.memoize
     def get_source(self, id):
@@ -145,8 +141,7 @@ class Repository(object):
     @instance.memoize
     def get_sources(self, order_by='quality', desc=True):
         """
-        return:
-            a list of Source instances
+        return: a list of Source instances
         """
         if self.ENABLE_DB:
             self._sources = self.db.get_sources(order_by=order_by, desc=desc)
@@ -169,8 +164,10 @@ class Repository(object):
         if self.ENABLE_DB:
             return self.db.get_author(author_id)
         raise NotImplementedError 
+
     def get_beroepen(self, **args):
         pass
+
     def save(self, x):
         if x.__class__ == Biography:
             self.save_biography(x)
@@ -178,6 +175,7 @@ class Repository(object):
             self.save_source(x)
         else:
             raise TypeError('Cannot save a object %s in the repository: unknown type' % x)
+
     def save_biography(self, biography):
         biography.repository = self
         if self.ENABLE_DB:
@@ -238,9 +236,6 @@ class Repository(object):
             raise BioPortException('Error parsing data at %s -- check if this is valid XML\n%s' % (source.url, error))
         
         logging.info('done parsing source url')
-        #the data seems ok; we now delete all biographies (!)
-#        print 'Deleting all biographies from source %s' % source.id
-#        self.delete_biographies(source=source)
         if not ls:
             raise BioPortException('The list at %s does not contain any links to biographies' % source.url)
         total = len(ls)
@@ -281,12 +276,10 @@ class Repository(object):
 
     def download_illustrations(self, source, overwrite=False, limit=None):
         """Download the illustrations associated with the biographies in the source.
-        
         arguments:
-             - source:  a Source instance
-
+            - source:  a Source instance
         returns:
-             (total, skipped)
+            (total, skipped)
         """
         if not self.images_cache_local:
             raise Exception('Cannot download illustrations, self.images_cache_local has not been set')
@@ -314,9 +307,6 @@ class Repository(object):
     def add_biography(self, bio):
         """add the biography - or update it if an biography with the same id already is present in the system
         """
-        # XXX - commented after we fallback on determining the id from 
-        # filename if it is not defined inside the file
-        #assert bio.get_value('local_id'), 'To add a biography to the repository, an id must be provided. This biography %s does not have that.\nE.g. <person><idno type="id">1234</idno></person>' % bio
         bio.repository = self
         if self.ENABLE_SVN:
             raise NotImplementedError()
@@ -343,13 +333,12 @@ class Repository(object):
         #the oldest identifier will be the canonical one
         return self.db.identify(person1, person2)
 
-
     def antiidentify(self, person1, person2):
         self.db.antiidentify(person1,person2)
     
-    
     def unidentify(self, person):       
         return self.db.unidentify(person)
+
     def get_antiidentified(self):
         """return a list of anti-identified perons"""
         return self.db.get_antiidentified()
@@ -378,10 +367,6 @@ class Repository(object):
             self.db.redirect_identifier(bioport_id, redirect_to)
         if self.ENABLE_SVN:
             raise NotImplementedError#        id = self.get_identifier(bioport_id)
-#        id.set_redirect_to(redirect_to)
-#        id.set_biographies([])
-#        self.save_identifier()
-
 
     def get_bioport_biography(self, person):
         """get, or if it does not yet exist, create, a biodes document that represents the interventions 
@@ -407,8 +392,6 @@ class Repository(object):
             bio.set_value(local_id=person.get_bioport_id())
             bio.set_value(bioport_id=person.get_bioport_id())
             self.add_biography(bio)
-            
-            
             return bio
         else:
             if len(ls) != 1: 
@@ -430,30 +413,34 @@ class Repository(object):
         arguments:
             attr - a string
         """
-        
         assert attr in ['_sources']
         if hasattr(self, attr):
             delattr(self, attr)
 
     def get_occupations(self):
         return self.db.get_occupations()
+
     def get_occupation(self, id):
         return self.db.get_occupation(id)
     
     def get_category(self, id):
         return self.db.get_category(id)
+
     def get_categories(self):
         return self.db.get_categories()
+
     def get_places(self, *args, **kwargs):
         return self.db.get_places(*args, **kwargs)
-    def  get_log_messages(self, **args):
+
+    def get_log_messages(self, **args):
         return self.db.get_log_messages(**args)
-        
 
 
 class PersonList(object):
     "This object provides a (possibly long) list of lazy-loaded Person objects"
+
     _records = []
+
     def __init__(self, query, repository):
         self.query = query
         self.repository = repository
@@ -505,8 +492,12 @@ class PersonList(object):
                       repository=self.repository, record=r)
         self._persons[i] = person
         return person
-    
+   
+
 class AttributeDict(dict):
+
     def __init__(self, *args, **kwargs):
         dict.__init__(self, *args, **kwargs)
         self.__dict__ = self
+
+
