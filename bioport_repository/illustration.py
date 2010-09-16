@@ -12,9 +12,6 @@ import simplejson
 
 import PIL.Image
 
-from gerbrandyutils import normalize_url
-
-
 MEDIUM_THUMB_SIZE = (200, 200)
 SMALL_THUMB_SIZE = (100, 100)
 HOME_THUMB_SIZE = (300, 300)
@@ -154,7 +151,6 @@ class Illustration:
             logging.info('image already exists at %s - no image downloaded' % self.cached_local)
             return
         else:
-            url = url_fix(self.source_url)
             logging.info('downloading image from %s to %s' % (repr(url), repr(self.cached_local)))
             try:
                 http = urllib2.urlopen(url)
