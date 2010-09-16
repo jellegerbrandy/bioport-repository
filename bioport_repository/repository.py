@@ -300,7 +300,9 @@ class Repository(object):
         # remove the temp directory which has been used to extract
         # the xml files
         if source.url.endswith("tar.gz"):
-            shutil.rmtree(os.path.dirname(ls[0]))
+            afile = bio.source_url.replace('file://', '')
+            directory = os.path.dirname(afile)
+            shutil.rmtree(directory)
 
         return total, skipped
                 
