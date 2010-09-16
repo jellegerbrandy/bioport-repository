@@ -48,6 +48,9 @@ class CommonTestCase(unittest.TestCase):
                 pass
         #if we arrive here we cannot find a good DSN
         raise Exception('Could not find a good DSN. This is the list we tried:\n\t' + '\n\t'.join(KNOWN_GOOD_DSNS)) 
+    
+    def parse_dsn(self, s):
+        return sqlalchemy.engine.url._parse_rfc1738_args(s)
     @instance.clearafter
     def setUp(self):               
         if os.path.isdir(SVN_REPOSITORY):
@@ -101,7 +104,6 @@ class CommonTestCase(unittest.TestCase):
     
     def create_filled_repository_from_scratch(self, sources=2):
         #create a repo filled with some data
-
         self.repo.db.metadata.create_all()
         url = 'file://%s' % os.path.abspath(os.path.join(THIS_DIR, 'data/knaw/list.xml'))
         source = Source(id=u'knaw', url=url , description='test')
@@ -113,7 +115,8 @@ class CommonTestCase(unittest.TestCase):
             self.repo.add_source(source)
             self.repo.download_biographies(source)
         self.repo.db._update_category_table()
-        sh('mysqldump bioport_test > %s' % SQLDUMP_FILENAME)
+        dsn = self.parse_dsn(self.known_good_dsn())
+        sh('mysqldump -u %s -p%s bioport_test > %s' % (dsn.username or '', dsn.password or '', SQLDUMP_FILENAME))
         self._is_filled =True
         return self.repo
     
