@@ -442,6 +442,11 @@ class PersonList(object):
     _records = []
 
     def __init__(self, query, repository):
+        """
+        arguments:
+            query : either a list of a sqlalchemy query object
+            
+        """
         self.query = query
         self.repository = repository
         self._persons = {}
@@ -480,8 +485,8 @@ class PersonList(object):
         if isinstance(key, slice):
             new_list = PersonList(self._records[key], self.repository)
             new_list.column_names = self.column_names
-            
             return new_list
+        
         i = int(key)
         if i<0:
             i = len(self) + i

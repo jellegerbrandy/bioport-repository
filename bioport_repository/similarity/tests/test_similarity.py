@@ -36,6 +36,7 @@ class SimilarityTestCase(CommonTestCase):
         #save it
         self.repo.add_biography(bio)
         return bio.get_person()
+    
     def test_similarity(self):
         p1 = self._add_person('Jan', geboortedatum='1000', sterfdatum='2000')
         p2 = self._add_person('Jan', geboortedatum='1000', sterfdatum='2000')

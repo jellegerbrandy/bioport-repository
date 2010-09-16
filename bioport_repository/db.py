@@ -74,7 +74,8 @@ class DBRepository:
         else:
             #get the data from the db
             from sqlalchemy.orm import sessionmaker
-            self.engine = Base.metadata.bind = metadata.bind = create_engine(self.connection, 
+            self.engine = Base.metadata.bind = metadata.bind = create_engine(
+                    self.connection, 
                     convert_unicode=True, 
                     encoding='utf8', 
                     echo=ECHO,
@@ -1045,6 +1046,7 @@ class DBRepository:
                 qry.delete()   
                 qry = qry.filter(CacheSimilarityPersons.bioport_id2==person.get_bioport_id())  
                 qry.delete()   
+                
             else:
                 #print 'deleting all information from cache_similarity_persons'
                 if source_id:
@@ -1058,14 +1060,16 @@ class DBRepository:
                            BiographyRecord.id ==RelBioPortIdBiographyRecord.biography_id,
                            ))
                     qry = qry.filter(BiographyRecord.source_id==source_id)
-                    #mm, this fails fro some obscure reason
+                    
+                    #the next statement fails fro some obscure reason
                     #qry.delete()
+                    
                     #hack our way to a delete query
                     s = unicode(qry.statement)
                     s = s[s.find('FROM'):]
                     s = s % ("'%s'" %  source_id)
                     s = 'DELETE cache_similarity_persons %s' % s
-                    print s
+                    
                     session.execute(s)
                 else:
                     qry.delete()

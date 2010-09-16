@@ -4,7 +4,10 @@ import unittest
 import shutil
 import atexit
 import subprocess
+
 from plone.memoize import instance
+import sqlalchemy
+
 from bioport_repository.repository import Repository
 from bioport_repository.source import Source
 
@@ -16,6 +19,11 @@ IMAGES_CACHE_LOCAL = os.path.join(THIS_DIR, 'tmp')
 SQLDUMP_FILENAME =os.path.join(THIS_DIR, 'data/bioport_mysqldump.sql')
 
 
+KNOWN_GOOD_DSNS = (
+    'mysql://localhost/bioport_testx',
+    'mysql://user:pass@localhost/bioport_test',
+    'mysql://localhost/bioport_test',
+    )
     
 
 def sh(cmd):
@@ -28,7 +36,18 @@ def sh(cmd):
 class CommonTestCase(unittest.TestCase):
     
     _fill_repository =True
-    
+   
+    def known_good_dsn(self):
+        """try to find a good connection string for the DB"""
+        for dsn in KNOWN_GOOD_DSNS:
+            engine = sqlalchemy.create_engine(dsn)
+            try:
+                engine.connect()
+                return dsn 
+            except sqlalchemy.exc.DBAPIError:
+                pass
+        #if we arrive here we cannot find a good DSN
+        raise Exception('Could not find a good DSN. This is the list we tried:\n\t' + '\n\t'.join(KNOWN_GOOD_DSNS)) 
     @instance.clearafter
     def setUp(self):               
         if os.path.isdir(SVN_REPOSITORY):
@@ -40,14 +59,14 @@ class CommonTestCase(unittest.TestCase):
         self.repo = Repository(
               svn_repository_local_copy = SVN_REPOSITORY_LOCAL_COPY, 
               svn_repository='file://%s' % SVN_REPOSITORY,
-              db_connection='mysql://localhost/bioport_test',
+              db_connection=self.known_good_dsn(),
               images_cache_local=IMAGES_CACHE_LOCAL,
               )
               
         self.repo.db.metadata.drop_all()
         if self._fill_repository:
             if not os.path.isfile(SQLDUMP_FILENAME):
-	            self.create_filled_repository_from_scratch()
+                self.create_filled_repository_from_scratch()
             self.create_filled_repository()
         else:
             self.repo.db.metadata.create_all()

@@ -144,6 +144,7 @@ class DBRepositoryTestCase(CommonTestCase):
         self.assertEqual(len(repo.get_persons(**qry)), 1)
         del(qry['geboortedag_min'], qry['geboortedag_max'])
         self.assertEqual(len(repo.get_persons(**qry)), 1)
+        
     def test_complex_levend_date_get_persons_full(self):
         self.create_filled_repository()
         repo = self.repo
