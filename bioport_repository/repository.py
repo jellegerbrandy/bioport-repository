@@ -299,7 +299,7 @@ class Repository(object):
                     logging.warning("can't download image: %s" % str(err))
         # remove the temp directory which has been used to extract
         # the xml files
-        if bios[0].startswith("/tmp/"):
+        if source.url.endswith("tar.gz"):
             shutil.rmtree(os.path.dirname(ls[0]))
 
         return total, skipped
