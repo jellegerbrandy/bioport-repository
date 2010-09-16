@@ -151,6 +151,7 @@ class Illustration:
             logging.info('image already exists at %s - no image downloaded' % self.cached_local)
             return
         else:
+            url = self.source_url
             logging.info('downloading image from %s to %s' % (repr(url), repr(self.cached_local)))
             try:
                 http = urllib2.urlopen(url)
