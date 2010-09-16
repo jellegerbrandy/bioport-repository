@@ -10,7 +10,10 @@ import logging
 from hashlib import md5
 import simplejson
 
-import PIL.Image
+import Image
+# The following should avoid the "AccessInit: hash collision: 3 for both 1 and 1" error
+# see http://jaredforsyth.com/blog/2010/apr/28/accessinit-hash-collision-3-both-1-and-1/
+sys.modules['PIL.Image'] = Image
 
 MEDIUM_THUMB_SIZE = (200, 200)
 SMALL_THUMB_SIZE = (100, 100)
@@ -199,9 +202,9 @@ class Illustration:
 
         # PIL stuff
         pilfilter = 0  # NEAREST
-        if PIL.Image.VERSION >= "1.1.3":
+        if Image.VERSION >= "1.1.3":
             pilfilter = 1  # ANTIALIAS
-        image = PIL.Image.open(self.cached_local)
+        image = Image.open(self.cached_local)
         image = image.convert('RGB')
         image.thumbnail((width, height), pilfilter)
 
