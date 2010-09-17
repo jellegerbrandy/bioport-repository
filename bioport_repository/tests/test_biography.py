@@ -4,7 +4,9 @@ from bioport_repository.biography import Biography
 from bioport_repository.source import Source
 from bioport_repository.db_definitions import *
 
+
 class BiographyTestCase(CommonTestCase):
+
     def test_biography(self):
         self.create_filled_repository()
         repo = self.repo
@@ -65,6 +67,7 @@ class BiographyTestCase(CommonTestCase):
         person = self.repo.get_persons()[1]
         bio = person.get_biographies()[0]
         bio.add_or_update_event(type='birth', when='1234')
+
     def test_ids(self):
         bio = Biography(id='YYY/x', source_id='sourceY')
         self.assertEqual(bio.id, 'YYY/x')
@@ -177,7 +180,6 @@ any more""",
         assert bio.snippet().startswith('TER')
 
     def test_get_illustrations(self):      
-
         bio = self.repo.get_biography(local_id='knaw/001')
         self.assertEqual(len(bio.get_illustrations()), 4)
 
@@ -187,7 +189,6 @@ any more""",
         self.assertEqual(len( bio.get_value('illustraties')), 1)
         
     def test_set_categories(self):
-
         bio = self.repo.get_biographies()[3]
         bio.set_category(1)
         self.assertEqual(len(bio.get_states(type='category')), 1)
@@ -201,6 +202,20 @@ any more""",
         self.assertEqual(len(bio.get_states(type='category')), 1)
         bio.set_category([2,2, 2, '2'])
         self.assertEqual(len(bio.get_states(type='category')), 1)
-if __name__ == "__main__":
-    unittest.main()
-#    unittest.main(defaultTest='BiographyTestCase.test_get_illustrations')
+
+
+def test_suite():
+    test_suite = unittest.TestSuite()
+    tests = [BiographyTestCase]
+    for test in tests:
+        test_suite.addTest(unittest.makeSuite(test))
+    return test_suite 
+
+if __name__=='__main__':
+    unittest.main(defaultTest='test_suite')
+
+
+
+
+
+
