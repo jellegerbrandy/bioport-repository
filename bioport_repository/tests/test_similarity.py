@@ -11,9 +11,7 @@ class SimilarityTestCase(CommonTestCase):
         sim = Similarity(persons[1], persons)
         sim.compute()
         sim.sort()
-#        for p in sim._persons:
-#            print unicode(p), p.score
-        
+       
     def test_most_similar_persons(self):
         repo= self.repo
         self.assertEqual(len(self.repo.get_persons()) ,10)

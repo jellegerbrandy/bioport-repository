@@ -290,9 +290,7 @@ class RepositoryTestCase(CommonTestCase):
         assert (score, p1, p2) in ls
         
         #now we identify two people
-#        print p1, p2
         repo.identify(p1, p2)
-#        print p1, p2
         assert len(self.repo.get_most_similar_persons()) <= original_length-1
         score, p1, p2 = self.repo.get_most_similar_persons()[1] 
         repo.antiidentify(p1, p2)
@@ -312,10 +310,7 @@ class RepositoryTestCase(CommonTestCase):
        
         id1 = min(p1.bioport_id, p2.bioport_id)
         id2 = max(p1.bioport_id, p2.bioport_id)
-#        print id1, id2
-#        print [r for r in self.repo.get_most_similar_persons()] 
         qry = repo.db.get_session().query(CacheSimilarityPersons)
-#        print [(r.bioport_id1, r.bioport_id2) for r in qry.all()] 
         
         #(p1,p2) were deferred, but now we identify them after all
         
@@ -336,15 +331,8 @@ class RepositoryTestCase(CommonTestCase):
         repo = self.repo
         #set up theG environmenet
         self.repo.db.fill_similarity_cache(minimal_score=0.0)
-#        for r in repo.db.get_session().query(CacheSimilarityPersons):
-#            print r.score, r.bioport_id1, r.bioport_id2
         persons = self.repo.get_persons()
-#        print len(persons)
         similar_persons = self.repo.get_most_similar_persons()
-#        print 'most similar:'
-#        print len(similar_persons)
-#        for p in similar_persons:
-#            print p
         
         #We need at least 5  'most similar persons' for the tests below to work
         original_length= len(similar_persons)
@@ -355,7 +343,6 @@ class RepositoryTestCase(CommonTestCase):
         new_len = len(self.repo.get_most_similar_persons()) 
         assert new_len <= original_length  -4,  '%s - %s' % (len(self.repo.get_most_similar_persons()), original_length)
         #all these identifications should also be persistent after we refill the cache
-        #print '*fill similairty cache'
         repo.db.fill_similarity_cache(refresh=True,minimal_score=0.0  )
         #self.debug_info()
         self.assertEqual(len(self.repo.get_antiidentified()), 0)
@@ -366,7 +353,6 @@ class RepositoryTestCase(CommonTestCase):
 
         score, p1, p2 = self.repo.get_most_similar_persons()[1]
 #        p1, p2 = persons[2], persons[3]
-        #print ' * antiidefnty', p1, p2
         repo.antiidentify(p1, p2)
         #self.debug_info()
         
@@ -377,14 +363,12 @@ class RepositoryTestCase(CommonTestCase):
         self.assertEqual(len(self.repo.get_persons()), 9)
         
         #all these identifications should also be persistent after we refull the cache
-        #print '*fill similairty cache'
         repo.db.fill_similarity_cache(refresh=True,minimal_score=0.0)
         #self.debug_info()
         self.assertEqual(len(self.repo.get_most_similar_persons()), new_len-1)        
         
         score, p1, p2 = self.repo.get_most_similar_persons()[1] 
         repo.defer_identification(p1, p2)
-        #print '* deferred', p1, p2
         #self.debug_info()
         self.assertEqual(len(self.repo.get_antiidentified()), 1)
         self.assertEqual(len(self.repo.get_identified()), 1)
@@ -392,14 +376,12 @@ class RepositoryTestCase(CommonTestCase):
         self.assertEqual(len(self.repo.get_most_similar_persons()), new_len -2)        
         
         #all these identifications should also be persistent after we refull the cache
-        #print '*fill similairty cache'
         repo.db.fill_similarity_cache(refresh=True,minimal_score=0.0)
         self.debug_info()
         self.assertEqual(len(self.repo.get_most_similar_persons()), new_len-2 )        
         
         score, p1, p2 = self.repo.get_most_similar_persons()[4] 
         repo.defer_identification(p1, p2)
-        #print '* deferred', p1, p2
         self.debug_info()
         self.assertEqual(len(self.repo.get_deferred()), 2)
         self.assertEqual(len(self.repo.get_identified()), 1)
@@ -428,7 +410,6 @@ class RepositoryTestCase(CommonTestCase):
         #the deferred list contains now only 1 pair
         
         #all these identifications should also be persistent after we refill the cache
-        #print '* fill similarity cache'
         repo.db.fill_similarity_cache(refresh=True,minimal_score=0.0)
         #self.debug_info()
         #XXX THIS SHOULD NOT FAIL!! 
@@ -437,27 +418,20 @@ class RepositoryTestCase(CommonTestCase):
     def debug_info(self):
         return
         try:
-            print '-' * 50
-            print 'in cache_Similarity person %s records (including identicals)' % self.repo.db.get_session().query(CacheSimilarityPersons).count()
             for r in  self.repo.db.get_session().query(CacheSimilarityPersons).all():
                 i = 0
                 if r.bioport_id1 != r.bioport_id2:
                     i += 1
-                    print i, '-----', r.bioport_id1, r.bioport_id2
-            print 'most similar:'
             for i in self.repo.get_most_similar_persons():
-                print '-----', i
-            print 'deferred:'
+                pass
             for i in self.repo.get_deferred():
-                print '-----',  i.bioport_id1, i.bioport_id2          
-            print 'get_identified:'
+                pass
             for i in self.repo.get_identified():
-                print '-----',  i.bioport_id #, i.redirect_to         
-            print 'get_antiidentified:'
+                pass
             for i in self.repo.get_antiidentified():
-                print '-----',  i.bioport_id1, i.bioport_id2      
+                pass
         except UnicodeEncodeError, error:
-            print error
+            raise
                
     def test_identify(self):
         
@@ -517,3 +491,4 @@ def test_suite():
 
 if __name__=='__main__':
     unittest.main(defaultTest='test_suite')    
+

@@ -14,7 +14,6 @@ class DBRepositoryTestCase(CommonTestCase):
         assert locations
         #there is one Anjum (within the first 100 on the list) 
         locations = db.get_locations(name='Anjum')
-        print [l.full_name for l in locations]
         self.assertEqual(len(locations), 1)
         
        

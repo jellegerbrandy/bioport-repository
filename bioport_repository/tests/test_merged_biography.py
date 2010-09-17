@@ -44,7 +44,7 @@ class TestMergedBiography(CommonTestCase):
         doc = merged.to_xml()
         self.assertEqual(doc.get_value('geboortedatum'), '2000-02-01', doc.to_string())
         self.assertEqual(doc.get_value('birth_date'), '2000-02-01')
-#        print doc.to_string()
+
 
 def test_suite():
     test_suite = unittest.TestSuite()

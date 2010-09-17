@@ -8,7 +8,6 @@ from bioport_repository.db_definitions import STATUS_NEW
 class RepositoryTestCase(CommonTestCase):
 
     def test_download_changed_bios(self):
-        print 'DONWNLOADING knaw/list.xml'
         repo = self.repo
         url = os.path.abspath(os.path.join(THIS_DIR, 'data/knaw/list.xml'))
         #add some sources source
@@ -21,7 +20,6 @@ class RepositoryTestCase(CommonTestCase):
         
         old_persons = [repo.get_person(bioport_id) for bioport_id in repo.get_bioport_ids()]
         #download again
-        print 'DOWNLOADING knaw/list.xml a SECOND TIME'
         repo.download_biographies(src)
         #nothing should have changed
         self.assertEqual(len(repo.get_persons()),BASE +  5)
@@ -33,10 +31,8 @@ class RepositoryTestCase(CommonTestCase):
         repo.download_biographies(src)
 #        ls = [p.title() for p in  old_persons]
 #        ls.sort()
-#        print 'original bios', ls
 #        ls = [p.title() for p in  repo.get_persons()]
 #        ls.sort()
-#        print 'new bios', ls
         #the new url has one biograrphy less, and one new one. 
         #we remove the one that has disappeared, so the number of persons should now be 6
 #        self.assertEqual(len(repo.get_persons()),BASE + 6,)
@@ -101,8 +97,6 @@ class RepositoryTestCase(CommonTestCase):
         self.assertEqual(src.url, url)
         repo.add_source(src)
         repo.download_biographies(src)
-#        print url
-#        print src.url
         persons = repo.get_persons()
         self.assertEqual(len(persons), BASE+5)
        
@@ -131,7 +125,6 @@ class RepositoryTestCase(CommonTestCase):
                     knaw_bio = bio
                     person.knaw_bio = knaw_bio 
                     id = knaw_bio.get_id().split('/')[1]
-#                    print j, id
                     for i in range(1,11):
                         if id == '00%s' % i:
                             persons[i] = person       
@@ -151,10 +144,8 @@ class RepositoryTestCase(CommonTestCase):
             bio = repo.get_bioport_biography(person)
             bio.set_value('geboortedatum_tekst',  '000%s'% i)
             repo.save_biography(bio)        
-#        print [p.get_biographies()[-1].get_local_id() for p in  repo.get_persons()]
         src_knaw.url = os.path.join(THIS_DIR, 'data/knaw_changed/list.xml')
         repo.download_biographies(src_knaw)
-#        print [p.get_biographies()[-1].get_local_id() for p in  repo.get_persons()]
         self.assertEqual(len(repo.get_persons()), BASE + 8)
         
         #get the person gaain
