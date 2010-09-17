@@ -215,17 +215,24 @@ class Illustration:
         image.save(file, "JPEG", quality=88) 
    
     def _create_id(self):
+        # XXX - IMPORTANT
+        # the code which generates the id should NOT be changed because
+        # it will be used to compose the name of the image as it will
+        # be saved on the filesystem.
+        # If for some reason this must be changed then all source images 
+        # must be deleted and re-downloaded.
         url = self.source_url
         filename = url.split('/')[-1]
-        #create a unique hash on the basis of the url
-        #(the hash code is created in this somewhat illogical way to maintian compatibility with earlier versions)
+        # create a unique hash on the basis of the url
+        # (the hash code is created in this somewhat illogical way to 
+        # maintian compatibility with earlier versions)
         url_to_hash = '/'.join(url.split('/')[:-1])
         if '?' in url:
             url_to_hash=url
 
         def get_digest(astring):
             return md5(astring).hexdigest()
-        digest = get_digest(url_to_hash)
+        digest = get_digest(url_to_hash)        
         filename = filename.split('?')[0]
         filename = '%s_%s_%s' % (self._prefix, digest, filename)
         filename = filename.replace(' ', '-').lower()
