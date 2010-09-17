@@ -896,6 +896,12 @@ class DBRepository:
         return qry
  
     def _filter_soundex(self, qry, search_soundex):
+        """Add a filter to the Query object qry
+        
+        arugments:
+            search_soundex is a string
+        returns: the modified qry
+        """
         if search_soundex:
             soundexes = soundexes_nl(
                  search_soundex, 
@@ -1780,57 +1786,57 @@ and b2.redirect_to is null
                 self.save_biography(bio)
         print 'DONE tmp_fixup_category_doublures'
 
-    def tmp_identify_misdaad_recht(self):
-        """identify the categories "misdaad" en "recht" in the whole database
-        
-        this method can be removed when it does not seem useful anymore 
-        """
-        #misdaad = 9
-        #rechts = 13
-        for person in self.get_persons(category=13):
-            ls = self.get_biographies(source='bioport', person=person) 
-            for bio in ls:
-                print bio
-                for state in bio.get_states(type='category'):
-                    if state.get('idno') == '13':
-                        state.set('idno', '9')
-                        self.save_biography(bio)
-        print 'DONE tmp_identify_misdaad_recht'     
-        
-    def tmp_fix_weird_categeries(self, bio=None):
-        """fixing errors in category assignment - this method can be removed when it does not seem necessary anymore"""
-        if bio:
-            bios = [bio]
-        else:
-            bios =  self.get_biographies(source='bioport')
-        i = 0
-        for bio in bios:
-            i += 1
-            states =  bio.get_states(type='category')
-            for state in states:
-                idno = state.get('idno')
-                if not idno.isdigit():
-                    print i
-                    print idno
-                    idnos = eval(idno)
-                    idnos = list(idnos)
-                    used_ids = [idno for idno in [state.get('idno') for state in states] if idno.isdigit()]
-                    idnos = used_ids + idnos
-                    if '13' in idnos:
-                        idnos.remove('13')
-                        idnos.append('9')
-                    idnos = list(set(idnos)) 
-                    print idnos
-                    bio.set_category(idnos)
-                    self.save_biography(bio)
-                    break
-                    
-        print 'DONE!'
+#    def tmp_identify_misdaad_recht(self):
+#        """identify the categories "misdaad" en "recht" in the whole database
+#        
+#        this method can be removed when it does not seem useful anymore 
+#        """
+#        #misdaad = 9
+#        #rechts = 13
+#        for person in self.get_persons(category=13):
+#            ls = self.get_biographies(source='bioport', person=person) 
+#            for bio in ls:
+#                print bio
+#                for state in bio.get_states(type='category'):
+#                    if state.get('idno') == '13':
+#                        state.set('idno', '9')
+#                        self.save_biography(bio)
+#        print 'DONE tmp_identify_misdaad_recht'     
+#        
+#    def tmp_fix_weird_categeries(self, bio=None):
+#        """fixing errors in category assignment - this method can be removed when it does not seem necessary anymore"""
+#        if bio:
+#            bios = [bio]
+#        else:
+#            bios =  self.get_biographies(source='bioport')
+#        i = 0
+#        for bio in bios:
+#            i += 1
+#            states =  bio.get_states(type='category')
+#            for state in states:
+#                idno = state.get('idno')
+#                if not idno.isdigit():
+#                    print i
+#                    print idno
+#                    idnos = eval(idno)
+#                    idnos = list(idnos)
+#                    used_ids = [idno for idno in [state.get('idno') for state in states] if idno.isdigit()]
+#                    idnos = used_ids + idnos
+#                    if '13' in idnos:
+#                        idnos.remove('13')
+#                        idnos.append('9')
+#                    idnos = list(set(idnos)) 
+#                    print idnos
+#                    bio.set_category(idnos)
+#                    self.save_biography(bio)
+#                    break
+#                    
+#        print 'DONE!'
 
-    def tmp_give_blnps_a_category(self):
-        for p in self.get_persons(source_id='blnp'):
-            bio = p.get_bioport_biography()
-            categories =bio.get_states(type='category')
-            categories = [c.get('idno') for c in categories]
-            bio.set_category(categories + [4])
-            self.save_biography(bio)
+#    def tmp_give_blnps_a_category(self):
+#        for p in self.get_persons(source_id='blnp'):
+#            bio = p.get_bioport_biography()
+#            categories =bio.get_states(type='category')
+#            categories = [c.get('idno') for c in categories]
+#            bio.set_category(categories + [4])
+#            self.save_biography(bio)

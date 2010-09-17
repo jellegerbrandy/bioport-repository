@@ -131,7 +131,8 @@ class DBRepositoryTestCase(CommonTestCase):
         self.assertEqual(len(repo.get_persons(sterfplaats='Lisse')), 1)
         
         self.assertEqual(len(repo.get_persons(search_soundex=u'molloyx')), 1)
-        self.assertEqual(len(repo.get_persons(search_soundex='bosma')), 9)
+        self.assertEqual(len(repo.get_persons(search_soundex=u'boschma')), 9, self.repo.get_persons())
+        self.assertEqual(len(repo.get_persons(search_soundex=u'bosma')), 9) #, self.repo.get_persons())
         self.assertEqual(len(repo.get_persons(search_soundex='bo?ma')), 9)
         self.assertEqual(len(repo.get_persons(search_name=u'"mollo??"')), 1)
         self.assertEqual(len(repo.get_persons(search_name=u'"mollo*"')), 1)
@@ -214,6 +215,11 @@ class DBRepositoryTestCase(CommonTestCase):
         expected_geboorte_places = [u'Ameide', u'Amsterdam', u'Brussel, Belgi\xeb', u'Down, Groot Brittani\xeb', u'Gent, Belgi\xeb', u'IJsbrechtum', u'Paesens, Frankrijk', u'Tilburg']
         self.assertEqual(geboorte_places, expected_geboorte_places)
 
+def test_suite():
+    return unittest.TestSuite((
+        unittest.makeSuite(DBRepositoryTestCase, 'test'),
+        ))
 
-if __name__ == "__main__":
-    unittest.main()
+
+if __name__=='__main__':
+    unittest.main(defaultTest='test_suite')

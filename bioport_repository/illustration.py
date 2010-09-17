@@ -11,7 +11,7 @@ from hashlib import md5
 import simplejson
 from gerbrandyutils import normalize_url
 
-import Image
+from PIL import Image
 # The following should avoid the "AccessInit: hash collision: 3 for both 1 and 1" error
 # see http://jaredforsyth.com/blog/2010/apr/28/accessinit-hash-collision-3-both-1-and-1/
 sys.modules['PIL.Image'] = Image
