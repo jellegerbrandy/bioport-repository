@@ -14,7 +14,7 @@ class Source(object): #, SVNEntry): #db.Source):
     
     def __init__(self, id,url=None, description=None, quality=0, default_status=STATUS_NEW, xml=None, repository=None):
         self.xml = xml
-        self.id = id
+        self.id = unicode(id)
         self.url = url
         self.description = description
         self.quality = quality
