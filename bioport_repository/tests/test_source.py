@@ -2,6 +2,7 @@ from bioport_repository.tests.common_testcase import CommonTestCase, unittest , 
 
 from bioport_repository.source import *
 
+
 class SourceTestCase(CommonTestCase):
         
     def Xtest_source(self): 
@@ -76,5 +77,14 @@ class SourceTestCase(CommonTestCase):
         self.assertEqual(src3.quality, len(i.get_sources()) -1)
         
 
+def test_suite():
+    test_suite = unittest.TestSuite()
+    tests = [SourceTestCase]
+    for test in tests:
+        test_suite.addTest(unittest.makeSuite(test))
+    return test_suite
+
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(defaultTest='test_suite')
+
+

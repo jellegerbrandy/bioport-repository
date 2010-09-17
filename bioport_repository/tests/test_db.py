@@ -215,6 +215,7 @@ class DBRepositoryTestCase(CommonTestCase):
         expected_geboorte_places = [u'Ameide', u'Amsterdam', u'Brussel, Belgi\xeb', u'Down, Groot Brittani\xeb', u'Gent, Belgi\xeb', u'IJsbrechtum', u'Paesens, Frankrijk', u'Tilburg']
         self.assertEqual(geboorte_places, expected_geboorte_places)
 
+
 def test_suite():
     return unittest.TestSuite((
         unittest.makeSuite(DBRepositoryTestCase, 'test'),
@@ -222,3 +223,4 @@ def test_suite():
 
 if __name__=='__main__':
     unittest.main(defaultTest='test_suite')
+

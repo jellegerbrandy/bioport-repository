@@ -121,10 +121,13 @@ class ThumbnailTestCase(unittest.TestCase):
         img = PIL.Image.open(StringIO(data))
 
 
-if __name__ == "__main__":
+def test_suite():
     test_suite = unittest.TestSuite()
     tests = [IllustrationTestCase, ThumbnailTestCase]
     for test in tests:
         test_suite.addTest(unittest.makeSuite(test))
-    unittest.TextTestRunner(verbosity=2).run(test_suite)
+    return test_suite
+
+if __name__ == "__main__":
+    unittest.main(defaultTest='test_suite')    
 

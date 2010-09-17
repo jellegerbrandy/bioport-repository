@@ -141,5 +141,16 @@ class WorkflowTestCase(CommonTestCase):
         #------------------------ 
         bio = person.get_merged_biography()
         
+
+def test_suite():
+    test_suite = unittest.TestSuite()
+    tests = [WorkflowTestCase]
+    for test in tests:
+        test_suite.addTest(unittest.makeSuite(test))
+    return test_suite
+
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(defaultTest='test_suite')
+
+
+

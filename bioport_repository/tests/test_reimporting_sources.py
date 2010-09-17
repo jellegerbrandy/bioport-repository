@@ -6,6 +6,7 @@ from bioport_repository.db_definitions import STATUS_NEW
 
 
 class RepositoryTestCase(CommonTestCase):
+
     def test_download_changed_bios(self):
         print 'DONWNLOADING knaw/list.xml'
         repo = self.repo
@@ -221,6 +222,15 @@ class RepositoryTestCase(CommonTestCase):
         new_person = repo.get_person(bioport_id=new_person.bioport_id)
 #        self.assertEqual(len(new_person.get_biographies()), 1, new_person.get_biographies())
         
+
+def test_suite():
+    test_suite = unittest.TestSuite()
+    tests = [RepositoryTestCase]
+    for test in tests:
+        test_suite.addTest(unittest.makeSuite(test))
+    return test_suite
+
 if __name__ == "__main__":
-    unittest.main(defaultTest='RepositoryTestCase.test_removal_of_bios')        
-    
+    unittest.main(defaultTest='test_suite')    
+
+

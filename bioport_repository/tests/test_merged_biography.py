@@ -3,7 +3,7 @@ from bioport_repository.merged_biography import MergedBiography
 from lxml import etree
 
 
-class MergedBiographyTestCase(CommonTestCase):
+class TestMergedBiography(CommonTestCase):
         
     def test_biography(self):
         self.create_filled_repository()
@@ -45,6 +45,15 @@ class MergedBiographyTestCase(CommonTestCase):
         self.assertEqual(doc.get_value('geboortedatum'), '2000-02-01', doc.to_string())
         self.assertEqual(doc.get_value('birth_date'), '2000-02-01')
 #        print doc.to_string()
-        
+
+def test_suite():
+    test_suite = unittest.TestSuite()
+    tests = [TestMergedBiography]
+    for test in tests:
+        test_suite.addTest(unittest.makeSuite(test))
+    return test_suite
+
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(defaultTest='test_suite')    
+
+

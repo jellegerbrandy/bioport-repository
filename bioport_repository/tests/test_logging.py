@@ -56,5 +56,15 @@ class LoggingTestCase(CommonTestCase):
     def test_get_log(self):
         self.create_filled_repository()
         self.repo.get_log_messages()
+        
+def test_suite():
+    test_suite = unittest.TestSuite()
+    tests = [LoggingTestCase]
+    for test in tests:
+        test_suite.addTest(unittest.makeSuite(test))
+    return test_suite
+
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(defaultTest='test_suite')    
+
+

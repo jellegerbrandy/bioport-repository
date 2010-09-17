@@ -1,8 +1,8 @@
 from bioport_repository.tests.common_testcase import CommonTestCase, unittest 
 from bioport_repository.db import *
 
-class OccupationTestCase(CommonTestCase):
 
+class TestOccupation(CommonTestCase):
         
     def test_workflow(self): 
         db = self.db
@@ -25,5 +25,16 @@ class OccupationTestCase(CommonTestCase):
         #now, if we get the occupation from the biography, it is the one we just set
         assert biography.get_states(type='occupation')
         #self.assertEqual(biography.get_state(type='occupation').get('idno'), id)
+
+
+def test_suite():
+    test_suite = unittest.TestSuite()
+    tests = [TestOccupation]
+    for test in tests:
+        test_suite.addTest(unittest.makeSuite(test))
+    return test_suite
+
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(defaultTest='test_suite')    
+
+

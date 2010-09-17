@@ -19,5 +19,13 @@ class CommentTestCase(CommonTestCase):
         self.assertEqual(comments[0].submitter, 'Anonymous')
         p1.add_comment(text=comment_text + ' is not true!')
 
-if __name__ == "__main__":
-    unittest.main()
+
+def test_suite():
+    test_suite = unittest.TestSuite()
+    tests = [CommentTestCase]
+    for test in tests:
+        test_suite.addTest(unittest.makeSuite(test))
+    return test_suite 
+
+if __name__=='__main__':
+    unittest.main(defaultTest='test_suite')
