@@ -9,6 +9,7 @@ import sys
 import logging
 from hashlib import md5
 import simplejson
+from gerbrandyutils import normalize_url
 
 import Image
 # The following should avoid the "AccessInit: hash collision: 3 for both 1 and 1" error
@@ -154,7 +155,7 @@ class Illustration:
             logging.info('image already exists at %s - no image downloaded' % self.cached_local)
             return
         else:
-            url = self.source_url
+            url = normalize_url(self.source_url)
             logging.info('downloading image from %s to %s' % (repr(url), repr(self.cached_local)))
             try:
                 http = urllib2.urlopen(url)
