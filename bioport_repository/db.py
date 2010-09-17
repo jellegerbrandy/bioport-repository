@@ -97,7 +97,7 @@ class DBRepository:
         if self._session:
             self._session.close()
             self._session = None
-            
+            c
     @instance.clearbefore        
     def add_source(self, src):
         assert src.id

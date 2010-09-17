@@ -9,8 +9,8 @@ import sys
 import logging
 from hashlib import md5
 import simplejson
-from PIL import Image
-#import Image
+
+import Image
 # The following should avoid the "AccessInit: hash collision: 3 for both 1 and 1" error
 # see http://jaredforsyth.com/blog/2010/apr/28/accessinit-hash-collision-3-both-1-and-1/
 sys.modules['PIL.Image'] = Image
