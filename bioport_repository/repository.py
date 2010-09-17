@@ -302,7 +302,8 @@ class Repository(object):
         if source.url.endswith("tar.gz"):
             afile = bio.source_url.replace('file://', '')
             directory = os.path.dirname(afile)
-            shutil.rmtree(directory)
+            if os.path.isdir(directory):
+                shutil.rmtree(directory)
 
         return total, skipped
                 
