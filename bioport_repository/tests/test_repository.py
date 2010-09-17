@@ -290,9 +290,9 @@ class RepositoryTestCase(CommonTestCase):
         assert (score, p1, p2) in ls
         
         #now we identify two people
-        print p1, p2
-        print repo.identify(p1, p2)
-        print p1, p2
+#        print p1, p2
+        repo.identify(p1, p2)
+#        print p1, p2
         assert len(self.repo.get_most_similar_persons()) <= original_length-1
         score, p1, p2 = self.repo.get_most_similar_persons()[1] 
         repo.antiidentify(p1, p2)
@@ -334,7 +334,6 @@ class RepositoryTestCase(CommonTestCase):
         #    2. anti-identify the two
         #    3. defer
         repo = self.repo
-        
         #set up theG environmenet
         self.repo.db.fill_similarity_cache(minimal_score=0.0)
 #        for r in repo.db.get_session().query(CacheSimilarityPersons):
@@ -348,9 +347,8 @@ class RepositoryTestCase(CommonTestCase):
 #            print p
         
         #We need at least 5  'most similar persons' for the tests below to work
-        
         original_length= len(similar_persons)
-        assert original_length >= 5
+        assert original_length >= 5, 'We need at least 5 "most similar persons" for the tests to work'
         
         score, p1, p2 = similar_persons[0] 
         repo.identify(p1, p2)
@@ -437,6 +435,7 @@ class RepositoryTestCase(CommonTestCase):
 #        self.assertEqual(len(self.repo.get_most_similar_persons()), original_length-4)
 
     def debug_info(self):
+        return
         try:
             print '-' * 50
             print 'in cache_Similarity person %s records (including identicals)' % self.repo.db.get_session().query(CacheSimilarityPersons).count()
@@ -497,7 +496,6 @@ class RepositoryTestCase(CommonTestCase):
         
         assert person in [person1, person2]
         
-        
         #and we have a person with these two biographies attached
         bios = person.get_biographies()
         self.assertEqual(set([b.id for b in bios]), set([bio1.id, bio2.id]))
@@ -511,6 +509,11 @@ class RepositoryTestCase(CommonTestCase):
 
         assert len(person2.get_biographies()) == 2, person2.get_biographies()
         
-if __name__ == "__main__":
-#    unittest.main(defaultTest='RepositoryTestCase.test_get_persons_sequence')    
-    unittest.main()    
+ 
+def test_suite():
+    return unittest.TestSuite((
+        unittest.makeSuite(RepositoryTestCase, 'test_'),
+        ))
+
+if __name__=='__main__':
+    unittest.main(defaultTest='test_suite')    

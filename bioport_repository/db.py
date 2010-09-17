@@ -1038,7 +1038,8 @@ class DBRepository:
                refresh - throw away existing data and calculate from 0 (should only be used if function has changed)
                limit - an integer - compute only for that amount of persons
         """     
-        
+        if source_id:
+	        source_id = unicode(source_id)
         session = self.db.get_session()
         
         if refresh:
