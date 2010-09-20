@@ -8,8 +8,8 @@ from bioport_repository.biography import Biography
 from bioport_repository.source import Source
 
 
-
 class SimilarityTestCase(CommonTestCase):
+
     def setUp(self):
         CommonTestCase.setUp(self)
         self.source = source = Source(id='bioport_test')
@@ -87,17 +87,45 @@ class SimilarityTestCase(CommonTestCase):
             print p2 
     
     def test_cases_to_optimize(self):
-        
         #0.82241156589 <Person Maria Elisabeth Ghijben with id 64720037> <Person Ghyben-maay, Elizabeth with id 05140558>
         p1 = self._add_person(naam ="Maria Elisabeth Ghijben")
         p2 = self._add_person(naam="Ghyben-maay, Elizabeth")
         score = self.similarity_score(p1, p2)
         print score, p1, p2
-#0.9 <Person Catharina Mulder with id 64689327> <Person Mulder, Catharina with id 35032709>
-#0.923561076605 <Person Mina Kruseman with id 35194114> <Person Kruseman, Wilhelmina Jacoba Pauline Rudolphine with id 24639010>
-#0.941023017903 <Person Heenvliet, Elizabeth van with id 42821187> <Person Liesbeth van Heenvliet with id 48994382>
-#0.951326933936 <Person Nispen van Sevenaer, Johannes Antonius Christianus Arnoldus van with id 72595512> <Person Jan van Nispen van Sevenaer with id 98377030>
-#.
-# 0.731287 Albertus Lomeyer        Lomeier (Lomeyer, Lomarus) Albertus
+
+    def test_new_thing(self):
+        persons = self.repo.get_persons()
+        sim = Similarity(persons[1], persons)
+        sim.compute()
+        sim.sort()
+
+    def test_most_similar_persons(self):
+        repo= self.repo
+        self.assertEqual(len(self.repo.get_persons()) ,10)
+        self.repo.db.fill_similarity_cache(minimal_score=0.0)
+        for r in self.repo.db.get_session().query(CacheSimilarityPersons).all():
+            assert r.bioport_id1 <= r.bioport_id2, (r.bioport_id1, r.bioport_id2)
+
+        ls = repo.get_most_similar_persons(size=3)
+        ls = list(ls)
+        self.assertEqual(len(ls) ,3)
+        score, p1, p2  = ls[0]
+        self.assertNotEqual(p1.get_bioport_id(), p2.get_bioport_id())
+
+        ls = repo.get_most_similar_persons(bioport_id=p1.bioport_id)
+        for score, pa, pb in ls:
+            assert p1.bioport_id in [pa.bioport_id, pb.bioport_id]
+        ls = repo.get_most_similar_persons(source_id=self.repo.get_sources()[0].id)
+        ls = repo.get_most_similar_persons(search_name='jan')
+
+
+def test_suite():
+    test_suite = unittest.TestSuite()
+    tests = [SimilarityTestCase]
+    for test in tests:
+        test_suite.addTest(unittest.makeSuite(test))
+    return test_suite
+
 if __name__ == "__main__":
-    unittest.main() #defaultTest='SimilarityTestCase.test_cases_to_optimize')
+    unittest.main(defaultTest='test_suite')
+
