@@ -9,6 +9,8 @@ setup(name = 'bioport_repository',
                         'PIL',
                         'biodes',
                         'plone.memoize',
-                        'sqlalchemy'
+                        'sqlalchemy',
+                        'names',
+                        'simplejson',
                        ],
       )
