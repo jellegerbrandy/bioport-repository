@@ -136,7 +136,7 @@ class DBRepository:
             session.rollback()
             raise
     
-    @instance.memoize
+    #@instance.memoize
     def get_source(self, source_id):
         """Get a Source instance with id= source_id """
         session = self.get_session()
