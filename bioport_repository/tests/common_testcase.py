@@ -10,6 +10,7 @@ import sqlalchemy
 
 from bioport_repository.repository import Repository
 from bioport_repository.source import Source
+from bioport_repository.tests.config import SQLDB
 
 
 THIS_DIR = os.path.split(os.path.abspath(__file__))[0]
@@ -20,9 +21,9 @@ SQLDUMP_FILENAME =os.path.join(THIS_DIR, 'data/bioport_mysqldump.sql')
 
 
 KNOWN_GOOD_DSNS = (
-    'mysql://localhost/bioport_testx',
-    'mysql://user:pass@localhost/bioport_test',
     'mysql://localhost/bioport_test',
+    #on daffy this works
+    'mysql://jge:MilanO8@localhost/bioport_test',
     )
     
 
