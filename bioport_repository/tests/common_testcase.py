@@ -12,27 +12,19 @@ from bioport_repository.repository import Repository
 from bioport_repository.source import Source
 from bioport_repository.tests.config import SQLDB
 
+from gerbrandyutils import sh, exit_on_exception
+
 
 THIS_DIR = os.path.split(os.path.abspath(__file__))[0]
 SVN_REPOSITORY  = os.path.abspath(os.path.join(THIS_DIR, 'data/bioport_repository'))
 SVN_REPOSITORY_LOCAL_COPY = os.path.abspath(os.path.join(THIS_DIR, 'data/bioport_repository_local_copy'))
 IMAGES_CACHE_LOCAL = os.path.join(THIS_DIR, 'tmp')
 SQLDUMP_FILENAME =os.path.join(THIS_DIR, 'data/bioport_mysqldump.sql')
-
-
 KNOWN_GOOD_DSNS = (
-    'mysql://localhost/bioport_test',
-    #on daffy this works
-    'mysql://jge:MilanO8@localhost/bioport_test',
+    'mysql://localhost/bioport_test',    
+    'mysql://jge:MilanO8@localhost/bioport_test',  # on daffy this works
     )
-    
 
-def sh(cmd):
-    """Run a shell command and wait for completion.
-    Raises an exception if something goes bad.
-    """
-    return subprocess.check_call(cmd, shell=True)
-    
 
 class CommonTestCase(unittest.TestCase):
     
@@ -52,7 +44,9 @@ class CommonTestCase(unittest.TestCase):
     
     def parse_dsn(self, s):
         return sqlalchemy.engine.url._parse_rfc1738_args(s)
+
     @instance.clearafter
+    @exit_on_exception
     def setUp(self):               
         if os.path.isdir(SVN_REPOSITORY):
             shutil.rmtree(SVN_REPOSITORY)
@@ -77,6 +71,7 @@ class CommonTestCase(unittest.TestCase):
 
         self.db = self.repo.db
         
+    @exit_on_exception
     def tearDown(self):
         #clean out the repository
         #get whatever data there was
@@ -102,7 +97,8 @@ class CommonTestCase(unittest.TestCase):
         self.repo.db.get_session().commit()
         self._fill_repository = False #dont fill the repository again
         return self.repo
-    
+        
+    @exit_on_exception    
     def create_filled_repository_from_scratch(self, sources=2):
         #create a repo filled with some data
         self.repo.db.metadata.create_all()
@@ -117,6 +113,7 @@ class CommonTestCase(unittest.TestCase):
             self.repo.download_biographies(source)
         self.repo.db._update_category_table()
         dsn = self.parse_dsn(self.known_good_dsn())
+#        import pdb; pdb.set_trace()
         sh('mysqldump -u %s -p%s bioport_test > %s' % (dsn.username or '', dsn.password or '', SQLDUMP_FILENAME))
         self._is_filled =True
         return self.repo
@@ -124,17 +121,14 @@ class CommonTestCase(unittest.TestCase):
 class CommonTestCaseTest(CommonTestCase):
     
     def test_sanity(self):
-#        self.create_filled_repository()
         self.assertEqual(len(self.repo.get_sources()), 2)
-        
         self.assertEqual(len(self.repo.get_biographies()), 10)
         self.assertEqual(len(self.repo.get_persons()), 10)
 
 def create_mysqldump():      
     """create a .sql file that is used for setting up the database for each test"""
     open(SQLDUMP_FILENAME,'w').write('show tables')
-    unittest.main(defaultTest='CommonTestCase.create_filled_repository_from_scratch')
-    
+    unittest.main(defaultTest='CommonTestCase.create_filled_repository_from_scratch')   
 
 def cleanup():
     try:
@@ -142,14 +136,9 @@ def cleanup():
     except OSError:
         pass        
 
-
 # remove any sqldump test file which might have been left behind 
 # by previous test runs, plus schedule its removal when the process
 # exits
 cleanup()
 atexit.register(cleanup)
 
-
-if __name__ == "__main__":
-    create_mysqldump()
-    unittest.main()
