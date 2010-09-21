@@ -95,7 +95,7 @@ class CommonTestCase(unittest.TestCase):
             return sqlalchemy.engine.url._parse_rfc1738_args(s)
 
         dsn = parse_dsn(DSN)
-        user = dsn.username or ""
+        username = dsn.username or ""
         passwd = dsn.password or ""
         if not passwd:
             sh('mysqldump -u %s bioport_test > %s' % (username, SQLDUMP_FILENAME))
