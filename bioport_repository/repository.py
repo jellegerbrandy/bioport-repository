@@ -127,7 +127,6 @@ class Repository(object):
     def delete_source(self, source):
         if self.ENABLE_DB:
             self.db.delete_source(source)
-            
         if self.ENABLE_SVN:
             self.svn_repository.delete_source(source)
   
@@ -199,16 +198,16 @@ class Repository(object):
             self.db.save_person(person)
         if self.ENABLE_SVN:
             raise NotImplementedError()
-        
     
     def delete_biographies(self, source):
-	sources_ids = [src.id for src in self.get_sources()]
-	if source.id not in sources_ids:
-	    raise ValueError("no source with id %s was found" % source.id)
-        if self.ENABLE_DB:
-            self.db.delete_biographies(source)
-        if self.ENABLE_SVN:
-            raise NotImplementedError
+        sources_ids = [src.id for src in self.get_sources()]
+        if source.id not in sources_ids:
+            raise ValueError("no source with id %s was found" % source.id)
+        else:
+            if self.ENABLE_DB:
+                self.db.delete_biographies(source)
+            if self.ENABLE_SVN:
+                raise NotImplementedError
     
     def download_biographies(self, source, limit=None, sleep=0):
         """Download all biographies from source.url and add them to the repository.

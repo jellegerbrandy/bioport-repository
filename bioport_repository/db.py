@@ -179,13 +179,14 @@ class DBRepository:
         session = self.get_session()
         rs = session.query(BioPortIdRecord.bioport_id).distinct().all()
         return map(lambda x: x[0], rs)
-   
+
+    @instance.clearafter
     def delete_biographies(self, source=None, biography=None): 
         session = self.get_session()
         #delete also all biographies associated with this source
-        if source:
+        if source is not None:
             session.query(BiographyRecord).filter_by(source_id = source.id).delete()
-        if biography:
+        if biography is not None:
             session.query(BiographyRecord).filter(BiographyRecord.id == biography.id).delete()
         session.commit()
         session.execute('delete rel from relbiographyauthor rel left outer join biography b on rel.biography_id = b.id where b.id is null')
@@ -199,7 +200,8 @@ class DBRepository:
         
         session.commit()
 
-    def delete_biography(self,biography):
+    @instance.clearafter
+    def delete_biography(self, biography):
         self.delete_biographies(biography=biography)
         
     def add_naam(self, naam, bioport_id, src):
@@ -552,18 +554,16 @@ class DBRepository:
             qry = qry.filter(BiographyRecord.source_id!='bioport')
         return qry.count()
     
-    def get_biographies(self, 
-        source=None,
-        source_id=None,
-        person=None,
-#        biography_id=None,
-        local_id=None,
-        order_by=None,
-        limit=None,
-#        exclude=None,
-        ): 
+    def get_biographies(self, source=None,
+                              source_id=None,
+                              person=None,
+                              # biography_id=None,
+                              local_id=None,
+                              order_by=None,
+                              limit=None,
+                              # exclude=None,
+                       ): 
         """
-       
         arguments:
             source  - an instance of Source
             person - an instance of Person
