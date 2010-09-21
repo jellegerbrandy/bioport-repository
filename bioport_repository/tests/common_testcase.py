@@ -12,7 +12,7 @@ from bioport_repository.repository import Repository
 from bioport_repository.source import Source
 from bioport_repository.tests.config import SQLDB, DSN
 
-from gerbrandyutils import sh, exit_on_exception
+from gerbrandyutils import sh
 
 
 THIS_DIR = os.path.split(os.path.abspath(__file__))[0]
@@ -53,7 +53,6 @@ class CommonTestCase(unittest.TestCase):
 
         self.db = self.repo.db
         
-    @exit_on_exception
     def tearDown(self):
         #clean out the repository
         #get whatever data there was
@@ -80,7 +79,6 @@ class CommonTestCase(unittest.TestCase):
         self._fill_repository = False #dont fill the repository again
         return self.repo
         
-    @exit_on_exception    
     def create_filled_repository_from_scratch(self, sources=2):
         #create a repo filled with some data
         self.repo.db.metadata.create_all()
