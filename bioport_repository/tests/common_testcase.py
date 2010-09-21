@@ -10,7 +10,7 @@ import sqlalchemy
 
 from bioport_repository.repository import Repository
 from bioport_repository.source import Source
-from bioport_repository.tests.config import SQLDB
+from bioport_repository.tests.config import SQLDB, DSN
 
 from gerbrandyutils import sh, exit_on_exception
 
@@ -19,31 +19,12 @@ THIS_DIR = os.path.split(os.path.abspath(__file__))[0]
 SVN_REPOSITORY  = os.path.abspath(os.path.join(THIS_DIR, 'data/bioport_repository'))
 SVN_REPOSITORY_LOCAL_COPY = os.path.abspath(os.path.join(THIS_DIR, 'data/bioport_repository_local_copy'))
 IMAGES_CACHE_LOCAL = os.path.join(THIS_DIR, 'tmp')
-SQLDUMP_FILENAME =os.path.join(THIS_DIR, 'data/bioport_mysqldump.sql')
-KNOWN_GOOD_DSNS = (
-    'mysql://localhost/bioport_test',    
-    'mysql://jge:MilanO8@localhost/bioport_test',  # on daffy this works
-    )
+SQLDUMP_FILENAME = os.path.join(THIS_DIR, 'data/bioport_mysqldump.sql')
 
 
 class CommonTestCase(unittest.TestCase):
     
-    _fill_repository =True
-   
-    def known_good_dsn(self):
-        """try to find a good connection string for the DB"""
-        for dsn in KNOWN_GOOD_DSNS:
-            engine = sqlalchemy.create_engine(dsn)
-            try:
-                engine.connect()
-                return dsn 
-            except sqlalchemy.exc.DBAPIError:
-                pass
-        #if we arrive here we cannot find a good DSN
-        raise Exception('Could not find a good DSN. This is the list we tried:\n\t' + '\n\t'.join(KNOWN_GOOD_DSNS)) 
-    
-    def parse_dsn(self, s):
-        return sqlalchemy.engine.url._parse_rfc1738_args(s)
+    _fill_repository = True
 
     @instance.clearafter
     @exit_on_exception
@@ -57,7 +38,7 @@ class CommonTestCase(unittest.TestCase):
         self.repo = Repository(
               svn_repository_local_copy = SVN_REPOSITORY_LOCAL_COPY, 
               svn_repository='file://%s' % SVN_REPOSITORY,
-              db_connection=self.known_good_dsn(),
+              db_connection=DSN,
               images_cache_local=IMAGES_CACHE_LOCAL,
               )
               
@@ -78,10 +59,10 @@ class CommonTestCase(unittest.TestCase):
         sh('rm -rf %s' % SVN_REPOSITORY ) 
         sh('rm -rf %s' % SVN_REPOSITORY_LOCAL_COPY ) 
         
-        #remove also all data from the database
+        # remove also all data from the database
         self.repo.db.metadata.drop_all()
         shutil.rmtree(IMAGES_CACHE_LOCAL)
-#        self.repo.db.namenindex.db.metadata.drop_all()
+        #self.repo.db.namenindex.db.metadata.drop_all()
         return
    
     def create_filled_repository(self, sources=None):
@@ -112,12 +93,21 @@ class CommonTestCase(unittest.TestCase):
             self.repo.add_source(source)
             self.repo.download_biographies(source)
         self.repo.db._update_category_table()
-        dsn = self.parse_dsn(self.known_good_dsn())
-#        import pdb; pdb.set_trace()
-        sh('mysqldump -u %s -p%s bioport_test > %s' % (dsn.username or '', dsn.password or '', SQLDUMP_FILENAME))
-        self._is_filled =True
+        
+        def parse_dsn(s):
+            return sqlalchemy.engine.url._parse_rfc1738_args(s)
+
+        dsn = parse_dsn(DSN)
+        user = dsn.username or ""
+        passwd = dsn.password or ""
+        if not passwd:
+            sh('mysqldump -u %s bioport_test > %s' % (username, SQLDUMP_FILENAME))
+        else:
+            sh('mysqldump -u %s -p%s bioport_test > %s' % (username, passwd, SQLDUMP_FILENAME))
+        self._is_filled = True
         return self.repo
-    
+
+
 class CommonTestCaseTest(CommonTestCase):
     
     def test_sanity(self):
