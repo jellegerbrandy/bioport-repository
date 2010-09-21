@@ -58,6 +58,7 @@ engine_factory = EngineFactory(TEST_DSN)
 #
 from zope import component
 from z3c.saconfig.interfaces import IEngineFactory
+# XXX we probably want to set this up via zcml, to have conflict check etc
 component.provideUtility(engine_factory, provides=IEngineFactory)
 #
 #Note that setting up an engine factory is not actually necessary in

@@ -141,6 +141,8 @@ class DBRepository:
         """Get a Source instance with id= source_id """
         session = self.get_session()
         qry = session.query(SourceRecord) 
+        if isinstance(source_id, unicode):
+            source_id = source_id.encode('ascii')
         qry = qry.filter(SourceRecord.id==source_id)
         r = qry.one()
         source = Source(id=r.id, url=r.url, description = r.description, quality=r.quality, xml=r.xml)
