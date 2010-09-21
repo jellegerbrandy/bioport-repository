@@ -28,7 +28,6 @@ class CommonTestCase(unittest.TestCase):
 
     @instance.clearafter
     def setUp(self):     
-        1 / 0          
         if os.path.isdir(SVN_REPOSITORY):
             shutil.rmtree(SVN_REPOSITORY)
         sh('svnadmin create %s --pre-1.4-compatible' % SVN_REPOSITORY)
