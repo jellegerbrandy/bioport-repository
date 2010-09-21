@@ -27,7 +27,6 @@ class CommonTestCase(unittest.TestCase):
     _fill_repository = True
 
     @instance.clearafter
-    @exit_on_exception
     def setUp(self):     
         1 / 0          
         if os.path.isdir(SVN_REPOSITORY):
