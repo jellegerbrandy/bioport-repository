@@ -73,7 +73,7 @@ class CommonTestCase(unittest.TestCase):
         datadir = os.path.join(testdir, 'data')
         sql_string = sql_string.replace('{{{test_data_dir}}}', testdir)
         self.repo.db.get_session().execute(sql_string)
-        self.repo.db.get_session().commit()
+        self.repo.db.get_session().flush()
         self._fill_repository = False #dont fill the repository again
         return self.repo
         
