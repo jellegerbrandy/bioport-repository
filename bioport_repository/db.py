@@ -107,7 +107,7 @@ class DBRepository:
         session.add(r)
         msg = 'Added source'
         self.log(msg, r)
-        session.commit()
+        session.flush()
         
     def save_source(self, src):
         session = self.get_session()
@@ -121,7 +121,7 @@ class DBRepository:
         r.xml = src._to_xml()
         msg = 'saved source'
         self.log(msg, r)
-        session.commit()
+        session.flush()
         
     def add_bioport_id(self, bioport_id):
         """Add a bioport id to the registry"""
@@ -130,11 +130,7 @@ class DBRepository:
         session.add(r_bioportid)
         msg = 'Added bioport_id %s to the registry'
         self.log(msg, r_bioportid)
-        try:
-            session.commit()
-        except:
-            session.rollback()
-            raise
+        session.flush()
     
     #@instance.memoize
     def get_source(self, source_id):
@@ -174,7 +170,7 @@ class DBRepository:
         msg = 'Delete source %s' % source
         self.log(msg, r_source)
         session.delete(r_source)
-        session.commit()
+        session.flush()
         #session.close()
         
     def get_bioport_ids(self):
@@ -190,7 +186,7 @@ class DBRepository:
             session.query(BiographyRecord).filter_by(source_id = source.id).delete()
         if biography is not None:
             session.query(BiographyRecord).filter(BiographyRecord.id == biography.id).delete()
-        session.commit()
+        session.flush()
         session.execute('delete rel from relbiographyauthor rel left outer join biography b on rel.biography_id = b.id where b.id is null')
         session.execute('delete a   from author a               left outer join relbiographyauthor rel on rel.author_id = a.id where rel.author_id is null')
         #delete all persons that have bioport_ids with no correspondeint biographies
@@ -199,8 +195,7 @@ class DBRepository:
         session.execute('delete s   from soundex s            left outer join naam n  on s.naam_id = n.id where n.id is null')
         #delete orphans inthe similarity cache
         session.execute('delete c FROM cache_similarity c left outer join naam n1 on c.naam1_id = n1.id left outer join naam n2 on c.naam2_id = n2.id where n1.id is null or n2.id is null')
-        
-        session.commit()
+        session.flush()
 
     @instance.clearafter
     def delete_biography(self, biography):
@@ -215,7 +210,7 @@ class DBRepository:
         """
         
         session = self.get_session()
-        session.commit()
+        session.flush()
         item = NaamRecord()
         session.add(item)
         
@@ -238,9 +233,8 @@ class DBRepository:
             item.soundex.append(soundex)
         
         try:
-            session.commit()
+            session.flush()
         except UnicodeEncodeError, error:
-            session.rollback()
             s = ''
             if not encodable(item.snippet, error.encoding):
                 s +='item.snippet'
@@ -280,8 +274,7 @@ class DBRepository:
         #generated the biodes document only at the end (When all changes are made)  ?? which changes??
         r_biography.biodes_document = biography.to_string()
         r_biography.source_url = unicode(biography.source_url)
-        
-        session.commit()
+        session.flush()
         
         #update the information of the associated person (or add a person if the biography is new)
         default_status = self.get_source(biography.source_id).default_status
@@ -289,7 +282,7 @@ class DBRepository:
         
         msg  = 'saved biography with id %s' % (biography.id)
         self.log(msg=msg, record = r_biography)
-        session.commit()
+        session.flush()
 
     def _add_author(self, author, biography_record):   
         """
@@ -318,8 +311,8 @@ class DBRepository:
 
         msg = 'Changed person'
         self.log(msg, r)
-        session.commit()       
-        
+        session.flush()
+
     @instance.clearbefore
     def update_person(self,bioport_id, default_status=STATUS_NEW):
         """add or update a person table with the information contained in its biographies
@@ -399,7 +392,7 @@ class DBRepository:
         self.update_soundex(bioport_id=bioport_id, s=r_person.names)
         self.update_name(bioport_id, s = r_person.names) 
         self.update_source(bioport_id, source_ids = [b.source_id for b in person.get_biographies()])
-        session.commit()
+        session.flush()
         
     def update_persons(self):
         """update the information of all the persons in the database"""
@@ -421,11 +414,10 @@ class DBRepository:
                         raise error
                 #we did not re-raise the error, so ewe delete this perosn 
                 session = self.get_session()
-                session.commit()
+                session.flush()
                 self.delete_person(p.bioport_id)
-                session.commit()
-                
-                
+                session.flush()
+
     def update_name(self, bioport_id, s):
         """update the table person_name"""
         session = self.get_session()
@@ -436,9 +428,9 @@ class DBRepository:
         for name in names:
             r =  PersonName(bioport_id=bioport_id, name=name) 
             session.add(r)
-        session.commit()
- 
-        
+        session.flush()
+
+
     def update_soundex(self, bioport_id, s):
         """update the table person_soundex"""
         session = self.get_session()
@@ -448,7 +440,7 @@ class DBRepository:
         for soundex in soundexes:
             r = PersonSoundex(bioport_id=bioport_id, soundex=soundex) 
             session.add(r)
-        session.commit()
+        session.flush()
     
  
     def update_source(self, bioport_id, source_ids):   
@@ -459,7 +451,7 @@ class DBRepository:
         for source_id in source_ids:
             r = PersonSource(bioport_id=bioport_id, source_id=source_id) 
             session.add(r)
-        session.commit()
+        session.flush()
 
     def tmp_update_soundexes(self):
         """update the person_soundex table in the database 
@@ -540,8 +532,7 @@ class DBRepository:
                 
             #now add the new relation
             session.add(RelBioPortIdBiographyRecord(bioport_id=bioport_id, biography_id=biography.id) )
-            session.commit()
-            
+            session.flush()
 
         return bioport_id
     
@@ -949,13 +940,12 @@ class DBRepository:
             r = session.query(PersonRecord).filter(PersonRecord.bioport_id==person.get_bioport_id()).one()
             session.delete(r) 
             session.query(PersonSoundex).filter(PersonSoundex.bioport_id==person.bioport_id).delete()
-            session.commit()
+            session.flush()
             msg = 'Deleted person %s' % person
             self.log(msg, r)
         except NoResultFound:
-            session.rollback()
-            
-            
+            pass
+
 
 
 
@@ -995,7 +985,7 @@ class DBRepository:
         r = qry.one()
         #add a new record for the redirection
         r.redirect_to = redirect_to
-        session.commit()
+        session.flush()
 
 
     def redirects_to(self, bioport_id):
@@ -1082,8 +1072,7 @@ class DBRepository:
                     session.execute(s)
                 else:
                     qry.delete()
-            session.commit() 
-            
+            session.flush()
             
         #if the person argument is not given, we update for all persons
         if person:
@@ -1150,7 +1139,7 @@ class DBRepository:
                     except UnicodeEncodeError:
                         logging.info('scores could not be printed due to UnicodeEncodeError')
             #print '-' * 20
-            session.commit()
+            session.flush()
             
         session.expunge_all() # removes objects from session
         session.close()  
@@ -1160,20 +1149,19 @@ class DBRepository:
         id1 = min(bioport_id1, bioport_id2)
         id2 = max(bioport_id1, bioport_id2)
         r = CacheSimilarityPersons(bioport_id1=id1, bioport_id2=id2, score=score)
-                        
         session.add(r)
         try:
-            session.commit()
+            session.flush()
         except IntegrityError: 
             #this is (probably) a 'duplicate entry', 
             #caused by having already added the relation when we processed item
             #we update the record to reflect the highest score
-            session.rollback()
-                                
-            r_duplicate = session.query(CacheSimilarityPersons).filter_by(bioport_id1=id1, bioport_id2=id2).one()
+            session.transaction.rollback()
+            r_duplicate = session.query(CacheSimilarityPersons
+                                ).filter_by(bioport_id1=id1, bioport_id2=id2).one()
             if score > r_duplicate.score:
                 r_duplicate.score = score
-                session.commit()
+                session.flush()
         
     def get_most_similar_persons(
          self, 
@@ -1270,7 +1258,7 @@ class DBRepository:
         else:
             logging.info('fill most similar persons cache' )
             qry.delete()
-            session.commit()
+            session.flush()
         
         i = 0
         min_score = 0
@@ -1333,15 +1321,14 @@ order by score desc
             r_cache = CacheSimilarityPersons(score=score, bioport_id1=id1, bioport_id2=id2)
             session.add(r_cache) 
             try:
-                session.commit()  
+                session.flush()
             except:
                 #this must be a duplicate - which is no problem 
                 #XXX but we must take the highest score
-                session.rollback()
                 r_existing = session.query(CacheSimilarityPersons).filter(CacheSimilarityPersons.bioport_id1==id1).filter(CacheSimilarityPersons.bioport_id2==id2).one()
                 if score > r_existing.score:
                     r_existing.score = score
-                    session.commit()
+                    session.flush()
                 
             #give some minimal user feedback
             if i % 100 == 0:
@@ -1349,7 +1336,7 @@ order by score desc
                     
                     #if i > start+size:
                     #    return
-        session.commit()
+        session.flush()
         
         #notify caching machinery that the table is filled
         self._cache_filled_similarity_persons = True 
@@ -1413,7 +1400,7 @@ order by score desc
         old_id = old_person.bioport_id
         #adapt the caches
         #we identified so we can remove this pair from the deferred list
-        self._remove_from_cache_deferidentification(new_person, old_person)  
+        self._remove_from_cache_deferidentification(new_person, old_person)
         self._update_similarity_cache_with_identification(new_id, old_id )
        
 
@@ -1430,9 +1417,10 @@ order by score desc
         #we have to do it record by record, because we may be creating duplicates
         ls = list(qry.all())
         for r in ls:
+            session.flush()
             if r.bioport_id1 == old_id and r.bioport_id2 == old_id:
                 session.delete(r)
-                session.commit()
+                session.flush()
                 continue
             
             if r.bioport_id1 == old_id:
@@ -1447,19 +1435,20 @@ order by score desc
             try:
                 r.bioport_id1 = bioport_id1
                 r.bioport_id2 = bioport_id2
-                session.commit()
-            except IntegrityError:
-                #this thing was already in the database; we keep the one with the highest score
+                session.flush()
+            except (IntegrityError, InvalidRequestError), e:
                 session.rollback()
+                session.expire_all()
+                #this thing was already in the database; we keep the one with the highest score
                 other_r = self.get_session().query(CacheSimilarityPersons).filter_by(bioport_id1=bioport_id1, bioport_id2=bioport_id2).one()
                 if other_r.score > r.score:
                     session.delete(r)
                 else:
                     session.delete(other_r)
-                    session.commit()
+                    session.flush()
                     r.bioport_id1 = bioport_id1
                     r.bioport_id2 = bioport_id2
-                session.commit()
+                session.flush()
         assert not qry.count(), [(r.bioport_id1, r.bioport_id2) for r in qry.all()]
                
     def unidentify(self, person):
@@ -1514,12 +1503,10 @@ order by score desc
             session.add(r_anti)
             msg = 'Anti-identified %s and %s' % (id1, id2)
             self.log(msg, r_anti)
-            session.commit()
+            session.flush()
         except IntegrityError: 
-            #this is (most probably) because the record already exists 
-            session.rollback()
+            #this is (most probably) because the record already exists
             pass
-       
         self._remove_from_cache_similarity_persons(person1, person2)
         self._remove_from_cache_deferidentification(person1, person2)
 
@@ -1534,8 +1521,8 @@ order by score desc
         qry = qry.filter(DeferIdentificationRecord.bioport_id2==max(id1, id2))
         qry.delete()
         
-        #commit the changes
-        session.commit()
+        #flush the changes
+        session.flush()
         
     def _remove_from_cache_similarity_persons(self, person1, person2):
         #also remove the person  from the cache
@@ -1546,7 +1533,7 @@ order by score desc
         qry = qry.filter(CacheSimilarityPersons.bioport_id1 == min(id1, id2))
         qry = qry.filter(CacheSimilarityPersons.bioport_id2 == max(id1, id2))
         qry.delete()        
-        session.commit()
+        session.flush()
         
     def get_antiidentified(self):
         query = self.get_session().query(AntiIdentifyRecord)
@@ -1578,9 +1565,8 @@ order by score desc
             session.add(r_defer)
             msg = 'Deferred identification of %s and %s' % (id1, id2)
             self.log(msg, r_defer)
-            session.commit()
-        except IntegrityError: 
-            session.rollback()
+            session.flush()
+        except IntegrityError:
             #this is (most probably) because the record already exists 
             pass
         

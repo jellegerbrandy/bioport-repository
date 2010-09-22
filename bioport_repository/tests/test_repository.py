@@ -274,7 +274,7 @@ class RepositoryTestCase(CommonTestCase):
         #    2. anti-identify the two
         #    3. defer
         
-        #set up ajn environmenet
+        #set up an environmenet
         repo = self.create_filled_repository()
         self.repo.db.fill_similarity_cache(minimal_score=0.0)
         
@@ -288,7 +288,6 @@ class RepositoryTestCase(CommonTestCase):
         #we should also find them if we search for the peopele
         ls = self.repo.get_most_similar_persons(bioport_id=p1.bioport_id)
         assert (score, p1, p2) in ls
-        
         #now we identify two people
         repo.identify(p1, p2)
         assert len(self.repo.get_most_similar_persons()) <= original_length-1
