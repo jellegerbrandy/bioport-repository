@@ -7,7 +7,7 @@ import unittest
 from cStringIO import StringIO
 import shutil
 
-import PIL.Image
+import Image
 
 from bioport_repository.tests.common_testcase import CommonTestCase, IMAGES_CACHE_LOCAL
 from bioport_repository.illustration import MEDIUM_THUMB_SIZE
@@ -118,7 +118,7 @@ class ThumbnailTestCase(unittest.TestCase):
         ill = self.ill
         ill.download()
         data = urllib2.urlopen(ill.image_small_url).read()
-        img = PIL.Image.open(StringIO(data))
+        img = Image.open(StringIO(data))
 
 
 def test_suite():
