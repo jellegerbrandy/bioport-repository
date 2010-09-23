@@ -16,11 +16,9 @@ from bioport_repository.illustration import Illustration
 from bioport_repository.data_extraction import BioDataExtractor
 
 
-
 def create_biography_id(source_id, local_id):        
     id = '%s/%s' % (source_id, local_id)
-    if len(id) > 50:
-        
+    if len(id) > 50:        
         logging.warning('Ids can be maximally 50 characters long; this one ' \
                         'is %s: "%s"\nShorted it to 50 characters' % (len(id), id))
         id = id[:50]
@@ -28,14 +26,14 @@ def create_biography_id(source_id, local_id):
 
     
 class Biography(object, BioDesDoc): #, SVNEntry):
-    def __init__(self,
-        id=None, 
-        source_id=None, 
-        biodes_document=None, 
-        source_url=None,
-        repository=None,
-        record=None,
-        ): 
+
+    def __init__(self, id=None, 
+                       source_id=None, 
+                       biodes_document=None, 
+                       source_url=None,
+                       repository=None,
+                       record=None,
+                 ): 
         """
         arguments:
             id - a 'local id': should be unique with the biographies in the 
@@ -46,18 +44,15 @@ class Biography(object, BioDesDoc): #, SVNEntry):
         self.record = record
         self.source_id = source_id
         self.biodes_document = biodes_document
-        self.source_url = source_url
-        
+        self.source_url = source_url        
         if self.biodes_document:
             self.id = self.get_id()
-#
+
     def __str__(self):
         s = '<BioPort Biography %s >' % (self.id)
         return s
-
-    def __repr__(self):
-        return self.__str__()
-    
+    __repr__ = __str__
+        
     def __eq__(self, other):
         return self.id == other.id
     
@@ -78,8 +73,7 @@ class Biography(object, BioDesDoc): #, SVNEntry):
             else:
 	            self.root = etree.fromstring(self.biodes_document)
 	            return self.root
-            
-    
+   
     def get_source(self):
         try:
             return self._source
@@ -126,8 +120,7 @@ class Biography(object, BioDesDoc): #, SVNEntry):
             return text
 
     def snippet(self, size=200):
-        """
-        
+        """        
         arguments:
             size : (maximum) number of characters to show
         """
@@ -167,8 +160,7 @@ class Biography(object, BioDesDoc): #, SVNEntry):
             element.text = snippet
         else:
             element.text = u''
-        
-        
+       
     def create_id(self):        
         if self.id:
             return self.id
@@ -200,6 +192,7 @@ class Biography(object, BioDesDoc): #, SVNEntry):
    
     def last_commit(self):
         pass
+
     def last_commit_by(self):
         pass
 
@@ -208,6 +201,7 @@ class Biography(object, BioDesDoc): #, SVNEntry):
 #        self._set_bioport_id(id)
         #save the data, so we can find it later (or immediately...)
         #self.save()
+
     def get_bioport_id(self):
         ls  = self.get_value('bioport_id')
         if ls:
@@ -268,8 +262,7 @@ class Biography(object, BioDesDoc): #, SVNEntry):
             category = self.repository.get_category(category_id)
             if category:
                 name = category.name   
-                self.add_state(type='category', idno=str(category_id), text=name)
-                
+                self.add_state(type='category', idno=str(category_id), text=name)               
         
     def get_quality(self):
         return self.get_source().get_quality()
@@ -302,3 +295,4 @@ class Biography(object, BioDesDoc): #, SVNEntry):
                  link_url=self.get_value('url_biografie'),
                  ))
         return result
+

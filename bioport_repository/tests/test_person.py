@@ -1,6 +1,7 @@
 from bioport_repository.tests.common_testcase import CommonTestCase, unittest 
 from bioport_repository.person import Person
 
+
 class PersonTestCase(CommonTestCase):
         
     def test_person_init(self):
@@ -41,16 +42,18 @@ class PersonTestCase(CommonTestCase):
         p1.get_merged_biography()
         p1.get_merged_biography()
 
-        
+
+class InconsistentPersons(CommonTestCase)
+
+
 def test_suite():
     test_suite = unittest.TestSuite()
-    tests = [PersonTestCase]
+    tests = [PersonTestCase,
+             ]
     for test in tests:
         test_suite.addTest(unittest.makeSuite(test))
     return test_suite
 
 if __name__ == "__main__":
-    unittest.main(defaultTest='test_suite')    
-
-
+    unittest.TextTestRunner(verbosity=2).run(test_suite())
 

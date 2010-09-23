@@ -12,15 +12,14 @@ class Person(object):
     it is usually associated with one or more Biography objects
     """
     
-    def __init__(self, 
-        bioport_id, 
-        biographies=None, 
-        repository=None, 
-        record=None,  
-        status=None, 
-        remarks=None, 
-        score=None,
-        ):
+    def __init__(self, bioport_id, 
+                       biographies=None, 
+                       repository=None, 
+                       record=None,  
+                       status=None, 
+                       remarks=None, 
+                       score=None,
+                ):
         """
         arguments:
             bioport_id - a unique identifier for this person
@@ -61,8 +60,7 @@ class Person(object):
         else:
 	        return '<Person with id %s>' % (self.id)
     
-    def __repr__(self):
-        return self.__str__()
+    __repr__ = __str__
 
     @instance.clearafter
     def add_biography(self, biography):
