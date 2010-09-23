@@ -43,8 +43,6 @@ class PersonTestCase(CommonTestCase):
         p1.get_merged_biography()
 
 
-class InconsistentPersons(CommonTestCase)
-
 
 def test_suite():
     test_suite = unittest.TestSuite()
