@@ -1,5 +1,7 @@
 from bioport_repository.tests.common_testcase import CommonTestCase, unittest 
 from bioport_repository.person import Person
+from bioport_repository.source import Source
+from bioport_repository.biography import Biography
 
 
 class PersonTestCase(CommonTestCase):
@@ -44,9 +46,32 @@ class PersonTestCase(CommonTestCase):
 
 
 
+
+class InconsistentPersonsTestCase(CommonTestCase):
+
+    def get_bio(self):
+        bio = Biography( id = 'bioport_test/test_bio', source_id="knaw", repository=self.repo)
+        bio.from_args( 
+              url_biografie='http://ladida/didum', 
+              naam_publisher='nogeensiets', 
+              url_publisher='http://pbulihser_url',
+              naam='Tiedel Doodle Dum')
+        return bio
+
+    def test_case(self):
+        p1 = Person(bioport_id="1", repository=self.repo)
+        p1.add_biography(self.get_bio())
+
+        # save it
+#        assert bio.get_bioport_id()
+        import pdb; pdb.set_trace()
+        p1.get_biographies()
+
+
 def test_suite():
     test_suite = unittest.TestSuite()
-    tests = [PersonTestCase,
+    tests = [#PersonTestCase,
+             InconsistentPersonsTestCase,
              ]
     for test in tests:
         test_suite.addTest(unittest.makeSuite(test))
