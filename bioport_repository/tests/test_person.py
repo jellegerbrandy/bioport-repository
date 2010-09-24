@@ -51,23 +51,24 @@ class InconsistentPersonsTestCase(CommonTestCase):
 
     def get_bio(self):
         bio = Biography( id = 'bioport_test/test_bio', source_id="knaw", repository=self.repo)
+        
         bio.from_args( 
               url_biografie='http://ladida/didum', 
               naam_publisher='nogeensiets', 
               url_publisher='http://pbulihser_url',
               naam='Tiedel Doodle Dum')
+        self.repo.save_biography(bio)
         return bio
 
+        
     def test_case(self):
-        p1 = Person(bioport_id="1", repository=self.repo)
-        p1.add_biography(self.get_bio())
-
-        # save it
-#        assert bio.get_bioport_id()
-        import pdb; pdb.set_trace()
-        p1.get_biographies()
-
-
+        bio = self.get_bio()
+        p1 = bio.get_person()
+        self.assertEqual(p1.get_biographies(), [bio])
+        bio2 = Biography( id = 'bioport_test/test_bio2', source_id="knaw", repository=self.repo)
+        p1.add_biography(bio2)
+        self.assertEqual(p1.get_biographies(), [bio, bio2])
+        
 def test_suite():
     test_suite = unittest.TestSuite()
     tests = [#PersonTestCase,
