@@ -117,15 +117,4 @@ def create_mysqldump():
     open(SQLDUMP_FILENAME,'w').write('show tables')
     unittest.main(defaultTest='CommonTestCase.create_filled_repository_from_scratch')   
 
-def cleanup():
-    try:
-        os.remove(SQLDUMP_FILENAME)
-    except OSError:
-        pass        
-
-# remove any sqldump test file which might have been left behind 
-# by previous test runs, plus schedule its removal when the process
-# exits
-cleanup()
-atexit.register(cleanup)
 

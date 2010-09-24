@@ -49,7 +49,7 @@ class Biography(object, BioDesDoc): #, SVNEntry):
             self.id = self.get_id()
 
     def __str__(self):
-        s = '<BioPort Biography %s >' % (self.id)
+        s = '<BioPort Biography %s>' % (self.id)
         return s
     __repr__ = __str__
         

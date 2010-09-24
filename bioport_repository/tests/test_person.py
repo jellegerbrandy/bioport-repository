@@ -49,26 +49,96 @@ class PersonTestCase(CommonTestCase):
 
 class InconsistentPersonsTestCase(CommonTestCase):
 
-    def get_bio(self):
-        bio = Biography( id = 'bioport_test/test_bio', source_id="knaw", repository=self.repo)
-        
-        bio.from_args( 
-              url_biografie='http://ladida/didum', 
-              naam_publisher='nogeensiets', 
-              url_publisher='http://pbulihser_url',
-              naam='Tiedel Doodle Dum')
+    x = 0
+    
+    def get_bio(self, bdate=None, ddate=None, bplace=None, dplace=None):
+        self.x += 1
+        bio = Biography(id=str(self.x), source_id="knaw",
+                        repository=self.repo)        
+        bio.from_args(url_biografie='http://google.it', 
+                      naam_publisher='jelle', 
+                      url_publisher='http://gerbrandy.com',
+                      naam="gino")
+        if bdate is not None:
+            bio.set_value('birth_date', bdate)
+        if ddate is not None:
+            bio.set_value('death_date', ddate)
+        if bplace is not None:
+            bio.set_value('birth_place', bplace)
+        if dplace is not None:
+            bio.set_value('death_place', dplace)
         self.repo.save_biography(bio)
         return bio
+        
+    def test_no_contradictions_1(self):
+        bio1 = self.get_bio()
+        bio2 = self.get_bio()
+        bio3 = self.get_bio()
+        person = bio1.get_person()
+        person.add_biography(bio1)
+        person.add_biography(bio2)
+        person.add_biography(bio3)      
 
+        contrs = person.get_biography_contradictions()
+        self.assertEqual(contrs, [])
+
+    def test_no_contradictions_2(self):
+        bio1 = self.get_bio(bplace='foo')
+        bio2 = self.get_bio(bplace='foo')
+        bio3 = self.get_bio(bplace='foo')
+        person = bio1.get_person()
+        person.add_biography(bio1)
+        person.add_biography(bio2)
+        person.add_biography(bio3)      
+
+        contrs = person.get_biography_contradictions()
+        self.assertEqual(contrs, [])
         
-    def test_case(self):
-        bio = self.get_bio()
-        p1 = bio.get_person()
-        self.assertEqual(p1.get_biographies(), [bio])
-        bio2 = Biography( id = 'bioport_test/test_bio2', source_id="knaw", repository=self.repo)
-        p1.add_biography(bio2)
-        self.assertEqual(p1.get_biographies(), [bio, bio2])
-        
+    def test_places_contradictions_1(self):
+        # death places
+        bio1 = self.get_bio(dplace='bar')
+        bio2 = self.get_bio(dplace='foo')
+        bio3 = self.get_bio(dplace='foo')
+        person = bio1.get_person()
+        person.add_biography(bio1)
+        person.add_biography(bio2)
+        person.add_biography(bio3)
+
+        cons = person.get_biography_contradictions()
+        self.assertEqual(len(cons), 1)
+        con = cons[0]
+        self.assertEqual(len(con), 2)
+        self.assertEqual(con.values, ['bar', 'foo'])
+        self.assertEqual(con.type, 'death places')
+
+    def test_places_contradictions_2(self):
+        bio1 = self.get_bio(dplace='death1')
+        bio2 = self.get_bio(dplace='death1')
+        bio3 = self.get_bio(dplace='death2')
+        bio4 = self.get_bio(bplace='birth1')
+        bio5 = self.get_bio(bplace='birth1')
+        bio6 = self.get_bio(bplace='birth1')
+        bio7 = self.get_bio(bplace='birth2')
+        bio8 = self.get_bio(bplace='birth3')
+        person = bio1.get_person()
+        for x in bio1, bio2, bio3, bio4, bio5, bio6, bio7, bio8:
+            person.add_biography(x)
+        cons = person.get_biography_contradictions()
+        cons.sort(key=lambda x: x.type)
+
+        self.assertEqual(len(cons), 2)
+
+        birth_con = cons[0]
+        self.assertEqual(len(birth_con), 3)
+        self.assertEqual(birth_con.values, ['birth1', 'birth2', 'birth3'])
+        self.assertEqual(birth_con.type, 'birth places')
+
+        death_con = cons[1]
+        self.assertEqual(len(death_con), 2)
+        self.assertEqual(death_con.values, ['death1', 'death2'])
+        self.assertEqual(death_con.type, 'death places')
+
+
 def test_suite():
     test_suite = unittest.TestSuite()
     tests = [#PersonTestCase,

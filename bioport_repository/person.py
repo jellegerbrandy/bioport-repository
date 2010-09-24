@@ -113,6 +113,7 @@ class Person(object):
     
     def get_names(self):    
         return self.get_merged_biography().get_names()
+        
     def title(self):
         return self.get_merged_biography().title()
 
@@ -196,24 +197,24 @@ class Person(object):
         Rerturn a list of Contradiction instances or [].
         """
         retlist = []        
-        bdates = ddates = bplaces = dplaces = set()
+        bdates, ddates, bplaces, dplaces = set(), set(), set(), set()
         for bio in self.get_biographies():
             x = bio.get_value('birth_date')
             if x is not None:
-                bdates.add(x)
+                 bdates.add(x)
             x = bio.get_value('death_date')
             if x is not None:
-                ddates.add(x)
+                 ddates.add(x)
             x = bio.get_value('birth_place')
             if x is not None:
-                bplaces.add(x)
+                 bplaces.add(x)
             x = bio.get_value('death_place')
             if x is not None:
-                dplaces.add(x)
+                 dplaces.add(x)
 
-        if bplaces:
+        if len(bplaces) > 1:
             retlist.append(Contradiction("birth places", bplaces))
-        if dplaces:
+        if len(dplaces) > 1:
             retlist.append(Contradiction("death places", dplaces))
         return retlist
 
@@ -226,6 +227,7 @@ class Contradiction(object):
     def __init__(self, type, values):
         self.type = type
         self.values = list(values)
+        self.values.sort()
                
     def __str__(self):
         s = "<%s at %s; type=%s values=%s>" % (self.__class__.__name__, id(self), 
