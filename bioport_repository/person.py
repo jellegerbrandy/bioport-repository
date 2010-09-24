@@ -64,8 +64,9 @@ class Person(object):
 
     @instance.clearafter
     def add_biography(self, biography):
-        if biography not in self.get_biographies():
-            self.repository.add_biography(biography)
+       biography.set_value('bioport_id',self.get_bioport_id())
+       self.repository.save_biography(biography)
+
         
     @instance.memoize
     def get_biographies(self, source_id=None):
