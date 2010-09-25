@@ -48,7 +48,6 @@ class BiographyTestCase(CommonTestCase):
         p = bio.get_person() 
         self.assertEqual(bio.get_bioport_id(), p.get_bioport_id())
         
-        
         bio.set_value('geboortedatum', '2009-01-01')
         bio.set_value('geboortedatum', '2009-01-02')
         self.assertEqual(bio.get_value('geboortedatum'), '2009-01-02')
@@ -73,33 +72,6 @@ class BiographyTestCase(CommonTestCase):
         self.assertEqual(bio.id, 'YYY/x')
         bio = Biography(id='z', source_id='sourceY')
         self.assertEqual(bio.id, 'z')
-    
-    def test_delete_biography(self): 
-        """check if we clean up after ourselves when deleting biographies"""
-        session = self.repo.db.get_session()
-        #just check some general sanity
-        self.assertEqual(session.query(BiographyRecord).count(), 10)
-        #now delete all biographies
-        
-        for source in self.repo.get_sources():
-            self.repo.delete_biographies(source)
-            
-        #the sources are still there
-        self.assertEqual(len(self.repo.get_sources()), 2)
-        #and also the bioport_ids we used
-        self.assertEqual(len(self.repo.get_bioport_ids()), 10)
-        
-        #but the rest is gone
-        self.assertEqual(len(self.repo.get_biographies()), 0)
-        self.assertEqual(session.query(BiographyRecord).count(), 0)
-        
-#        self.assertEqual(session.query(RelBiographyAuthorRecord).count(), 0)
-#        self.assertEqual(session.query(AuthorRecord).count(), 0)
-       
-        #Names and their parafarnelia are connected to Person s now
-        #and should be cleaned up when we delete the person
-#        self.assertEqual(session.query(NaamRecord).count(), 0)
-#        self.assertEqual(session.query(SoundexRecord).count(), 0)
         
     def test_from_string(self):
         self.create_filled_repository(sources=1)

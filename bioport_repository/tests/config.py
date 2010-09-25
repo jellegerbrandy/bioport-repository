@@ -17,5 +17,5 @@ def _find_valid_dsn():
     raise ValueError("no valid DSN found")
 
 # XXX - remove all this aliases
-DB_CONNECTION = SQLDB = DSN = _find_valid_dsn()
+DB_CONNECTION = DSN = _find_valid_dsn()
 

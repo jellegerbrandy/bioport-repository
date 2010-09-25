@@ -15,12 +15,11 @@ class RepositoryTestCase(CommonTestCase):
     
         self.repo.download_biographies(src)
         assert len(self.repo.get_biographies())
-    
-
         
     def test_get_persons(self):
         self.assertEqual(len(self.repo.get_persons()), 10)
         self.assertEqual(self.repo.count_persons(), 10)
+        
     def test_get_persons_sequence(self):
         persons = self.repo.get_persons_sequence()
         self.assertEqual(len(persons), 10)
@@ -66,29 +65,10 @@ class RepositoryTestCase(CommonTestCase):
         self.assertEqual([b.id for b in self.repo.get_biographies(person=p)], [bio.id])
         self.assertEqual(len(self.repo.get_biographies(source=source)), 5)
         self.assertEqual(self.repo.get_biographies(person=p, source=bio.get_source()), [bio])
-               
     
         self.assertEqual(self.repo.count_biographies(), len(self.repo.get_biographies()))
         self.assertEqual(self.repo.count_biographies(source=source), 5)
-        
                    
-#    def test_similar_bios(self):   
-#        self.create_filled_repository()
-#        repo = self.repo
-#        #get a person
-#        person = repo.get_persons()[1]
-#        #there are two names similar to the name of this person
-#        names = repo.get_similar_names(person)
-#        self.assertEqual(len(names), 3)
-##        assert 0, '%s - %s ' % (person.get_merged_biography().get_names(), persons)
-#        #we can ge the biography of the name
-#        name = names[0]
-#        
-#        assert name.get_biography()
-#        #nad also the person corresponding to the biography
-#        #XXX
-#        #assert name.get_biography().get_person()
-        
     def test_source_manipulation(self):  
         i = self.repo 
         url = 'file://%s' % os.path.abspath(os.path.join(THIS_DIR, 'data/knaw/list.xml'))

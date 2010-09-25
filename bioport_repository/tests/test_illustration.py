@@ -7,7 +7,10 @@ import unittest
 from cStringIO import StringIO
 import shutil
 
-import Image
+try:
+	from PIL import Image
+except ImportError:
+    import Image
 
 from bioport_repository.tests.common_testcase import CommonTestCase, IMAGES_CACHE_LOCAL
 from bioport_repository.illustration import MEDIUM_THUMB_SIZE

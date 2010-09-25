@@ -10,7 +10,7 @@ import sqlalchemy
 
 from bioport_repository.repository import Repository
 from bioport_repository.source import Source
-from bioport_repository.tests.config import SQLDB, DSN
+from bioport_repository.tests.config import DSN
 
 from gerbrandyutils import sh
 
