@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 from __future__ import with_statement
 
 import os
@@ -11,7 +9,14 @@ from hashlib import md5
 import simplejson
 from gerbrandyutils import normalize_url
 
-import Image
+
+try:
+    from PIL import Image
+except ImportError:
+    import Image
+# The following should avoid the "AccessInit: hash collision: 3 for both 1 and 1" error
+# see http://jaredforsyth.com/blog/2010/apr/28/accessinit-hash-collision-3-both-1-and-1/
+sys.modules['PIL.Image'] = Image
 
 MEDIUM_THUMB_SIZE = (200, 200)
 SMALL_THUMB_SIZE = (100, 100)
