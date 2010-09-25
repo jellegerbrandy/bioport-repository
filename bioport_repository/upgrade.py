@@ -16,8 +16,8 @@ A
 
 from bioport_repository.repository import *
 
-DB_CONNECTION = 'mysql://root@localhost/bioport_play'
-repo = Repository(db_connection=DB_CONNECTION) 
+DSN = 'mysql://root@localhost/bioport_play'
+repo = Repository(db_connection=DSN) 
 
 def upgrade_persons(repo):
     for person in repo.get_persons():
