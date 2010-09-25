@@ -9,12 +9,12 @@ from db_definitions import STATUS_NEW
 import urllib
 import time
     
-class Source(object): #, SVNEntry): #db.Source):
+class Source(object):
     """A source with biographical data"""
     
     def __init__(self, id,url=None, description=None, quality=0, default_status=STATUS_NEW, xml=None, repository=None):
         self.xml = xml
-        self.id = id
+        self.id = unicode(id)
         self.url = url
         self.description = description
         self.quality = quality
