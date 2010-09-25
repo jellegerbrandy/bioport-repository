@@ -179,22 +179,33 @@ class DBRepository:
         return map(lambda x: x[0], rs)
 
     @instance.clearafter
-    def delete_biographies(self, source=None, biography=None): 
+    def delete_biographies(self, source): #, biography=None): 
         session = self.get_session()
         #delete also all biographies associated with this source
-        if source is not None:
-            session.query(BiographyRecord).filter_by(source_id = source.id).delete()
-        if biography is not None:
-            session.query(BiographyRecord).filter(BiographyRecord.id == biography.id).delete()
+        session.query(BiographyRecord).filter_by(source_id = source.id).delete()
         session.flush()
         session.execute('delete rel from relbiographyauthor rel left outer join biography b on rel.biography_id = b.id where b.id is null')
         session.execute('delete a   from author a               left outer join relbiographyauthor rel on rel.author_id = a.id where rel.author_id is null')
-        #delete all persons that have bioport_ids with no correspondeint biographies
-        #session.execute('delete p   from person  p left outer join relbioportidbiography rel on p.bioport_id = rel.bioport_id left outer join biography b on rel.biography_id = b.id where b.id is null')
-#        session.execute('delete n   from naam n               left outer join biography b on b.id = n.biography_id where b.id is null')
+       #delete also all records in person_record table
+        sql = """DELETE  s from person_source s
+			where s.source_id = '%s'""" % source.id 
+        session.execute(sql)
+        #delete all persons  that have become 'orphans' (i.e. that have no source anymore) 
+        sql = """DELETE  p from person p 
+			left outer join person_source s
+			on s.bioport_id = p.bioport_id
+			where s.bioport_id is Null"""  
+        session.execute(sql)
+        #delete all orphaned names and soundexes
+        sql = """DELETE  n from person_name n 
+			left outer join person p
+			on n.bioport_id = p.bioport_id
+			where n.bioport_id is Null"""  
+        session.execute(sql)
+        sql = "delete n   from naam n   where src = '%s'" % source.id          
+        session.execute(sql)
         session.execute('delete s   from soundex s            left outer join naam n  on s.naam_id = n.id where n.id is null')
         #delete orphans inthe similarity cache
-        session.execute('delete c FROM cache_similarity c left outer join naam n1 on c.naam1_id = n1.id left outer join naam n2 on c.naam2_id = n2.id where n1.id is null or n2.id is null')
         session.flush()
 
     @instance.clearafter
@@ -815,6 +826,8 @@ class DBRepository:
 #            for s in search_term.split():
 #                qry = qry.filter(PersonRecord.search_source.op('regexp')('[[:<:]]%s[[:>:]]' % s))
         if search_term:
+            #full-text search
+            ### next code is for MATCH ###
             # Mysql uses the OR operator by default
             # with a '+' in front of each word we use the AND operator
             words = re.split('\W+', search_term)
@@ -822,8 +835,11 @@ class DBRepository:
             words_query = ' '.join(words_with_plus)
             qry = qry.filter('match (search_source) against '
                               '("%s" in boolean mode)' % words_query)
+            
         qry = self._filter_search_name(qry, search_name)
+        
         qry = self._filter_soundex(qry, search_soundex)
+        
         if any_soundex:
             qry = qry.join(PersonSoundex)
             qry = qry.filter(PersonSoundex.soundex.in_( any_soundex))
