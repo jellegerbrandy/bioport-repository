@@ -286,6 +286,8 @@ class DBRepository:
         r_biography.biodes_document = biography.to_string()
         r_biography.source_url = unicode(biography.source_url)
         session.flush()
+        session.expunge_all()
+
         
         #update the information of the associated person (or add a person if the biography is new)
         default_status = self.get_source(biography.source_id).default_status
