@@ -48,43 +48,28 @@ class DBRepositoryTestCase(CommonTestCase):
         bio2.from_args(naam_publisher="1", url_biografie="http://www.url.com/1", url_publisher="http:///url2.com", naam="jantje")
         self.db.add_biography(bio2)
         self.assertEqual(len(self.db.get_biographies()), n_base + 2)
-        self.db.delete_biography(bio1)
+        self.db.save_biography(bio1)
         self.assertEqual(len(self.db.get_biographies()), n_base + 1)
-  
+    
+    def test_update_biographies(self):
+        #set up a source
+        src = Source(id='123')
+        self.repo.save_source(src)
+        bio1 = Biography(id='id1', source_id=src.id)
+        bio1.from_args(naam_publisher="1", url_biografie="http://www.url.com/1", url_publisher="http:///url1.com", naam="name1", text='text1')
+        self.db.add_biography(bio1)
+        bio1.from_args(naam_publisher="1", url_biografie="http://www.url.com/1", url_publisher="http:///url1.com", naam="name1", text='text2')
+        self.db.add_biography(bio1)
+        person = self.db.get_person(bio1.get_bioport_id())
+        self.assertEqual(person.snippet(), 'text2')
     def test_source_updating(self):
         self.create_filled_repository()    
-        src = self.repo.get_source(id='knaw')
+        src = self.repo.get_source(id=u'knaw')
         self.db.delete_biographies(src)
         self.assertEqual(len(self.db.get_biographies(source=src)), 0)
         
         self.repo.download_biographies(src)
         self.assertEqual(len(self.db.get_biographies(source=src)), 5) 
-#    def xxx_test_get_authors(self):
-#        """temporarily disabled becuase not used"""
-#        self.create_filled_repository()
-#        repo = self.repo
-#        
-#        self.assertEqual(len(repo.get_authors()), 7)
-#        
-#        bio = repo.get_biographies()[2]
-#        self.assertEqual(len(bio.get_value('auteur')), 1)
-#        
-#        self.assertEqual(len(repo.get_authors(biography=bio)), 1)
-#        
-#        self.assertEqual(len(repo.get_authors(beginletter='v')), 2)
-#        self.assertEqual(len(repo.get_authors(search_term='ronger')), 1)
-              
-
-        
-        
-#
-#    def xxx_test_get_author(self):
-#        self.create_filled_repository()
-#        repo = self.repo
-#       
-#        some_author = repo.get_authors()[3]
-#        self.assertEqual(repo.get_author(some_author.id).name, some_author.name)
-#        self.assertEqual(len(repo.get_authors(search_term='ronger')), 1)
         
     def test_update_persons(self):
         self.create_filled_repository(sources=1)
@@ -95,19 +80,10 @@ class DBRepositoryTestCase(CommonTestCase):
         self.create_filled_repository()
         repo = self.repo
        
-#        assert 0, list(repo.db.get_session().execute('select * from person'))
         self.assertEqual(len(repo.get_persons()), 10)
 
-        
-#        some_author = repo.get_authors()[0]
-#        self.assertEqual(len(repo.get_persons(auteur_id=some_author.id)), 1)
-        
         self.assertEqual(len(repo.get_persons(source_id=u'knaw2')), 5)
-#        self.assertEqual(len(repo.get_persons(auteur_id=some_author.id, source_id='knaw')), 1)
         self.assertEqual(len(repo.get_persons(is_identified=True)), 0)
-#        assert 0, [[s.attrib for s in p.get_merged_biography().get_states(type='category')] for p in repo.get_persons()]
-#        assert 0,[r.category_id for r in repo.db.get_session().query(RelPersonCategory).all()]
-
         self.assertEqual(len(repo.get_persons(category=1)), 1)
         self.assertEqual(len(repo.get_persons(search_name='jan')), 1)
         self.assertEqual(len(repo.get_persons(search_term='molloy')), 1)
@@ -154,6 +130,7 @@ class DBRepositoryTestCase(CommonTestCase):
         self.assertEqual(len(repo.get_persons(**qry)), 2)
         qry.update(dict(levendjaar_min=1770, levendjaar_max=1770))
         self.assertEqual(len(repo.get_persons(**qry)), 1)
+        
     def test_complex_geboorte_date_get_persons_partial(self):
         self.create_filled_repository()
         repo = self.repo
@@ -216,9 +193,55 @@ class DBRepositoryTestCase(CommonTestCase):
         self.assertEqual(geboorte_places, expected_geboorte_places)
 
 
+    
+    def test_delete_biographies(self): 
+        """check if we clean up after ourselves when deleting biographies"""
+        session = self.repo.db.get_session()
+        
+        #just check some general sanity
+        #we have 10 biographies in two sources, 5 bios each
+        self.assertEqual(session.query(BiographyRecord).count(), 10)
+        
+        self.assertEqual(len(self.repo.get_sources()), 2)
+        source1, source2 = self.repo.get_sources()
+        self.assertEqual(len(self.repo.get_persons()), 10)
+        self.assertEqual(len(self.repo.get_persons(source_id=source1.id)), 5)
+        self.assertEqual(len(self.repo.get_persons(source_id=source2.id)), 5)
+       
+        #we identify two persons from source1 and source2
+        self.repo.identify(
+           self.repo.get_persons(source_id=source1.id)[0],
+           self.repo.get_persons(source_id=source2.id)[0],
+           )
+        #and we now have 9 persons, but still 5 from each
+        self.assertEqual(len(self.repo.get_persons()), 9)
+        self.assertEqual(len(self.repo.get_persons(source_id=source1.id)), 5)
+        self.assertEqual(len(self.repo.get_persons(source_id=source2.id)), 5)
+        
+        #we delete the biographies for one source
+        self.repo.delete_biographies(source1)
+            
+        #the sources are still there
+        self.assertEqual(len(self.repo.get_sources()), 2)
+        #and also the bioport_ids we used
+        self.assertEqual(len(self.repo.get_bioport_ids()), 10)
+        
+        #but the biographies are now only 5 
+        self.assertEqual(len(self.repo.get_biographies()), 5)
+        self.assertEqual(session.query(BiographyRecord).count(), 5)
+        #there are also only 5 persons left
+        self.assertEqual(len(self.repo.get_persons()), 5)
+        self.assertEqual(session.query(PersonRecord).count(), 5)
+        
+        #and we should have no persons associated with source1 anymore
+        self.assertEqual(self.repo.get_persons(source_id=source1.id), [])
+        
+        #however, we still should remember with which bioport_ids our biogrpahies were associated
+        self.assertEqual(session.query(RelBioPortIdBiographyRecord).count(), 10)
+        
 def test_suite():
     return unittest.TestSuite((
-        unittest.makeSuite(DBRepositoryTestCase, 'test'),
+        unittest.makeSuite(DBRepositoryTestCase, 'test_delete'),
         ))
 
 if __name__=='__main__':
