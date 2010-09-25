@@ -16,7 +16,6 @@ import biodes
 from bioport_repository.db_definitions import STATUS_NEW, STATUS_VALUES
 from bioport_repository.biography import Biography
 from bioport_repository.db import DBRepository
-from bioport_repository.local_settings import *
 from bioport_repository.person import Person
 from bioport_repository.repocommon import BioPortException
 from bioport_repository.source import BioPortSource, Source

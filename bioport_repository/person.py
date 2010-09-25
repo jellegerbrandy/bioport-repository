@@ -2,7 +2,6 @@
 
 from plone.memoize import instance
 
-from bioport_repository.local_settings import *
 from bioport_repository.repocommon import is_valid_bioport_id
 from bioport_repository.merged_biography import MergedBiography
 
