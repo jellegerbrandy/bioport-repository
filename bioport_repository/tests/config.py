@@ -14,6 +14,7 @@ def _find_valid_dsn():
             pass
         else:
             return s
+    return None
     raise ValueError("no valid DSN found")
 
 # XXX - remove all this aliases
