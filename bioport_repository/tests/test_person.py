@@ -138,6 +138,39 @@ class InconsistentPersonsTestCase(CommonTestCase):
         self.assertEqual(death_con.values, ['death1', 'death2'])
         self.assertEqual(death_con.type, 'death places')
 
+    def test_birthdate_contradictions(self):
+        # death places
+        bio1 = self.get_bio(bdate='2010-10-10')
+        bio2 = self.get_bio(bdate='2010-10-10')
+        bio3 = self.get_bio(bdate='2010-11-10')
+        person = bio1.get_person()
+        person.add_biography(bio1)
+        person.add_biography(bio2)
+        person.add_biography(bio3)
+
+        cons = person.get_biography_contradictions()
+        self.assertEqual(len(cons), 1)
+        con = cons[0]
+        self.assertEqual(len(con), 2)
+        self.assertEqual(con.values, ['2010-10-10', '2010-11-10'])
+        self.assertEqual(con.type, 'birth dates')
+
+    def test_deathdate_contradictions(self):
+        # death places
+        bio1 = self.get_bio(ddate='2010-10-10')
+        bio2 = self.get_bio(ddate='2010-10-10')
+        bio3 = self.get_bio(ddate='2010-11-10')
+        person = bio1.get_person()
+        person.add_biography(bio1)
+        person.add_biography(bio2)
+        person.add_biography(bio3)
+
+        cons = person.get_biography_contradictions()
+        self.assertEqual(len(cons), 1)
+        con = cons[0]
+        self.assertEqual(len(con), 2)
+        self.assertEqual(con.values, ['2010-10-10', '2010-11-10'])
+        self.assertEqual(con.type, 'death dates')
 
 def test_suite():
     test_suite = unittest.TestSuite()

@@ -215,6 +215,12 @@ class Person(object):
             retlist.append(Contradiction("birth places", bplaces))
         if len(dplaces) > 1:
             retlist.append(Contradiction("death places", dplaces))
+
+        if len(bdates) > 1:
+            retlist.append(Contradiction("birth dates", bdates))
+        if len(ddates) > 1:
+            retlist.append(Contradiction("death dates", ddates))
+
         return retlist
 
         
