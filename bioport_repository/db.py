@@ -624,8 +624,7 @@ class DBRepository:
         assert len(ls) == 1, 'Expected to find exactly one biography with the following arguments (but found %s): %s' % (len(ls), args)
         return ls[0]
 
-    def count_persons(self):
-        
+    def count_persons(self):        
         session=self.get_session()
         qry = session.query(PersonRecord)
         return qry.count()
@@ -734,6 +733,7 @@ class DBRepository:
         hide_invisible=True, #if true, do not return "invisible" persons, such as those marked as "troep"
         hide_foreigners=False, #if true, do not return persons marked as "buitenlands"
         where_clause=None,
+        has_contradictions=False,
         ):
         """
         returns:
@@ -753,6 +753,7 @@ class DBRepository:
             PersonRecord.thumbnail,
             PersonRecord.snippet,
             PersonRecord.timestamp,
+            PersonRecord.has_contradictions,
             )
         
         if is_identified:
@@ -878,10 +879,12 @@ class DBRepository:
                 qry = qry.filter(PersonRecord.bioport_id > some_bioportid)
             else:
                 qry = qry.order_by(order_by)        
+        if has_contradictions:
+            qry = qry.filter(PersonRecord.has_contradictions==True)
         if size:
             qry = qry.limit(size)
         qry = qry.distinct()
-#        print qry.statement
+        #print qry.statement
         return qry
     
     def _filter_search_name(self, qry, search_name):
@@ -1511,7 +1514,25 @@ order by score desc
                 self.save_person(new_person)
                 result.append(new_person) 
         return result
-
+        
+    def find_biography_contradictions(self):
+        """Populate person.has_contradictions column of the db.
+        Return the number of persons which have contradictory biographies.
+        """
+        session = self.get_session()
+        persons = self.get_persons()[:1000]  # XXX
+        n = 0
+        for person in persons:
+            query = session.query(PersonRecord)
+            query = query.filter(PersonRecord.bioport_id==person.get_bioport_id())
+            obj = query.one()
+            if person.get_biography_contradictions():
+                n += 1
+                obj.has_contradictions = True
+            else:
+                obj.has_contradictions = False
+        session.flush()
+        return n
                    
     def antiidentify(self, person1, person2):
         """register the fact that the user thinks that these two persons are not the same"""

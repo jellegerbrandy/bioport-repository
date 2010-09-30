@@ -140,6 +140,7 @@ class PersonRecord(Base):
     status = Column(Integer, index=True)
     
     has_illustrations = Column(Boolean)
+    has_contradictions = Column(Boolean)
     
     timestamp = Column(TIMESTAMP)
 #    categories = relation('RelPersonCategory') #this propertie is already defined by backref on RelPresonCategory
