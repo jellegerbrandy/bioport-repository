@@ -33,7 +33,7 @@ class Repository(object):
                  svn_repository=None,
                  svn_repository_local_copy=None,
                  db_connection=None,
-                 ZOPE_SESSIONS = False,
+#                 ZOPE_SESSIONS = False,
                  user='Uknown User',
                  images_cache_local=None,
                  images_cache_url=None,
@@ -41,7 +41,9 @@ class Repository(object):
         
         #define the database connection
         self.svn_repository = SVNRepository(svn_repository=svn_repository, svn_repository_local_copy=svn_repository_local_copy)
-        self.db = DBRepository(db_connection=db_connection, ZOPE_SESSIONS=ZOPE_SESSIONS, user=user)
+        self.db = DBRepository(db_connection=db_connection, 
+#                ZOPE_SESSIONS=ZOPE_SESSIONS, 
+				user=user)
         self.db.repository = self
         if images_cache_local:
             assert os.path.exists(images_cache_local), 'this path (for "images_local_cache") does not exist; %s'% images_cache_local

@@ -11,6 +11,7 @@ from plone.memoize import instance
 import sqlalchemy
 from sqlalchemy.exceptions import IntegrityError, InvalidRequestError
 from sqlalchemy.orm import aliased
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
 
 from names.similarity import soundexes_nl, soundex_nl
@@ -40,51 +41,52 @@ class DBRepository:
     SoundexRecord = SoundexRecord
     SimilarityCache = SimilarityCache
 
-    def __init__(self, db_connection, ZOPE_SESSIONS=False, user=None):       
+    def __init__(self, db_connection, 
+        #ZOPE_SESSIONS=False, 
+        user=None):       
         self.connection = db_connection 
         self.user = user
         self.metadata = Base.metadata
         metadata = self.metadata 
         self._session = None
-        if ZOPE_SESSIONS: 
-            #XXX I could not get this to work, yet
+#        if ZOPE_SESSIONS: 
+#            #XXX I could not get this to work, yet
+#            
+#            #setup z3c.saconfig
+#            #here for explanations:
+#            #http://svn.zope.org/z3c.saconfig/trunk/src/z3c/saconfig/README.txt?rev=102770&sortby=rev&view=markup
+#            from z3c.saconfig import EngineFactory
+#            engine_factory = EngineFactory(self.connection) #, convert_unicode=True, encoding='utf8')
+#            from zope import component
+#            from z3c.saconfig.interfaces import IEngineFactory
+#            component.provideUtility(engine_factory, provides=IEngineFactory)
+#            engine = engine_factory( )
+#            
+#            #
+#            from z3c.saconfig import GloballyScopedSession
+#            #
+#            
+#            utility = GloballyScopedSession()
+#            
+#            from z3c.saconfig.interfaces import IScopedSession
+#            component.provideUtility(utility, provides=IScopedSession)
+#            
+#            #
+#            from z3c.saconfig import Session 
+#            self.Session = Session
+#        else:
+        #get the data from the db
+        self.engine = Base.metadata.bind = metadata.bind = create_engine(
+                self.connection, 
+                convert_unicode=True, 
+                encoding='utf8', 
+                echo=ECHO,
+                pool_recycle=3600, #set pool_recycle to one hour to avoig sql server has gone away errors
+                strategy="threadlocal",
+                )
+        self.Session = sessionmaker(bind=self.engine)
             
-            #setup z3c.saconfig
-            #here for explanations:
-            #http://svn.zope.org/z3c.saconfig/trunk/src/z3c/saconfig/README.txt?rev=102770&sortby=rev&view=markup
-            from z3c.saconfig import EngineFactory
-            engine_factory = EngineFactory(self.connection) #, convert_unicode=True, encoding='utf8')
-            from zope import component
-            from z3c.saconfig.interfaces import IEngineFactory
-            component.provideUtility(engine_factory, provides=IEngineFactory)
-            engine = engine_factory( )
-            
-            #
-            from z3c.saconfig import GloballyScopedSession
-            #
-            
-            utility = GloballyScopedSession()
-            
-            from z3c.saconfig.interfaces import IScopedSession
-            component.provideUtility(utility, provides=IScopedSession)
-            
-            #
-            from z3c.saconfig import Session 
-            self.Session = Session
-        else:
-            #get the data from the db
-            from sqlalchemy.orm import sessionmaker
-            self.engine = Base.metadata.bind = metadata.bind = create_engine(
-                    self.connection, 
-                    convert_unicode=True, 
-                    encoding='utf8', 
-                    echo=ECHO,
-                    pool_recycle=3600, #set pool_recycle to one hour to avoig sql server has gone away errors
-                    strategy="threadlocal",
-                    )
-            self.Session = sessionmaker(bind=self.engine)
-            
-            self.db = self 
+        self.db = self 
             
     def get_session(self):
         if not self._session:
@@ -97,7 +99,7 @@ class DBRepository:
         if self._session:
             self._session.close()
             self._session = None
-            c
+            
     @instance.clearbefore        
     def add_source(self, src):
         assert src.id
@@ -718,6 +720,7 @@ class DBRepository:
         search_soundex=None, #a string - will convert it to soundex, and try to match (all) of these
         any_soundex=[], #a list of soundex expressions - try to match any of these
         source_id=None,
+        source_id2=None,
         sterfjaar_min=None,
         sterfjaar_max=None,
         sterfmaand_min=None,
@@ -848,12 +851,12 @@ class DBRepository:
                 
         if source_id:
             qry = qry.join(PersonSource)
-            if type(source_id) == types.ListType:
-                source_id = filter(None, source_id)
-                if source_id:
-                    qry = qry.filter(PersonSource.source_id.in_(source_id))
-            else:
-                qry = qry.filter(PersonSource.source_id==source_id)
+            qry = qry.filter(PersonSource.source_id==source_id)
+        
+        if source_id2:
+            PersonSource2 = aliased(PersonSource)
+            qry = qry.join(PersonSource2)
+            qry = qry.filter(PersonSource2.source_id==source_id2)
         
         if status:
             if status in ['0']:

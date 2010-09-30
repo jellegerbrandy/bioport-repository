@@ -33,7 +33,9 @@ class DBRepositoryTestCase(CommonTestCase):
         bio1.from_args(naam_publisher="1", url_biografie="http://www.url.com/1", url_publisher="http:///url2.com", naam="jantje")
         
         self.db.add_biography(bio1)
-        
+    
+        #we have added one new biography, with one name that corresponds to one single soundex
+        self.assertEqual(len(self.db.get_biographies()), n_base + 1)
         self.assertEqual(len(self.db.get_session().query(BiographyRecord).all()), n_base + 1)
         self.assertEqual(len(self.db.get_session().query(NaamRecord).all()), n_base_naam + 1)
         self.assertEqual(len(self.db.get_session().query(SoundexRecord).all()), n_base_soundex + 1)
@@ -43,13 +45,10 @@ class DBRepositoryTestCase(CommonTestCase):
         self.db.save_biography(bio1)
         self.assertEqual(len(bio1.get_value('auteur', [])), 1, bio1.to_string())
         
-        self.assertEqual(len(self.db.get_biographies()), n_base + 1)
         bio2 = Biography(id='ladida2', source_id=src.id)
         bio2.from_args(naam_publisher="1", url_biografie="http://www.url.com/1", url_publisher="http:///url2.com", naam="jantje")
         self.db.add_biography(bio2)
         self.assertEqual(len(self.db.get_biographies()), n_base + 2)
-        self.db.save_biography(bio1)
-        self.assertEqual(len(self.db.get_biographies()), n_base + 1)
     
     def test_update_biographies(self):
         #set up a source
@@ -80,28 +79,36 @@ class DBRepositoryTestCase(CommonTestCase):
         self.create_filled_repository()
         repo = self.repo
        
+        #check sanity
         self.assertEqual(len(repo.get_persons()), 10)
-
+       
+        #identify  two persons so we have more interesting queries
+        repo.identify(repo.get_persons(source_id=u'knaw')[0], repo.get_persons(source_id=u'knaw2')[-1])
+        
+        self.assertEqual(len(repo.get_persons()), 9)
+        
         self.assertEqual(len(repo.get_persons(source_id=u'knaw2')), 5)
-        self.assertEqual(len(repo.get_persons(is_identified=True)), 0)
+        self.assertEqual(len(repo.get_persons(source_id2=u'knaw2')), 5)
+        self.assertEqual(len(repo.get_persons(source_id=u'knaw', source_id2=u'knaw2')), 1)
+        self.assertEqual(len(repo.get_persons(is_identified=True)), 1)
         self.assertEqual(len(repo.get_persons(category=1)), 1)
         self.assertEqual(len(repo.get_persons(search_name='jan')), 1)
         self.assertEqual(len(repo.get_persons(search_term='molloy')), 1)
         self.assertEqual(len(repo.get_persons(has_illustrations=True)), 2)
-        self.assertEqual(len(repo.get_persons(has_illustrations=False)), 8)
+        self.assertEqual(len(repo.get_persons(has_illustrations=False)), 7)
         
-        self.assertEqual(len(repo.get_persons(geboortejaar_min='1778')), 8)
+        self.assertEqual(len(repo.get_persons(geboortejaar_min='1778')), 7)
         self.assertEqual(len(repo.get_persons(geboortejaar_max='1777')), 2)
         self.assertEqual(len(repo.get_persons(geboortejaar_min='1778', geboortejaar_max='1778')), 1)
 
         self.assertEqual(len(repo.get_persons(sterfjaar_min='1858')), 7)
-        self.assertEqual(len(repo.get_persons(sterfjaar_max='1857')), 3)
+        self.assertEqual(len(repo.get_persons(sterfjaar_max='1857')), 2)
         self.assertEqual(len(repo.get_persons(sterfjaar_min='1858', sterfjaar_max='1858')), 1)
         self.assertEqual(len(repo.get_persons(search_name=u'molloyx')), 1)
         self.assertEqual(len(repo.get_persons(search_name=u'"molloyx"')), 1)
         
         self.assertEqual(len(repo.get_persons(geboorteplaats='Amsterdam')), 3)
-        self.assertEqual(len(repo.get_persons(geboorteplaats='Am*')), 4)
+        self.assertEqual(len(repo.get_persons(geboorteplaats='Am*')), 3)
         self.assertEqual(len(repo.get_persons(sterfplaats='*en')), 3)
 
         self.assertEqual(len(repo.get_persons(sterfplaats='Lisse')), 1)
@@ -192,8 +199,6 @@ class DBRepositoryTestCase(CommonTestCase):
         expected_geboorte_places = [u'Ameide', u'Amsterdam', u'Brussel, Belgi\xeb', u'Down, Groot Brittani\xeb', u'Gent, Belgi\xeb', u'IJsbrechtum', u'Paesens, Frankrijk', u'Tilburg']
         self.assertEqual(geboorte_places, expected_geboorte_places)
 
-
-    
     def test_delete_biographies(self): 
         """check if we clean up after ourselves when deleting biographies"""
         session = self.repo.db.get_session()
@@ -230,8 +235,8 @@ class DBRepositoryTestCase(CommonTestCase):
         self.assertEqual(len(self.repo.get_biographies()), 5)
         self.assertEqual(session.query(BiographyRecord).count(), 5)
         #there are also only 5 persons left
-        self.assertEqual(len(self.repo.get_persons()), 5)
         self.assertEqual(session.query(PersonRecord).count(), 5)
+        self.assertEqual(len(self.repo.get_persons()), 5)
         
         #and we should have no persons associated with source1 anymore
         self.assertEqual(self.repo.get_persons(source_id=source1.id), [])
@@ -241,7 +246,7 @@ class DBRepositoryTestCase(CommonTestCase):
         
 def test_suite():
     return unittest.TestSuite((
-        unittest.makeSuite(DBRepositoryTestCase, 'test_delete'),
+        unittest.makeSuite(DBRepositoryTestCase, 'test_get_persons'),
         ))
 
 if __name__=='__main__':
