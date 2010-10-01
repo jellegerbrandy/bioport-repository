@@ -71,9 +71,9 @@ class InconsistentPersonsTestCase(CommonTestCase):
         return bio
         
     def test_no_contradictions_1(self):
-        bio1 = self.get_bio()
-        bio2 = self.get_bio()
-        bio3 = self.get_bio()
+        bio1 = self.get_bio(dplace='bar')
+        bio2 = self.get_bio(dplace='bar')
+        bio3 = self.get_bio(dplace='bar')
         person = bio1.get_person()
         person.add_biography(bio1)
         person.add_biography(bio2)
@@ -107,8 +107,8 @@ class InconsistentPersonsTestCase(CommonTestCase):
         cons = person.get_biography_contradictions()
         self.assertEqual(len(cons), 1)
         con = cons[0]
-        self.assertEqual(len(con), 2)
-        self.assertEqual(con.values, ['bar', 'foo'])
+        self.assertEqual(len(con), 3)
+        self.assertEqual(con.values, [('bar', u'1'), ('foo', u'2'), ('foo', u'3')])
         self.assertEqual(con.type, 'death places')
 
     def test_places_contradictions_2(self):
@@ -129,13 +129,16 @@ class InconsistentPersonsTestCase(CommonTestCase):
         self.assertEqual(len(cons), 2)
 
         birth_con = cons[0]
-        self.assertEqual(len(birth_con), 3)
-        self.assertEqual(birth_con.values, ['birth1', 'birth2', 'birth3'])
+        self.assertEqual(len(birth_con), 5)
+        self.assertEqual(birth_con.values, [('birth1', u'4'), ('birth1', u'5'), 
+                                            ('birth1', u'6'), ('birth2', u'7'), 
+                                            ('birth3', u'8')])
         self.assertEqual(birth_con.type, 'birth places')
 
         death_con = cons[1]
-        self.assertEqual(len(death_con), 2)
-        self.assertEqual(death_con.values, ['death1', 'death2'])
+        self.assertEqual(len(death_con), 3)
+        self.assertEqual(death_con.values, [('death1', u'1'), ('death1', u'2'), 
+                                            ('death2', u'3')])
         self.assertEqual(death_con.type, 'death places')
 
     def test_birthdate_contradictions(self):
@@ -151,8 +154,10 @@ class InconsistentPersonsTestCase(CommonTestCase):
         cons = person.get_biography_contradictions()
         self.assertEqual(len(cons), 1)
         con = cons[0]
-        self.assertEqual(len(con), 2)
-        self.assertEqual(con.values, ['2010-10-10', '2010-11-10'])
+        self.assertEqual(len(con), 3)
+        self.assertEqual(con.values, [('2010-10-10', u'1'), 
+                                      ('2010-10-10', u'2'),
+                                      ('2010-11-10', u'3')])
         self.assertEqual(con.type, 'birth dates')
 
     def test_deathdate_contradictions(self):
@@ -168,8 +173,10 @@ class InconsistentPersonsTestCase(CommonTestCase):
         cons = person.get_biography_contradictions()
         self.assertEqual(len(cons), 1)
         con = cons[0]
-        self.assertEqual(len(con), 2)
-        self.assertEqual(con.values, ['2010-10-10', '2010-11-10'])
+        self.assertEqual(len(con), 3)
+        self.assertEqual(con.values, [('2010-10-10', u'1'), 
+                                      ('2010-10-10', u'2'),
+                                      ('2010-11-10', u'3')])
         self.assertEqual(con.type, 'death dates')
 
 def test_suite():

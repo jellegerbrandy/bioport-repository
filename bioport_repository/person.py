@@ -196,44 +196,48 @@ class Person(object):
         Rerturn a list of Contradiction instances or [].
         """
         retlist = []        
-        bdates, ddates, bplaces, dplaces = set(), set(), set(), set()
+        bdates, ddates, bplaces, dplaces = [], [], [], []
         for bio in self.get_biographies():
             x = bio.get_value('birth_date')
             if x is not None:
-                 bdates.add(x)
+                 bdates.append((x, bio.id))
             x = bio.get_value('death_date')
             if x is not None:
-                 ddates.add(x)
+                 ddates.append((x, bio.id))
             x = bio.get_value('birth_place')
             if x is not None:
-                 bplaces.add(x)
+                 bplaces.append((x, bio.id))
             x = bio.get_value('death_place')
             if x is not None:
-                 dplaces.add(x)
+                 dplaces.append((x, bio.id))
 
-        if len(bplaces) > 1:
+        x = set(x[0] for x in bplaces)
+        if len(x) > 1:
             retlist.append(Contradiction("birth places", bplaces))
-        if len(dplaces) > 1:
+        x = set(x[0] for x in dplaces)
+        if len(x) > 1:
             retlist.append(Contradiction("death places", dplaces))
-
-        if len(bdates) > 1:
+        x = set(x[0] for x in bdates)
+        if len(x) > 1:
             retlist.append(Contradiction("birth dates", bdates))
-        if len(ddates) > 1:
+        x = set(x[0] for x in ddates)
+        if len(x) > 1:
             retlist.append(Contradiction("death dates", ddates))
 
         return retlist
 
-        
+
 class Contradiction(object):
     """An object which represents a person with contradictory
     biographies.
     """
 
+    __slots__ = ["type", "values"]
+
     def __init__(self, type, values):
         self.type = type
-        self.values = list(values)
-        self.values.sort()
-               
+        self.values = values
+           
     def __str__(self):
         s = "<%s at %s; type=%s values=%s>" % (self.__class__.__name__, id(self), 
                                                repr(self.type), repr(self.values))
@@ -242,12 +246,5 @@ class Contradiction(object):
     def __len__(self):
         return len(self.values)
 
-    def get_first(self):
-        return self.values[0]
-
-    def get_others(self):
-        return self.values[1:]
-
     __repr__ = __str__
-
 
