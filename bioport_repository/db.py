@@ -1007,14 +1007,13 @@ class DBRepository:
         qry = qry.filter(AuthorRecord.id == author_id)
         return qry.one()
     
-    def redirect_identifier(self, bioport_id,redirect_to):
+    def redirect_identifier(self, bioport_id, redirect_to):
         """add a 'redirect' instruction to this bioport_id"""
         assert bioport_id
         session=self.get_session()
         qry = session.query(BioPortIdRecord).filter_by(bioport_id=bioport_id)
-        
         r = qry.one()
-        #add a new record for the redirection
+        # add a new record for the redirection
         r.redirect_to = redirect_to
         session.flush()
 
@@ -1398,23 +1397,7 @@ order by score desc
         else:
             new_person = person1
             old_person = person2
-        #find out which one is the oldest
-#        timestamp1 = self.get_session().query(BioPortIdRecord.timestamp).filter(BioPortIdRecord.bioport_id==person1.get_bioport_id()).one()
-#        timestamp2 = self.get_session().query(BioPortIdRecord.timestamp).filter(BioPortIdRecord.bioport_id==person2.get_bioport_id()).one()
-#        
-#        if timestamp1[0] is None:
-#            new_person = person1
-#            old_person = person2
-#        elif timestamp2[0] is None:
-#            new_person = person2
-#            old_person = person1
-#        elif timestamp1 < timestamp2:
-#            new_person = person1
-#            old_person = person2
-#        else:
-#            new_person = person2
-#            old_person = person1
-#        
+
         if new_person.bioport_id == old_person.bioport_id:
             #these two persons are already identified
             return new_person
