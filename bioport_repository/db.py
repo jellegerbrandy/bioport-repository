@@ -14,21 +14,29 @@ from sqlalchemy.orm import aliased
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
 
-from names.similarity import soundexes_nl, soundex_nl
+from names.similarity import soundexes_nl
 from names.common import encodable, to_ymd , TUSSENVOEGSELS
 
-from bioport_repository.db_definitions import *
+from bioport_repository.db_definitions import PersonRecord, AntiIdentifyRecord
+from bioport_repository.db_definitions import DeferIdentificationRecord
+from bioport_repository.db_definitions import ChangeLog, Occupation
+from bioport_repository.db_definitions import Category, Base, Location, Comment
+from bioport_repository.db_definitions import PersonSource, PersonSoundex, AuthorRecord
+from bioport_repository.db_definitions import RelPersonCategory, PersonName
+from bioport_repository.db_definitions import NaamRecord, SoundexRecord, SimilarityCache
+from bioport_repository.db_definitions import (CacheSimilarityPersons,
+                                              BioPortIdRecord,
+                                              RelBioPortIdBiographyRecord,
+                                              BiographyRecord,
+                                              SourceRecord,
+                                              STATUS_NEW)
+
+from sqlalchemy import create_engine, desc, and_, or_, not_
+
 from bioport_repository.similarity.similarity import Similarity
 from bioport_repository.person import Person
 from bioport_repository.biography import Biography 
 from bioport_repository.source import Source
-from bioport_repository.db_definitions import CacheSimilarityPersons, \
-                                              BioPortIdRecord, \
-                                              RelBioPortIdBiographyRecord, \
-                                              BiographyRecord, \
-                                              SourceRecord, \
-                                              STATUS_NEW, \
-                                              STATUS_VALUES
 
 LENGTH = 8  # the length of a bioport id
 ECHO = False
@@ -99,8 +107,8 @@ class DBRepository:
         if self._session:
             self._session.close()
             self._session = None
-            
-    @instance.clearbefore        
+
+    @instance.clearbefore
     def add_source(self, src):
         assert src.id
         r = SourceRecord(id=src.id, url=src.url, description=src.description, xml=src._to_xml())
@@ -110,7 +118,7 @@ class DBRepository:
         msg = 'Added source'
         self.log(msg, r)
         session.flush()
-        
+
     def save_source(self, src):
         session = self.get_session()
         try:
@@ -133,7 +141,7 @@ class DBRepository:
         msg = 'Added bioport_id %s to the registry'
         self.log(msg, r_bioportid)
         session.flush()
-    
+
     #@instance.memoize
     def get_source(self, source_id):
         """Get a Source instance with id= source_id """
@@ -244,16 +252,13 @@ class DBRepository:
             soundex = SoundexRecord()
             soundex.soundex = s
             item.soundex.append(soundex)
-        
         try:
             session.flush()
         except UnicodeEncodeError, error:
             s = ''
             if not encodable(item.snippet, error.encoding):
                 s +='item.snippet'
-                
             error.reason += '\nOffending text is: %s' % s
-            
             raise error
         id = item.id 
         return id
@@ -384,7 +389,7 @@ class DBRepository:
             assert type(category_id) in [type(u''), type('')], category_id
             try:
                 category_id = int(category_id)
-            except:
+            except ValueError:
                 msg = '%s- %s: %s' % (category_id, etree.tostring(category), person.bioport_id)
                 raise Exception(msg)
             r = RelPersonCategory(bioport_id=bioport_id, category_id=category_id)
@@ -417,21 +422,23 @@ class DBRepository:
         i = 0
         for p in persons:
             i += 1
-#            print i, 'of', len(persons), ': update person'
             try:
                 self.update_person(p.get_bioport_id())
             except Exception, error:
-                #if this person does not have any biographical information associated with it
-                #we delete from the person list
+                # if this person does not have any biographical information
+                # associated with it we delete from the person list
                 for bio in p.get_biographies():
                     if bio.source_id != 'bioport' and bio.biodes_document:
                         #there is some real info
                         raise error
-                #we did not re-raise the error, so ewe delete this perosn 
+                # we did not re-raise the error, so we delete this perosn 
                 session = self.get_session()
                 session.flush()
                 self.delete_person(p.bioport_id)
                 session.flush()
+                # XXX this method isn't tested, I'm blindly adding the following:
+                session.rollback() # as suggested by:
+                # http://www.sqlalchemy.org/trac/wiki/FAQ#Thetransactionisinactiveduetoarollbackinasubtransaction
 
     def update_name(self, bioport_id, s):
         """update the table person_name"""
@@ -491,9 +498,10 @@ class DBRepository:
         try:
             self.add_bioport_id(new_bioportid)
         except IntegrityError:
-            #there is a small chacne that we already have used the bioport id before 
-            #in that case we try agin
-            return self.fresh_identifier()    
+            # there is a small chance that we already have used
+            # the bioport id before: in that case we try agin
+            self.get_session().rollback()
+            return self.fresh_identifier()
         return new_bioportid
 
     def _register_biography(self, biography): #, bioport_id=None):       
@@ -512,11 +520,11 @@ class DBRepository:
         #try to find a bioport id in the Biography
         #XXX this needs to be optimized
         if biography.get_bioport_id() :
-            #if it has a bioport_id define,d it should already have been registered
+            #if it has a bioport_id defined, it should already have been registered
             bioport_id = biography.get_bioport_id()
-            try:
-                assert session.query(BioPortIdRecord).filter(BioPortIdRecord.bioport_id==bioport_id).one()
-            except:
+            must_be_true = session.query(BioPortIdRecord
+                         ).filter(BioPortIdRecord.bioport_id==bioport_id).one()
+            if not must_be_true:
                 msg = 'This biography seems to have a bioport_id defined that is not present in the database'
                 raise Exception(msg)
         else:
@@ -958,7 +966,6 @@ class DBRepository:
         return person
 
     def delete_person(self, person):
-        
         session = self.get_session()
         try:
             r = session.query(PersonRecord).filter(PersonRecord.bioport_id==person.get_bioport_id()).one()
@@ -1022,7 +1029,8 @@ class DBRepository:
         chain = [orig_id]
         i = 0
         while True:
-            qry = self.get_session().query(BioPortIdRecord).filter(BioPortIdRecord.bioport_id==bioport_id)
+            qry = self.get_session().query(BioPortIdRecord).filter(
+                BioPortIdRecord.bioport_id==bioport_id)
             i += 1
             try:
                 r_bioportid = qry.one() 
@@ -1034,7 +1042,7 @@ class DBRepository:
                 else:
                     break
                 
-            except:
+            except NoResultFound:
                 break
         return chain[-1]
     
@@ -1177,9 +1185,9 @@ class DBRepository:
         try:
             session.flush()
         except IntegrityError: 
-            #this is (probably) a 'duplicate entry', 
-            #caused by having already added the relation when we processed item
-            #we update the record to reflect the highest score
+            # this is (probably) a 'duplicate entry', 
+            # caused by having already added the relation when we processed item
+            # we update the record to reflect the highest score
             session.transaction.rollback()
             r_duplicate = session.query(CacheSimilarityPersons
                                 ).filter_by(bioport_id1=id1, bioport_id2=id2).one()
@@ -1193,7 +1201,7 @@ class DBRepository:
          size=50, 
          refresh=False, 
 #         similar_to=None,
-         source_id=None,                       
+         source_id=None,
          status=None,
          search_name=None,
          bioport_id=None,
@@ -1346,10 +1354,13 @@ order by score desc
             session.add(r_cache) 
             try:
                 session.flush()
-            except:
-                #this must be a duplicate - which is no problem 
-                #XXX but we must take the highest score
-                r_existing = session.query(CacheSimilarityPersons).filter(CacheSimilarityPersons.bioport_id1==id1).filter(CacheSimilarityPersons.bioport_id2==id2).one()
+            except (IntegrityError, InvalidRequestError), e:
+                session.transaction.rollback()
+                # this must be a duplicate - which is no problem 
+                # XXX but we must take the highest score
+                r_existing = session.query(CacheSimilarityPersons).filter(
+                    CacheSimilarityPersons.bioport_id1==id1).filter(
+                    CacheSimilarityPersons.bioport_id2==id2).one()
                 if score > r_existing.score:
                     r_existing.score = score
                     session.flush()
@@ -1539,7 +1550,7 @@ order by score desc
         session = self.get_session()
         id1, id2 = person1.get_bioport_id(), person2.get_bioport_id()
         
-        #add a witness record to the antiidentify table
+        # add a witness record to the antiidentify table
         r_anti = AntiIdentifyRecord(bioport_id1 = min(id1, id2),bioport_id2= max(id1, id2)) 
         try:
             session.add(r_anti)
@@ -1547,14 +1558,14 @@ order by score desc
             self.log(msg, r_anti)
             session.flush()
         except IntegrityError: 
-            #this is (most probably) because the record already exists
-            pass
+            # this is (most probably) because the record already exists
+            session.rollback()
         self._remove_from_cache_similarity_persons(person1, person2)
         self._remove_from_cache_deferidentification(person1, person2)
 
 
     def _remove_from_cache_deferidentification(self, person1, person2):
-        #remove the persons from the "deferred" lists if they are there
+        # remove the persons from the "deferred" lists if they are there
         session = self.get_session()
         id1 = person1.get_bioport_id()
         id2 = person2.get_bioport_id()
@@ -1609,8 +1620,8 @@ order by score desc
             self.log(msg, r_defer)
             session.flush()
         except IntegrityError:
-            #this is (most probably) because the record already exists 
-            pass
+            # this is (most probably) because the record already exists 
+            session.rollback()
         
         #also remove the persons from the cache
         self._remove_from_cache_similarity_persons(person1, person2)
@@ -1692,7 +1703,6 @@ order by score desc
         qry = self.get_session().query(Category).filter(Category.id==id)
         try:
             return qry.one()
-        
         except NoResultFound:
             msg =  'No category with id "%s" could be found' % id
 #            raise Exception(msg)
