@@ -380,7 +380,7 @@ class Repository(object):
         returns:
             an instance of Biography
         """    
-        source = BioPortSource(id='placeholder')
+        source = BioPortSource(id='dummy')
                 
         if not source.id in [s.id for s in self.get_sources()]:
             src = Source('bioport', repository=self)
@@ -390,12 +390,7 @@ class Repository(object):
         ls = self.get_biographies(source=source, person=person)
         if not ls:
             #create a new biography
-            bio = Biography(id='%s/%s'  % (source.id, person.get_bioport_id()), source_id=source.id)
-            bio._set_up_basic_structure()
-            bio.set_value(local_id=person.get_bioport_id())
-            bio.set_value(bioport_id=person.get_bioport_id())
-            self.add_biography(bio)
-            return bio
+            return self._create_bioport_biography(person)
         else:
             if len(ls) != 1: 
                 logging.warning( 'There was more than one Bioport Biography found for the person with bioport_id %s' %
@@ -405,6 +400,16 @@ class Repository(object):
             ls = [b for (x, b) in ls]
             return ls[0]
         
+    @instance.clearafter 
+    def _create_bioport_biography(self, person):
+        source = BioPortSource(id='dummy')
+        bio = Biography(id='%s/%s'  % (source.id, person.get_bioport_id()), source_id=source.id)
+        bio._set_up_basic_structure()
+        bio.set_value(local_id=person.get_bioport_id())
+        bio.set_value(bioport_id=person.get_bioport_id())
+        person.add_biography(bio)
+        return bio
+ 
     def get_identifier(self, bioport_id):
         if self.ENABLE_DB:
             self.db.get_identifier()

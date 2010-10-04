@@ -81,7 +81,6 @@ class WorkflowTestCase(CommonTestCase):
         #but now we have 9 persons
         self.assertEqual(len(repository.get_persons()), 9, repository.get_persons())
         
-         
         #find the 5 most similar personname-pairs
         repository.db.fill_similarity_cache(minimal_score=0.0)
         ls = repository.get_most_similar_persons() 
@@ -108,10 +107,8 @@ class WorkflowTestCase(CommonTestCase):
         #------------------------ 
         person = repository.get_persons()[3]
         bio = repository.get_bioport_biography(person)
-        #
+        #this bio is a biogrpahy of our person
         self.assertEqual(bio.get_bioport_id(), person.get_bioport_id())
-        
-        #so now this is a biography of this person
         assert bio.id in [bio.id for bio in person.get_biographies()]
         
         #edit it

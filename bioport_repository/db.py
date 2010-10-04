@@ -215,7 +215,7 @@ class DBRepository:
             session.flush()
             session.execute('delete rel from relbiographyauthor rel left outer join biography b on rel.biography_id = b.id where b.id is null')
             session.execute('delete a   from author a               left outer join relbiographyauthor rel on rel.author_id = a.id where rel.author_id is null')
-           #delete also all records in person_record table
+            #delete also all records in person_source table
             sql = """DELETE  s from person_source s
 			    where s.source_id = '%s'""" % source.id 
             session.execute(sql)
@@ -238,7 +238,12 @@ class DBRepository:
 
     @instance.clearafter
     def delete_biography(self, biography):
-        self.delete_biographies(biography=biography)
+        with self.get_session_context() as session:
+            # delete also all biographies associated with this source
+            session.query(BiographyRecord).filter_by(id = biography.id).delete()
+            session.flush()
+            #now update the person associated with this biography
+            self.update_person(biography.get_bioport_id())
         
     def add_naam(self, naam, bioport_id, src):
         """ voeg eeen record toe aan de tabel "naam"
@@ -1467,12 +1472,10 @@ order by score desc
         
         self.delete_person(person)
         used_ids = []
-        #print '0:', bios
+        
         for bio in bios:
             if bio.get_source().id == 'bioport':
-                #XXX what do we do with bioport biographies?
-                #either we copy and add htem to all, or we delete them all
-                #now we delete
+                #we delete the bioport biographies
                 self.delete_biography(bio)
             else:
                 original_bioport_id = bio.get_idnos(type='bioport')[0]
@@ -1495,6 +1498,7 @@ order by score desc
                 new_person.add_biography(bio)
                 self.save_person(new_person)
                 result.append(new_person) 
+                
         return result
         
     def find_biography_contradictions(self):
