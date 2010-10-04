@@ -1,8 +1,11 @@
+from __future__ import with_statement
+
 import random
 import os
 import types
 import re
 import logging
+import contextlib
 from datetime import datetime
 
 from lxml import etree
@@ -97,12 +100,33 @@ class DBRepository:
         self.db = self 
             
     def get_session(self):
+        """Return a session object."""
         if not self._session:
             self._session = self.Session()
         return self._session
+        
+    @contextlib.contextmanager
+    def get_session_context(self):
+        """Return a session object usable as a context manager 
+        automatically calling flush() on __exit__ and rollback() 
+        in case of errors.
+        """
+        session = self.get_session()
+        try:
+            yield session
+        except:
+            session.rollback()
+            raise
+        else:
+            try:
+                session.flush()
+            except:
+                session.rollback()
+                raise
 
     def query(self):
         return self.get_session().query
+        
     def close_session(self):
         if self._session:
             self._session.close()
@@ -112,60 +136,56 @@ class DBRepository:
     def add_source(self, src):
         assert src.id
         r = SourceRecord(id=src.id, url=src.url, description=src.description, xml=src._to_xml())
-        session = self.get_session()
-        
-        session.add(r)
-        msg = 'Added source'
-        self.log(msg, r)
-        session.flush()
+        with self.get_session_context() as session:
+            session.add(r)
+            msg = 'Added source'
+            self.log(msg, r)
 
     def save_source(self, src):
-        session = self.get_session()
-        try:
-            r = session.query(SourceRecord).filter_by(id=src.id).one()
-        except sqlalchemy.orm.exc.NoResultFound:
-            return self.add_source(src) 
-        r.url = src.url
-        r.description = src.description
-        r.quality = src.quality
-        r.xml = src._to_xml()
-        msg = 'saved source'
-        self.log(msg, r)
-        session.flush()
+        with self.get_session_context() as session:
+            try:
+                r = session.query(SourceRecord).filter_by(id=src.id).one()
+            except sqlalchemy.orm.exc.NoResultFound:
+                return self.add_source(src) 
+            r.url = src.url
+            r.description = src.description
+            r.quality = src.quality
+            r.xml = src._to_xml()
+            msg = 'saved source'
+            self.log(msg, r)
         
     def add_bioport_id(self, bioport_id):
         """Add a bioport id to the registry"""
-        session = self.get_session()
-        r_bioportid = BioPortIdRecord(bioport_id=bioport_id)
-        session.add(r_bioportid)
-        msg = 'Added bioport_id %s to the registry'
-        self.log(msg, r_bioportid)
-        session.flush()
+        with self.get_session_context() as session:
+            r_bioportid = BioPortIdRecord(bioport_id=bioport_id)
+            session.add(r_bioportid)
+            msg = 'Added bioport_id %s to the registry'
+            self.log(msg, r_bioportid)
 
     #@instance.memoize
     def get_source(self, source_id):
         """Get a Source instance with id= source_id """
-        session = self.get_session()
-        qry = session.query(SourceRecord) 
-        if isinstance(source_id, unicode):
-            source_id = source_id.encode('ascii')
-        qry = qry.filter(SourceRecord.id==source_id)
-        r = qry.one()
-        source = Source(id=r.id, url=r.url, description = r.description, quality=r.quality, xml=r.xml)
-        return source
+        with self.get_session_context() as session:
+            qry = session.query(SourceRecord) 
+            if isinstance(source_id, unicode):
+                source_id = source_id.encode('ascii')
+            qry = qry.filter(SourceRecord.id==source_id)
+            r = qry.one()
+            source = Source(id=r.id, url=r.url, description = r.description, quality=r.quality, xml=r.xml)
+            return source
     
     @instance.memoize
     def get_sources(self, order_by='quality', desc=True): 
-        session = self.get_session()
-        qry = session.query(SourceRecord)
-        if order_by:
-            if desc:
-                qry = qry.order_by(sqlalchemy.desc(order_by))
-            else:
-                qry = qry.order_by(order_by)
-        ls = qry.all()
-        #session.close()
-        return [Source(r.id, r.url, r.description, quality=r.quality, xml = r.xml, repository=self) for r in ls]
+        with self.get_session_context() as session:
+            qry = session.query(SourceRecord)
+            if order_by:
+                if desc:
+                    qry = qry.order_by(sqlalchemy.desc(order_by))
+                else:
+                    qry = qry.order_by(order_by)
+            ls = qry.all()
+            #session.close()
+            return [Source(r.id, r.url, r.description, quality=r.quality, xml = r.xml, repository=self) for r in ls]
 
     @instance.clearafter
     def delete_source(self, source):
@@ -276,26 +296,25 @@ class DBRepository:
         return self.save_biography( biography)
     
     def save_biography(self, biography):
-        session = self.get_session()
-        try:
-            r_biography = session.query(BiographyRecord).filter(BiographyRecord.id==biography.id).one()
-        except sqlalchemy.orm.exc.NoResultFound:
-            #print 'biography %s was not found in the db, creating new record' % biography.id
-            r_biography = BiographyRecord(id=biography.get_id())
-            session.add(r_biography)
+        with self.get_session_context() as session:
+            try:
+                r_biography = session.query(BiographyRecord).filter(BiographyRecord.id==biography.id).one()
+            except sqlalchemy.orm.exc.NoResultFound:
+                #print 'biography %s was not found in the db, creating new record' % biography.id
+                r_biography = BiographyRecord(id=biography.get_id())
+                session.add(r_biography)
+                
+            r_biography.source_id = biography.source_id
+           
+            #register the biography in the bioportid registry
+            self._register_biography(biography)
             
-        r_biography.source_id = biography.source_id
-       
-        #register the biography in the bioportid registry
-        self._register_biography(biography)
-        
-        #generated the biodes document only at the end (When all changes are made)  ?? which changes??
-        r_biography.biodes_document = biography.to_string()
-        r_biography.source_url = unicode(biography.source_url)
-        session.flush()
-        session.expunge_all()
+            #generated the biodes document only at the end (When all changes are made)  ?? which changes??
+            r_biography.biodes_document = biography.to_string()
+            r_biography.source_url = unicode(biography.source_url)
 
-        
+        session.expunge_all()
+                
         #update the information of the associated person (or add a person if the biography is new)
         default_status = self.get_source(biography.source_id).default_status
         self.update_person(biography.get_bioport_id(), default_status=default_status)
@@ -317,21 +336,20 @@ class DBRepository:
         person:
             a Person instance
         """
-        session = self.get_session()
-        try:
-            r = session.query(PersonRecord).filter(PersonRecord.bioport_id==person.get_bioport_id()).one()
-        except NoResultFound:
-            r = PersonRecord(bioport_id=person.get_bioport_id())
-            session.add(r)
-        person.record = r
-        if getattr(person, 'remarks', None) is not None:
-            r.remarks = person.remarks
-        if getattr(person, 'status', None):
-            r.status = person.status
+        with self.get_session_context() as session:
+            try:
+                r = session.query(PersonRecord).filter(PersonRecord.bioport_id==person.get_bioport_id()).one()
+            except NoResultFound:
+                r = PersonRecord(bioport_id=person.get_bioport_id())
+                session.add(r)
+            person.record = r
+            if getattr(person, 'remarks', None) is not None:
+                r.remarks = person.remarks
+            if getattr(person, 'status', None):
+                r.status = person.status
 
-        msg = 'Changed person'
-        self.log(msg, r)
-        session.flush()
+            msg = 'Changed person'
+            self.log(msg, r)
 
     @instance.clearbefore
     def update_person(self,bioport_id, default_status=STATUS_NEW):
@@ -442,38 +460,32 @@ class DBRepository:
 
     def update_name(self, bioport_id, s):
         """update the table person_name"""
-        session = self.get_session()
-        
-        names = re.split('[^\w]+', s)
-        #delete existing references
-        session.query(PersonName).filter(PersonName.bioport_id == bioport_id).delete()
-        for name in names:
-            r =  PersonName(bioport_id=bioport_id, name=name) 
-            session.add(r)
-        session.flush()
-
+        with self.get_session_context() as session:           
+            names = re.split('[^\w]+', s)
+            #delete existing references
+            session.query(PersonName).filter(PersonName.bioport_id == bioport_id).delete()
+            for name in names:
+                r =  PersonName(bioport_id=bioport_id, name=name) 
+                session.add(r)
 
     def update_soundex(self, bioport_id, s):
         """update the table person_soundex"""
-        session = self.get_session()
-        soundexes = soundexes_nl(s, group=2, length=20, filter_initials=True, filter_stop_words=False) #create long phonetic soundexes
-        #delete existing references
-        session.query(PersonSoundex).filter(PersonSoundex.bioport_id == bioport_id).delete()
-        for soundex in soundexes:
-            r = PersonSoundex(bioport_id=bioport_id, soundex=soundex) 
-            session.add(r)
-        session.flush()
-    
+        with self.get_session_context() as session:
+            soundexes = soundexes_nl(s, group=2, length=20, filter_initials=True, filter_stop_words=False) #create long phonetic soundexes
+            #delete existing references
+            session.query(PersonSoundex).filter(PersonSoundex.bioport_id == bioport_id).delete()
+            for soundex in soundexes:
+                r = PersonSoundex(bioport_id=bioport_id, soundex=soundex) 
+                session.add(r)   
  
     def update_source(self, bioport_id, source_ids):   
         """update the table person_source"""
-        session = self.get_session()
-        #delete existing references
-        session.query(PersonSource).filter(PersonSource.bioport_id == bioport_id).delete()
-        for source_id in source_ids:
-            r = PersonSource(bioport_id=bioport_id, source_id=source_id) 
-            session.add(r)
-        session.flush()
+        with self.get_session_context() as session:
+            #delete existing references
+            session.query(PersonSource).filter(PersonSource.bioport_id == bioport_id).delete()
+            for source_id in source_ids:
+                r = PersonSource(bioport_id=bioport_id, source_id=source_id) 
+                session.add(r)
 
     def tmp_update_soundexes(self):
         """update the person_soundex table in the database 
@@ -591,8 +603,7 @@ class DBRepository:
         """
         #XXX implement order_by
             
-        session = self.get_session()
-        qry = session.query(BiographyRecord)
+        qry = self.get_session().query(BiographyRecord)
         if source:
             if type(source) in types.StringTypes:
                 source_id = source
@@ -624,7 +635,6 @@ class DBRepository:
 #               exclude = [exclude]  
 #            ls = [b for b in ls if r.source_id not in exclude]
         ls = [Biography(id=r.id, source_id=r.source_id, repository=self.repository, biodes_document =r.biodes_document, source_url=r.source_url, record=r) for r in ls]
-        #session.close()
         return ls
 
     def get_biography(self, **args):
@@ -633,7 +643,7 @@ class DBRepository:
         return ls[0]
 
     def count_persons(self):        
-        session=self.get_session()
+        session = self.get_session()
         qry = session.query(PersonRecord)
         return qry.count()
     
@@ -966,19 +976,15 @@ class DBRepository:
         return person
 
     def delete_person(self, person):
-        session = self.get_session()
-        try:
-            r = session.query(PersonRecord).filter(PersonRecord.bioport_id==person.get_bioport_id()).one()
-            session.delete(r) 
-            session.query(PersonSoundex).filter(PersonSoundex.bioport_id==person.bioport_id).delete()
-            session.flush()
-            msg = 'Deleted person %s' % person
-            self.log(msg, r)
-        except NoResultFound:
-            pass
-
-
-
+        with self.get_session_context() as session:
+            try:
+                r = session.query(PersonRecord).filter(PersonRecord.bioport_id==person.get_bioport_id()).one()
+                session.delete(r) 
+                session.query(PersonSoundex).filter(PersonSoundex.bioport_id==person.bioport_id).delete()
+                msg = 'Deleted person %s' % person
+                self.log(msg, r)
+            except NoResultFound:
+                pass
 
     def get_authors(self, 
             biography=None,
@@ -1010,13 +1016,11 @@ class DBRepository:
     def redirect_identifier(self, bioport_id, redirect_to):
         """add a 'redirect' instruction to this bioport_id"""
         assert bioport_id
-        session=self.get_session()
-        qry = session.query(BioPortIdRecord).filter_by(bioport_id=bioport_id)
-        r = qry.one()
-        # add a new record for the redirection
-        r.redirect_to = redirect_to
-        session.flush()
-
+        with self.get_session_context() as session:
+            qry = session.query(BioPortIdRecord).filter_by(bioport_id=bioport_id)
+            r = qry.one()
+            # add a new record for the redirection
+            r.redirect_to = redirect_to
 
     def redirects_to(self, bioport_id):
         """follow the rederiction chain to an endpoint
@@ -1176,35 +1180,32 @@ class DBRepository:
         session.close()  
     
     def add_to_similarity_cache(self,bioport_id1, bioport_id2,score):
-        session = self.get_session()
-        id1 = min(bioport_id1, bioport_id2)
-        id2 = max(bioport_id1, bioport_id2)
-        r = CacheSimilarityPersons(bioport_id1=id1, bioport_id2=id2, score=score)
-        session.add(r)
-        try:
-            session.flush()
-        except IntegrityError: 
-            # this is (probably) a 'duplicate entry', 
-            # caused by having already added the relation when we processed item
-            # we update the record to reflect the highest score
-            session.transaction.rollback()
-            r_duplicate = session.query(CacheSimilarityPersons
-                                ).filter_by(bioport_id1=id1, bioport_id2=id2).one()
-            if score > r_duplicate.score:
-                r_duplicate.score = score
+        with self.get_session_context() as session:
+            id1 = min(bioport_id1, bioport_id2)
+            id2 = max(bioport_id1, bioport_id2)
+            r = CacheSimilarityPersons(bioport_id1=id1, bioport_id2=id2, score=score)
+            session.add(r)
+            try:
                 session.flush()
+            except IntegrityError: 
+                # this is (probably) a 'duplicate entry', 
+                # caused by having already added the relation when we processed item
+                # we update the record to reflect the highest score
+                session.transaction.rollback()
+                r_duplicate = session.query(CacheSimilarityPersons
+                                    ).filter_by(bioport_id1=id1, bioport_id2=id2).one()
+                if score > r_duplicate.score:
+                    r_duplicate.score = score
         
-    def get_most_similar_persons(
-         self, 
-         start=0, 
-         size=50, 
-         refresh=False, 
-#         similar_to=None,
-         source_id=None,
-         status=None,
-         search_name=None,
-         bioport_id=None,
-         ):
+    def get_most_similar_persons(self, start=0, 
+                                       size=50, 
+                                       refresh=False, 
+                             #         similar_to=None,
+                                       source_id=None,
+                                       status=None,
+                                       search_name=None,
+                                       bioport_id=None,
+                                       ):
         session = self.get_session() 
         if refresh: 
             #(re) fill the cache
@@ -1413,19 +1414,14 @@ order by score desc
         for bio in old_person.get_biographies(): 
             new_person.add_biography(bio)
 
-        session = self.get_session()
-        query = session.query(PersonRecord)
-        query = query.filter(PersonRecord.bioport_id==new_person.get_bioport_id())
-        obj = query.one()
-        if new_person.get_biography_contradictions():
-            obj.has_contradictions = True
-        else:
-            obj.has_contradictions = False
-        try:
-            session.flush()
-        except:
-            session.rollback()
-            raise
+        with self.get_session_context() as session:
+            query = session.query(PersonRecord)
+            query = query.filter(PersonRecord.bioport_id==new_person.get_bioport_id())
+            obj = query.one()
+            if new_person.get_biography_contradictions():
+                obj.has_contradictions = True
+            else:
+                obj.has_contradictions = False
 
         #if we have different bioport biographies, we need to choose one
         new_id = new_person.bioport_id
@@ -1527,20 +1523,19 @@ order by score desc
         """Populate person.has_contradictions column of the db.
         Return the number of persons which have contradictory biographies.
         """
-        session = self.get_session()
-        persons = self.get_persons()[:500]  # XXX
-        n = 0
-        for person in persons:
-            query = session.query(PersonRecord)
-            query = query.filter(PersonRecord.bioport_id==person.get_bioport_id())
-            obj = query.one()
-            if person.get_biography_contradictions():
-                n += 1
-                obj.has_contradictions = True
-            else:
-                obj.has_contradictions = False
-        session.flush()
-        return n
+        with self.get_session_context() as session:
+            persons = self.get_persons()[:500]  # XXX
+            n = 0
+            for person in persons:
+                query = session.query(PersonRecord)
+                query = query.filter(PersonRecord.bioport_id==person.get_bioport_id())
+                obj = query.one()
+                if person.get_biography_contradictions():
+                    n += 1
+                    obj.has_contradictions = True
+                else:
+                    obj.has_contradictions = False
+            return n
                    
     def antiidentify(self, person1, person2):
         """register the fact that the user thinks that these two persons are not the same"""
@@ -1563,27 +1558,23 @@ order by score desc
 
     def _remove_from_cache_deferidentification(self, person1, person2):
         # remove the persons from the "deferred" lists if they are there
-        session = self.get_session()
-        id1 = person1.get_bioport_id()
-        id2 = person2.get_bioport_id()
-        qry = session.query(DeferIdentificationRecord) 
-        qry = qry.filter(DeferIdentificationRecord.bioport_id1==min(id1, id2))
-        qry = qry.filter(DeferIdentificationRecord.bioport_id2==max(id1, id2))
-        qry.delete()
-        
-        #flush the changes
-        session.flush()
+        with self.get_session_context() as session:
+            id1 = person1.get_bioport_id()
+            id2 = person2.get_bioport_id()
+            qry = session.query(DeferIdentificationRecord) 
+            qry = qry.filter(DeferIdentificationRecord.bioport_id1==min(id1, id2))
+            qry = qry.filter(DeferIdentificationRecord.bioport_id2==max(id1, id2))
+            qry.delete()
         
     def _remove_from_cache_similarity_persons(self, person1, person2):
         #also remove the person  from the cache
-        session = self.get_session()
-        id1 = person1.get_bioport_id()
-        id2 = person2.get_bioport_id()
-        qry = session.query(CacheSimilarityPersons)
-        qry = qry.filter(CacheSimilarityPersons.bioport_id1 == min(id1, id2))
-        qry = qry.filter(CacheSimilarityPersons.bioport_id2 == max(id1, id2))
-        qry.delete()        
-        session.flush()
+        with self.get_session_context() as session:
+            id1 = person1.get_bioport_id()
+            id2 = person2.get_bioport_id()
+            qry = session.query(CacheSimilarityPersons)
+            qry = qry.filter(CacheSimilarityPersons.bioport_id1 == min(id1, id2))
+            qry = qry.filter(CacheSimilarityPersons.bioport_id2 == max(id1, id2))
+            qry.delete()        
         
     def get_antiidentified(self):
         query = self.get_session().query(AntiIdentifyRecord)
@@ -1661,6 +1652,7 @@ order by score desc
     def get_occupation(self,id):
         qry = self.get_session().query(Occupation).filter(Occupation.id==id)
         return qry.one()
+        
     #### RUBRIEKEN ####
     def _update_category_table(self):
         from categories import fill_table
@@ -1756,11 +1748,11 @@ order by score desc
     
     def get_comments(self, bioport_id):
         return self.get_session().query(Comment).filter(Comment.bioport_id==bioport_id)
+
     def add_comment(self, bioport_id, values):
         comment = Comment(**values)
         comment.created = datetime.now()
         self.get_session().add(comment)
-
         
     def get_persons_with_identical_dbnl_ids(self, start=0, size=20, refresh=False, source=None):
         session = self.get_session() 
