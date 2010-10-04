@@ -195,13 +195,12 @@ class DBRepository:
             r_source = qry.one()
         except sqlalchemy.orm.exc.NoResultFound:
             raise ValueError('Cannot delete source %s because it cannot be found in the database' % source.id)
-        
-        self.delete_biographies(source=source)
-        msg = 'Delete source %s' % source
-        self.log(msg, r_source)
-        session.delete(r_source)
-        session.flush()
-        #session.close()
+
+        with self.get_session_context() as session:
+            self.delete_biographies(source=source)
+            msg = 'Delete source %s' % source
+            self.log(msg, r_source)
+            session.delete(r_source)
         
     def get_bioport_ids(self):
         session = self.get_session()
@@ -210,33 +209,32 @@ class DBRepository:
 
     @instance.clearafter
     def delete_biographies(self, source): #, biography=None): 
-        session = self.get_session()
-        #delete also all biographies associated with this source
-        session.query(BiographyRecord).filter_by(source_id = source.id).delete()
-        session.flush()
-        session.execute('delete rel from relbiographyauthor rel left outer join biography b on rel.biography_id = b.id where b.id is null')
-        session.execute('delete a   from author a               left outer join relbiographyauthor rel on rel.author_id = a.id where rel.author_id is null')
-       #delete also all records in person_record table
-        sql = """DELETE  s from person_source s
-			where s.source_id = '%s'""" % source.id 
-        session.execute(sql)
-        #delete all persons  that have become 'orphans' (i.e. that have no source anymore) 
-        sql = """DELETE  p from person p 
-			left outer join person_source s
-			on s.bioport_id = p.bioport_id
-			where s.bioport_id is Null"""  
-        session.execute(sql)
-        #delete all orphaned names and soundexes
-        sql = """DELETE  n from person_name n 
-			left outer join person p
-			on n.bioport_id = p.bioport_id
-			where n.bioport_id is Null"""  
-        session.execute(sql)
-        sql = "delete n   from naam n   where src = '%s'" % source.id          
-        session.execute(sql)
-        session.execute('delete s   from soundex s            left outer join naam n  on s.naam_id = n.id where n.id is null')
-        #delete orphans inthe similarity cache
-        session.flush()
+        with self.get_session_context() as session:
+            # delete also all biographies associated with this source
+            session.query(BiographyRecord).filter_by(source_id = source.id).delete()
+            session.flush()
+            session.execute('delete rel from relbiographyauthor rel left outer join biography b on rel.biography_id = b.id where b.id is null')
+            session.execute('delete a   from author a               left outer join relbiographyauthor rel on rel.author_id = a.id where rel.author_id is null')
+           #delete also all records in person_record table
+            sql = """DELETE  s from person_source s
+			    where s.source_id = '%s'""" % source.id 
+            session.execute(sql)
+            #delete all persons  that have become 'orphans' (i.e. that have no source anymore) 
+            sql = """DELETE  p from person p 
+			    left outer join person_source s
+			    on s.bioport_id = p.bioport_id
+			    where s.bioport_id is Null"""  
+            session.execute(sql)
+            #delete all orphaned names and soundexes
+            sql = """DELETE  n from person_name n 
+			    left outer join person p
+			    on n.bioport_id = p.bioport_id
+			    where n.bioport_id is Null"""  
+            session.execute(sql)
+            sql = "delete n   from naam n   where src = '%s'" % source.id          
+            session.execute(sql)
+            session.execute('delete s   from soundex s            left outer join naam n  on s.naam_id = n.id where n.id is null')
+            #delete orphans inthe similarity cache
 
     @instance.clearafter
     def delete_biography(self, biography):
@@ -249,7 +247,6 @@ class DBRepository:
             naam - an instance of Naam 
             biography - an instance of biography
         """
-        
         session = self.get_session()
         session.flush()
         item = NaamRecord()
@@ -272,6 +269,7 @@ class DBRepository:
             soundex = SoundexRecord()
             soundex.soundex = s
             item.soundex.append(soundex)
+        # XXX - This is ugly... should be rewritten
         try:
             session.flush()
         except UnicodeEncodeError, error:
@@ -359,79 +357,77 @@ class DBRepository:
         - bioport_id:  the id that identifies the person
         - default_status: the status given to the Person if it is a newly added person
         """
-        session = self.get_session()
-        
-        #check if a person with this bioportid alreay exists
-        try:  
-            r_person = session.query(PersonRecord).filter_by(bioport_id=bioport_id).one()
-        except sqlalchemy.orm.exc.NoResultFound:
-            #if not, we add a new one
-            r_person = PersonRecord(bioport_id=bioport_id) 
-            session.add(r_person)
-            r_person.status = default_status
+        with self.get_session_context() as session:
+            #check if a person with this bioportid alreay exists
+            try:  
+                r_person = session.query(PersonRecord).filter_by(bioport_id=bioport_id).one()
+            except sqlalchemy.orm.exc.NoResultFound:
+                #if not, we add a new one
+                r_person = PersonRecord(bioport_id=bioport_id) 
+                session.add(r_person)
+                r_person.status = default_status
 
-        person = Person(bioport_id=bioport_id, record=r_person, repository=self)
-        
-        #refresh the names (move this code to "save_person"
-        merged_biography = person.get_merged_biography()
-        assert merged_biography.get_biographies(), person.bioport_id
-        naam = merged_biography.naam()
-        if naam:
-            r_person.naam = naam.guess_normal_form()
-            r_person.sort_key = naam.sort_key()
-        else:
-            msg = 'merged_biography should at least have one name defined! %s' % person.bioport_id
-            raise Exception(msg)
-            logging.error('This is strange and should not happen: bioport id %s has no name' % person.bioport_id)
-            
-        r_person.categories = [RelPersonCategory(category_id=id) for state in merged_biography.get_states(type='categories')]
-        r_person.has_illustrations = merged_biography.get_illustrations() and True or False
-        r_person.search_source = person.search_source()
-        r_person.sex = merged_biography.get_value('geslacht')
-        r_person.sterfdatum = merged_biography.get_value('sterfdatum')
-        if r_person.sterfdatum:
-            r_person.sterfjaar = to_ymd(r_person.sterfdatum)[0]
-        r_person.geboortedatum = merged_biography.get_value('geboortedatum')
-        if r_person.geboortedatum:
-            r_person.geboortejaar = to_ymd(r_person.geboortedatum)[0]
-        r_person.geboorteplaats = merged_biography.get_value('geboorteplaats')
-        r_person.sterfplaats = merged_biography.get_value('sterfplaats')
-        r_person.names = ' '.join([unicode(name) for name in merged_biography.get_names()])
-        r_person.geslachtsnaam = naam.geslachtsnaam()
-        r_person.snippet = person.snippet()
-        illustrations =  merged_biography.get_illustrations()
-        r_person.thumbnail = illustrations and illustrations[0].image_small_url or ''
-        #update categories
-        session.query(RelPersonCategory).filter(RelPersonCategory.bioport_id==bioport_id).delete()
-        for category in person.get_merged_biography().get_states(type='category'):
-            category_id = category.get('idno')
-            assert type(category_id) in [type(u''), type('')], category_id
-            try:
-                category_id = int(category_id)
-            except ValueError:
-                msg = '%s- %s: %s' % (category_id, etree.tostring(category), person.bioport_id)
+            person = Person(bioport_id=bioport_id, record=r_person, repository=self)
+           
+            #refresh the names (move this code to "save_person"
+            merged_biography = person.get_merged_biography()
+            assert merged_biography.get_biographies(), person.bioport_id
+            naam = merged_biography.naam()
+            if naam:
+                r_person.naam = naam.guess_normal_form()
+                r_person.sort_key = naam.sort_key()
+            else:
+                msg = 'merged_biography should at least have one name defined! %s' % person.bioport_id
                 raise Exception(msg)
-            r = RelPersonCategory(bioport_id=bioport_id, category_id=category_id)
-            session.add(r)
-        
-        #refresh the names 
-        self.delete_names(bioport_id=bioport_id)
-        
-        #'the' source -- we take the first non-bioport source as 'the' source
-        #and we use it only for filterling later
-        src = [s for s in merged_biography.get_biographies() if s.source_id != 'bioport']
-        if src:
-            src = src[0].source_id
-        else:
-            src = None
+                logging.error('This is strange and should not happen: bioport id %s has no name' % person.bioport_id)
+                
+            r_person.categories = [RelPersonCategory(category_id=id) for state in merged_biography.get_states(type='categories')]
+            r_person.has_illustrations = merged_biography.get_illustrations() and True or False
+            r_person.search_source = person.search_source()
+            r_person.sex = merged_biography.get_value('geslacht')
+            r_person.sterfdatum = merged_biography.get_value('sterfdatum')
+            if r_person.sterfdatum:
+                r_person.sterfjaar = to_ymd(r_person.sterfdatum)[0]
+            r_person.geboortedatum = merged_biography.get_value('geboortedatum')
+            if r_person.geboortedatum:
+                r_person.geboortejaar = to_ymd(r_person.geboortedatum)[0]
+            r_person.geboorteplaats = merged_biography.get_value('geboorteplaats')
+            r_person.sterfplaats = merged_biography.get_value('sterfplaats')
+            r_person.names = ' '.join([unicode(name) for name in merged_biography.get_names()])
+            r_person.geslachtsnaam = naam.geslachtsnaam()
+            r_person.snippet = person.snippet()
+            illustrations =  merged_biography.get_illustrations()
+            r_person.thumbnail = illustrations and illustrations[0].image_small_url or ''
+            #update categories
+            session.query(RelPersonCategory).filter(RelPersonCategory.bioport_id==bioport_id).delete()
+            for category in person.get_merged_biography().get_states(type='category'):
+                category_id = category.get('idno')
+                assert type(category_id) in [type(u''), type('')], category_id
+                try:
+                    category_id = int(category_id)
+                except ValueError:
+                    msg = '%s- %s: %s' % (category_id, etree.tostring(category), person.bioport_id)
+                    raise Exception(msg)
+                r = RelPersonCategory(bioport_id=bioport_id, category_id=category_id)
+                session.add(r)
             
-        for naam in merged_biography.get_names():
-            self.add_naam(naam=naam, bioport_id=bioport_id, src=src)
-        
-        self.update_soundex(bioport_id=bioport_id, s=r_person.names)
-        self.update_name(bioport_id, s = r_person.names) 
-        self.update_source(bioport_id, source_ids = [b.source_id for b in person.get_biographies()])
-        session.flush()
+            #refresh the names 
+            self.delete_names(bioport_id=bioport_id)
+            
+            #'the' source -- we take the first non-bioport source as 'the' source
+            #and we use it only for filterling later
+            src = [s for s in merged_biography.get_biographies() if s.source_id != 'bioport']
+            if src:
+                src = src[0].source_id
+            else:
+                src = None
+                
+            for naam in merged_biography.get_names():
+                self.add_naam(naam=naam, bioport_id=bioport_id, src=src)
+            
+            self.update_soundex(bioport_id=bioport_id, s=r_person.names)
+            self.update_name(bioport_id, s = r_person.names) 
+            self.update_source(bioport_id, source_ids = [b.source_id for b in person.get_biographies()])
         
     def update_persons(self):
         """update the information of all the persons in the database"""
@@ -443,6 +439,8 @@ class DBRepository:
             i += 1
             try:
                 self.update_person(p.get_bioport_id())
+            # XXX - this is evil and should be rewritten; 
+            # it's so evil I don't know how to insert the context manager
             except Exception, error:
                 # if this person does not have any biographical information
                 # associated with it we delete from the person list
@@ -515,16 +513,21 @@ class DBRepository:
             self.update_soundex(person.bioport_id, names)
         
     def fresh_identifier(self):
-        #make a random string of characters from ALPHANUMERIC of lenght LENGTH
-        new_bioportid = ''.join([random.choice('0123456789') for i in range(LENGTH)])
-        try:
-            self.add_bioport_id(new_bioportid)
-        except IntegrityError:
-            # there is a small chance that we already have used
-            # the bioport id before: in that case we try agin
-            self.get_session().rollback()
-            return self.fresh_identifier()
-        return new_bioportid
+        session = self.get_session()
+        # make a random string of characters from ALPHANUMERIC of lenght LENGTH
+        new_bioportid_1 = ''.join([random.choice('0123456789') for i in range(LENGTH)])
+        new_bioportid_2 = ''.join([random.choice('0123456789') for i in range(LENGTH)])
+        new_bioportid_3 = ''.join([random.choice('0123456789') for i in range(LENGTH)])
+        for new_bioportid in (new_bioportid_1, new_bioportid_2, new_bioportid_3):
+            try:
+                self.add_bioport_id(new_bioportid)
+            except IntegrityError:
+                # there is a small chance that we already have used
+                # the bioport id before: in that case we try agin
+                session.rollback()
+            else:
+                return new_bioportid
+        raise ValueError("no valid id found")
 
     def _register_biography(self, biography): #, bioport_id=None):       
         """register the biography in the bioport registry and assign it a bioport_id if it does not have one
@@ -537,49 +540,47 @@ class DBRepository:
             2. try to find a bioport id in the registry associated with biography.get_idno()
             3. create a new bioport identifier
         """
-        session = self.get_session()
-        
-        #try to find a bioport id in the Biography
-        #XXX this needs to be optimized
-        if biography.get_bioport_id() :
-            #if it has a bioport_id defined, it should already have been registered
-            bioport_id = biography.get_bioport_id()
-            must_be_true = session.query(BioPortIdRecord
-                         ).filter(BioPortIdRecord.bioport_id==bioport_id).one()
-            if not must_be_true:
-                msg = 'This biography seems to have a bioport_id defined that is not present in the database'
-                raise Exception(msg)
-        else:
-            #try to find a bioport id in the reistry for this biography
-            qry = session.query(RelBioPortIdBiographyRecord).filter_by(biography_id=biography.id)
-            rs = qry.all()
-            if len(rs) == 1:
-                #this biography is already registered w
-                r_relbioportidbiography = rs[0] 
-                bioport_id = r_relbioportidbiography.bioport_id
+        with self.get_session_context() as session:       
+            #try to find a bioport id in the Biography
+            #XXX this needs to be optimized
+            if biography.get_bioport_id() :
+                #if it has a bioport_id defined, it should already have been registered
+                bioport_id = biography.get_bioport_id()
+                must_be_true = session.query(BioPortIdRecord
+                             ).filter(BioPortIdRecord.bioport_id==bioport_id).one()
+                if not must_be_true:
+                    msg = 'This biography seems to have a bioport_id defined that is not present in the database'
+                    raise Exception(msg)
             else:
-                bioport_id = self.fresh_identifier()
-        
-        #now we update the biography as well as the registry
-        if bioport_id != biography.get_bioport_id():
-            biography.set_value('bioport_id', bioport_id)
-        
-        #update the registry  
-        #if it is not connected to the new biography, we add the relation
-        qry = session.query(RelBioPortIdBiographyRecord)
-        qry = qry.filter_by(biography_id=biography.id)
-        qry = qry.filter_by(bioport_id=bioport_id) 
-        try: 
-            qry.one()
-        except NoResultFound:
-            #delete any old information we may have in the registry about this biography
-            session.query(RelBioPortIdBiographyRecord).filter(RelBioPortIdBiographyRecord.biography_id==biography.id).delete()
-                
-            #now add the new relation
-            session.add(RelBioPortIdBiographyRecord(bioport_id=bioport_id, biography_id=biography.id) )
-            session.flush()
+                #try to find a bioport id in the reistry for this biography
+                qry = session.query(RelBioPortIdBiographyRecord).filter_by(biography_id=biography.id)
+                rs = qry.all()
+                if len(rs) == 1:
+                    #this biography is already registered w
+                    r_relbioportidbiography = rs[0] 
+                    bioport_id = r_relbioportidbiography.bioport_id
+                else:
+                    bioport_id = self.fresh_identifier()
+            
+            #now we update the biography as well as the registry
+            if bioport_id != biography.get_bioport_id():
+                biography.set_value('bioport_id', bioport_id)
+            
+            #update the registry  
+            #if it is not connected to the new biography, we add the relation
+            qry = session.query(RelBioPortIdBiographyRecord)
+            qry = qry.filter_by(biography_id=biography.id)
+            qry = qry.filter_by(bioport_id=bioport_id) 
+            try: 
+                qry.one()
+            except NoResultFound:
+                #delete any old information we may have in the registry about this biography
+                session.query(RelBioPortIdBiographyRecord).filter(RelBioPortIdBiographyRecord.biography_id==biography.id).delete()
+                    
+                #now add the new relation
+                session.add(RelBioPortIdBiographyRecord(bioport_id=bioport_id, biography_id=biography.id) )
 
-        return bioport_id
+            return bioport_id
     
     def count_biographies(self, source=None):
         """return the number of biographies in the database, 
@@ -588,7 +589,6 @@ class DBRepository:
         if source:
             qry = qry.filter(BiographyRecord.source_id==source.id)
         else:
-        
             qry = qry.filter(BiographyRecord.source_id!='bioport')
         return qry.count()
     
@@ -644,7 +644,9 @@ class DBRepository:
 #            if type(exclude)  in types.StringTypes:
 #               exclude = [exclude]  
 #            ls = [b for b in ls if r.source_id not in exclude]
-        ls = [Biography(id=r.id, source_id=r.source_id, repository=self.repository, biodes_document =r.biodes_document, source_url=r.source_url, record=r) for r in ls]
+        ls = [Biography(id=r.id, source_id=r.source_id, repository=self.repository, 
+                        biodes_document =r.biodes_document, source_url=r.source_url, 
+                        record=r) for r in ls]
         return ls
 
     def get_biography(self, **args):
@@ -1077,117 +1079,118 @@ class DBRepository:
         """     
         if source_id:
 	        source_id = unicode(source_id)
-        session = self.db.get_session()
         
         if refresh:
-            #if refresh is true, we delete all relevant records
-            logging.info('Refilling similarity table')
-            logging.info('Deleting all records from cachesimilaritypersons')
-            qry = session.query(CacheSimilarityPersons)
-            if person:
-                #just remove the records of this person
-                qry = qry.filter(CacheSimilarityPersons.bioport_id1==person.get_bioport_id())  
-                qry.delete()   
-                qry = qry.filter(CacheSimilarityPersons.bioport_id2==person.get_bioport_id())  
-                qry.delete()   
-                
-            else:
-                #print 'deleting all information from cache_similarity_persons'
-                if source_id:
-                    qry = qry.outerjoin((
-                        RelBioPortIdBiographyRecord, 
-                        or_( RelBioPortIdBiographyRecord.bioport_id==CacheSimilarityPersons.bioport_id1,
-                             RelBioPortIdBiographyRecord.bioport_id==CacheSimilarityPersons.bioport_id2
-                        )
-                    ))
-                    qry = qry.join((BiographyRecord, 
-                           BiographyRecord.id ==RelBioPortIdBiographyRecord.biography_id,
-                           ))
-                    qry = qry.filter(BiographyRecord.source_id==source_id)
+            with self.get_session_context() as session:
+                #if refresh is true, we delete all relevant records
+                logging.info('Refilling similarity table')
+                logging.info('Deleting all records from cachesimilaritypersons')
+                qry = session.query(CacheSimilarityPersons)
+                if person:
+                    #just remove the records of this person
+                    qry = qry.filter(CacheSimilarityPersons.bioport_id1==person.get_bioport_id())  
+                    qry.delete()   
+                    qry = qry.filter(CacheSimilarityPersons.bioport_id2==person.get_bioport_id())  
+                    qry.delete()   
                     
-                    #the next statement fails fro some obscure reason
-                    #qry.delete()
-                    
-                    #hack our way to a delete query
-                    s = unicode(qry.statement)
-                    s = s[s.find('FROM'):]
-                    s = s % ("'%s'" %  source_id)
-                    s = 'DELETE cache_similarity_persons %s' % s
-                    
-                    session.execute(s)
                 else:
-                    qry.delete()
-            session.flush()
-            
+                    #print 'deleting all information from cache_similarity_persons'
+                    if source_id:
+                        qry = qry.outerjoin((
+                            RelBioPortIdBiographyRecord, 
+                            or_( RelBioPortIdBiographyRecord.bioport_id==CacheSimilarityPersons.bioport_id1,
+                                 RelBioPortIdBiographyRecord.bioport_id==CacheSimilarityPersons.bioport_id2
+                            )
+                        ))
+                        qry = qry.join((BiographyRecord, 
+                               BiographyRecord.id ==RelBioPortIdBiographyRecord.biography_id,
+                               ))
+                        qry = qry.filter(BiographyRecord.source_id==source_id)
+                        
+                        #the next statement fails fro some obscure reason
+                        #qry.delete()
+                        
+                        #hack our way to a delete query
+                        s = unicode(qry.statement)
+                        s = s[s.find('FROM'):]
+                        s = s % ("'%s'" %  source_id)
+                        s = 'DELETE cache_similarity_persons %s' % s
+                        
+                        session.execute(s)
+                    else:
+                        qry.delete()
+                                   
         #if the person argument is not given, we update for all persons
         if person:
             persons = [person]
         else:
             persons = self.get_persons(source_id=source_id)
             
-        i = 0
-        
-        for person in persons:
-            i += 1
-            if limit and i > limit:
-                break
-            logging.info('computing similarities for %s out of %s: %s' % (i, len(persons), person))
-            bioport_id = person.bioport_id
-            #check if we have alread done this naam
-            qry = session.query(CacheSimilarityPersons.bioport_id1)
-            qry = qry.filter_by(bioport_id1=bioport_id, bioport_id2=bioport_id) 
+        i = 0        
+        with self.get_session_context() as session:
+            for person in persons:
+                i += 1
+                if limit and i > limit:
+                    break
+                logging.info('computing similarities for %s out of %s: %s' % (i, len(persons), person))
+                bioport_id = person.bioport_id
+                #check if we have alread done this naam
+                qry = session.query(CacheSimilarityPersons.bioport_id1)
+                qry = qry.filter_by(bioport_id1=bioport_id, bioport_id2=bioport_id) 
+                
+                if qry.all():
+                    #we have already done this person , and we did not explicitly call for a refresh
+    #                print 'already done'
+                    continue
+                else:
+                    #we add the identity score so that we can check later that we have 'done' this record, 
+                    self.add_to_similarity_cache(bioport_id, bioport_id, score=1.0)
+                
+                #now get a list of potential persons
+                #we create a soundex on the basis of the last name of the person
+                combined_name = ' '.join([n.guess_geslachtsnaam() or n.volledige_naam() for n in person.get_names()])
+    #            print combined_name
+                soundexes = soundexes_nl(combined_name, 
+                                         length=-1, 
+                                         group=2,
+                                         filter_initials=True, 
+                                         filter_stop_words=False, #XXX look out withthis: 'koning' and 'heer' are also last names 
+                                         filter_custom=TUSSENVOEGSELS,
+                                         wildcards=False,
+                                         )
+                
+                logging.info('searching for persons matching any of %s' % soundexes)
+                if not soundexes:
+                    persons_to_compare = []
+                else:
+                    persons_to_compare = self.get_persons(any_soundex = soundexes)
+                logging.info('comparing to %s other persons' % len(persons_to_compare))
+                #compute the similarity
+                similarity_computer = Similarity(person, persons_to_compare)
+                similarity_computer.compute()
+                similarity_computer.sort()
+                similar_persons =  similarity_computer._persons
+                if len(similar_persons) > 1:
+                    most_sim = similar_persons[1]
+                    logging.info('highest similarity score: %s (%s)' % (most_sim.score, most_sim))
+                else:
+                    logging.info('no similar persons found')
+                for p in similarity_computer._persons[:k]:
+                    if p.score > minimal_score:
+                        self.add_to_similarity_cache(person.bioport_id, p.bioport_id, p.score)
+                        try:
+                            msg =  '%s|%s|%s|%s|%s|' % (person.bioport_id, p.bioport_id, p.score, person.naam(), p.naam())
+                            logging.info(msg)
+                        except UnicodeEncodeError:
+                            logging.info('scores could not be printed due to UnicodeEncodeError')
+                #print '-' * 20
             
-            if qry.all():
-                #we have already done this person , and we did not explicitly call for a refresh
-#                print 'already done'
-                continue
-            else:
-                #we add the identity score so that we can check later that we have 'done' this record, 
-                self.add_to_similarity_cache(bioport_id, bioport_id, score=1.0)
-            
-            #now get a list of potential persons
-            #we create a soundex on the basis of the last name of the person
-            combined_name = ' '.join([n.guess_geslachtsnaam() or n.volledige_naam() for n in person.get_names()])
-#            print combined_name
-            soundexes = soundexes_nl(
-                 combined_name, 
-                 length=-1, 
-                 group=2,
-                 filter_initials=True, 
-                 filter_stop_words=False, #XXX look out withthis: 'koning' and 'heer' are also last names 
-                 filter_custom=TUSSENVOEGSELS,
-                 wildcards=False,
-                 )
-            
-            logging.info('searching for persons matching any of %s' % soundexes)
-            if not soundexes:
-                persons_to_compare = []
-            else:
-                persons_to_compare = self.get_persons(any_soundex = soundexes)
-            logging.info('comparing to %s other persons' % len(persons_to_compare))
-            #compute the similarity
-            similarity_computer = Similarity(person, persons_to_compare)
-            similarity_computer.compute()
-            similarity_computer.sort()
-            similar_persons =  similarity_computer._persons
-            if len(similar_persons) > 1:
-                most_sim = similar_persons[1]
-                logging.info('highest similarity score: %s (%s)' % (most_sim.score, most_sim))
-            else:
-                logging.info('no similar persons found')
-            for p in similarity_computer._persons[:k]:
-                if p.score > minimal_score:
-                    self.add_to_similarity_cache(person.bioport_id, p.bioport_id, p.score)
-                    try:
-                        msg =  '%s|%s|%s|%s|%s|' % (person.bioport_id, p.bioport_id, p.score, person.naam(), p.naam())
-                        logging.info(msg)
-                    except UnicodeEncodeError:
-                        logging.info('scores could not be printed due to UnicodeEncodeError')
-            #print '-' * 20
-            session.flush()
-            
-        session.expunge_all() # removes objects from session
-        session.close()  
+        try:
+            session.expunge_all() # removes objects from session
+            session.close()  
+        except:
+            session.rollback()
+            raise            
     
     def add_to_similarity_cache(self,bioport_id1, bioport_id2,score):
         with self.get_session_context() as session:
@@ -1293,19 +1296,16 @@ class DBRepository:
      
     def XXX_fill_most_similar_persons_cache(self, refresh=False): #, start=0, size=20):
         #this gives us the most similar SimilarityCacheopbjects
-        session = self.db.get_session()
-        qry = session.query(CacheSimilarityPersons)
-        if not refresh and qry.count():
-            return
-        else:
-            logging.info('fill most similar persons cache' )
-            qry.delete()
-            session.flush()
+        with self.get_session_context() as session:
+            qry = session.query(CacheSimilarityPersons)
+            if not refresh and qry.count():
+                return
+            else:
+                logging.info('fill most similar persons cache' )
+                qry.delete()
         
         i = 0
         min_score = 0
-
-       
         sql = """SELECT score, n1.id, n1.xml, n2.id, n2.xml,
         r1.bioport_id as bioport_id1, 
         r2.bioport_id as bioport_id2
@@ -1344,48 +1344,49 @@ and b.redirect_to is null
 and b1.source_id != b2.source_id /*from different sources */
 order by score desc
         """
-                   
-        rs = session.execute(sql)
-        for r in rs:
-            score = r.score 
-            id1 = r.bioport_id1            
-            id2 = r.bioport_id2            
-            
-#            if id1 != id2: # and not qry.count():
-            #p1 = Person(id1, repository=self)
-            #p2 = Person(id2, repository=self)
-            #srcs1 = [src for src in [bio.get_source() for bio in p1.get_biographies()]]
-            #srcs2 = [src for src in [bio.get_source() for bio in p2.get_biographies()]]
-            #srcs_intersection = [s for s in srcs1 if s in srcs2]
-            #if srcs_intersection == []:
-            i += 1
-            id1, id2 = (min(id1, id2), max(id1, id2)) 
-            r_cache = CacheSimilarityPersons(score=score, bioport_id1=id1, bioport_id2=id2)
-            session.add(r_cache) 
-            try:
-                session.flush()
-            except (IntegrityError, InvalidRequestError), e:
-                session.transaction.rollback()
-                # this must be a duplicate - which is no problem 
-                # XXX but we must take the highest score
-                r_existing = session.query(CacheSimilarityPersons).filter(
-                    CacheSimilarityPersons.bioport_id1==id1).filter(
-                    CacheSimilarityPersons.bioport_id2==id2).one()
-                if score > r_existing.score:
-                    r_existing.score = score
-                    session.flush()
+
+        with self.get_session_context() as session:
+            rs = session.execute(sql)
+            for r in rs:
+                score = r.score 
+                id1 = r.bioport_id1            
+                id2 = r.bioport_id2            
                 
-            #give some minimal user feedback
-            if i % 100 == 0:
-                logging.info(str(i))
+    #            if id1 != id2: # and not qry.count():
+                #p1 = Person(id1, repository=self)
+                #p2 = Person(id2, repository=self)
+                #srcs1 = [src for src in [bio.get_source() for bio in p1.get_biographies()]]
+                #srcs2 = [src for src in [bio.get_source() for bio in p2.get_biographies()]]
+                #srcs_intersection = [s for s in srcs1 if s in srcs2]
+                #if srcs_intersection == []:
+                i += 1
+                id1, id2 = (min(id1, id2), max(id1, id2)) 
+                r_cache = CacheSimilarityPersons(score=score, bioport_id1=id1, bioport_id2=id2)
+                session.add(r_cache) 
+                try:
+                    session.flush()
+                except (IntegrityError, InvalidRequestError), e:
+                    session.transaction.rollback()
+                    # this must be a duplicate - which is no problem 
+                    # XXX but we must take the highest score
+                    r_existing = session.query(CacheSimilarityPersons).filter(
+                        CacheSimilarityPersons.bioport_id1==id1).filter(
+                        CacheSimilarityPersons.bioport_id2==id2).one()
+                    if score > r_existing.score:
+                        r_existing.score = score
+                        session.flush()
                     
-                    #if i > start+size:
-                    #    return
-        session.flush()
-        
-        #notify caching machinery that the table is filled
-        self._cache_filled_similarity_persons = True 
-        logging.info('done')
+                # give some minimal user feedback
+                if i % 100 == 0:
+                    logging.info(str(i))
+                        
+                        #if i > start+size:
+                        #    return
+            session.flush()
+            
+            #notify caching machinery that the table is filled
+            self._cache_filled_similarity_persons = True 
+            logging.info('done')
         
     def identify(self, person1, person2):    
         """identify person1 and person2
@@ -1449,45 +1450,45 @@ order by score desc
 
     def _update_similarity_cache_with_identification(self, new_id, old_id ):
         #update the similarity cache replaceing the old bioport_id with the new one
-        session = self.get_session()
-        qry = session.query(CacheSimilarityPersons)
-        qry = qry.filter(or_(CacheSimilarityPersons.bioport_id1 == old_id, CacheSimilarityPersons.bioport_id2 == old_id))
-        #we have to do it record by record, because we may be creating duplicates
-        ls = list(qry.all())
-        for r in ls:
-            session.flush()
-            if r.bioport_id1 == old_id and r.bioport_id2 == old_id:
-                session.delete(r)
+        with self.get_session_context() as session:
+            qry = session.query(CacheSimilarityPersons)
+            qry = qry.filter(or_(CacheSimilarityPersons.bioport_id1 == old_id, CacheSimilarityPersons.bioport_id2 == old_id))
+            #we have to do it record by record, because we may be creating duplicates
+            ls = list(qry.all())
+            for r in ls:
                 session.flush()
-                continue
-            
-            if r.bioport_id1 == old_id:
-                bioport_id1 = new_id
-                bioport_id2 = r.bioport_id2
-            else:
-                bioport_id1 = r.bioport_id1 
-                bioport_id2 = new_id
-            if bioport_id1 > bioport_id2: 
-                bioport_id1, bioport_id2 = bioport_id2, bioport_id1
-                
-            try:
-                r.bioport_id1 = bioport_id1
-                r.bioport_id2 = bioport_id2
-                session.flush()
-            except (IntegrityError, InvalidRequestError), e:
-                session.rollback()
-                session.expire_all()
-                #this thing was already in the database; we keep the one with the highest score
-                other_r = self.get_session().query(CacheSimilarityPersons).filter_by(bioport_id1=bioport_id1, bioport_id2=bioport_id2).one()
-                if other_r.score > r.score:
+                if r.bioport_id1 == old_id and r.bioport_id2 == old_id:
                     session.delete(r)
-                else:
-                    session.delete(other_r)
                     session.flush()
+                    continue
+                
+                if r.bioport_id1 == old_id:
+                    bioport_id1 = new_id
+                    bioport_id2 = r.bioport_id2
+                else:
+                    bioport_id1 = r.bioport_id1 
+                    bioport_id2 = new_id
+                if bioport_id1 > bioport_id2: 
+                    bioport_id1, bioport_id2 = bioport_id2, bioport_id1
+                    
+                try:
                     r.bioport_id1 = bioport_id1
                     r.bioport_id2 = bioport_id2
-                session.flush()
-        assert not qry.count(), [(r.bioport_id1, r.bioport_id2) for r in qry.all()]
+                    session.flush()
+                except (IntegrityError, InvalidRequestError), e:
+                    session.rollback()
+                    session.expire_all()
+                    #this thing was already in the database; we keep the one with the highest score
+                    other_r = self.get_session().query(CacheSimilarityPersons).filter_by(bioport_id1=bioport_id1, bioport_id2=bioport_id2).one()
+                    if other_r.score > r.score:
+                        session.delete(r)
+                    else:
+                        session.delete(other_r)
+                        session.flush()
+                        r.bioport_id1 = bioport_id1
+                        r.bioport_id2 = bioport_id2
+                    session.flush()
+            assert not qry.count(), [(r.bioport_id1, r.bioport_id2) for r in qry.all()]
                
     def unidentify(self, person):
         """Create a new person for each biography associated with person.
@@ -1549,22 +1550,25 @@ order by score desc
                    
     def antiidentify(self, person1, person2):
         """register the fact that the user thinks that these two persons are not the same"""
-        session = self.get_session()
-        id1, id2 = person1.get_bioport_id(), person2.get_bioport_id()
-        
+        id1, id2 = person1.get_bioport_id(), person2.get_bioport_id()       
         # add a witness record to the antiidentify table
         r_anti = AntiIdentifyRecord(bioport_id1 = min(id1, id2),bioport_id2= max(id1, id2)) 
-        try:
-            session.add(r_anti)
-            msg = 'Anti-identified %s and %s' % (id1, id2)
-            self.log(msg, r_anti)
-            session.flush()
-        except IntegrityError: 
-            # this is (most probably) because the record already exists
-            session.rollback()
+        
+        
+        # XXX - this should be adjusted by checking if the record
+        # exists first, in which case this is not executed.
+        with self.get_session_context() as session:
+            try:
+                session.add(r_anti)
+                msg = 'Anti-identified %s and %s' % (id1, id2)
+                self.log(msg, r_anti)
+                session.flush()
+            except IntegrityError: 
+                # this is (most probably) because the record already exists
+                session.rollback()
+
         self._remove_from_cache_similarity_persons(person1, person2)
         self._remove_from_cache_deferidentification(person1, person2)
-
 
     def _remove_from_cache_deferidentification(self, person1, person2):
         # remove the persons from the "deferred" lists if they are there
@@ -1806,7 +1810,6 @@ and b2.redirect_to is null
         rs = session.execute(sql)
         grand_total = list(session.execute("select FOUND_ROWS()"))[0][0]
         return ([(Person(r.bioport_id1, repository=self), Person(r.bioport_id2, repository=self)) for r in rs], grand_total)
-
 
     def tmp_fixup_category_doublures(self):
         """cleanup after a bug that assigned double categories to persons
