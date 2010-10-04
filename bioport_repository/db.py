@@ -416,6 +416,18 @@ class DBRepository:
             self.update_soundex(bioport_id=bioport_id, s=r_person.names)
             self.update_name(bioport_id, s = r_person.names) 
             self.update_source(bioport_id, source_ids = [b.source_id for b in person.get_biographies()])
+            
+    def update_persons(self):
+        """Update the information of all the persons in the database.
+        Return the number of processed persons.
+        """
+        persons = self.get_persons()
+        total = len(persons)
+        for index, person in enumerate(persons):
+            index += 1
+            logging.info("progress %s/%s" % (index, total))
+            self.update_person(person.get_bioport_id())
+        return total
         
     def update_name(self, bioport_id, s):
         """update the table person_name"""
