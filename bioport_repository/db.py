@@ -257,7 +257,7 @@ class DBRepository:
             session.add(item)
             
             item.bioport_id = bioport_id
-            item.volledige_naam = naam.guess_normal_form(change_xml=True)
+            item.volledige_naam = naam.guess_normal_form()
             item.xml = naam.to_string()
             item.sort_key = naam.sort_key()
             item.src = src
