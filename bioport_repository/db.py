@@ -28,11 +28,11 @@ from bioport_repository.db_definitions import PersonSource, PersonSoundex, Autho
 from bioport_repository.db_definitions import RelPersonCategory, PersonName
 from bioport_repository.db_definitions import NaamRecord, SoundexRecord, SimilarityCache
 from bioport_repository.db_definitions import (CacheSimilarityPersons,
-                                              BioPortIdRecord,
-                                              RelBioPortIdBiographyRecord,
-                                              BiographyRecord,
-                                              SourceRecord,
-                                              STATUS_NEW)
+                                               BioPortIdRecord,
+                                               RelBioPortIdBiographyRecord,
+                                               BiographyRecord,
+                                               SourceRecord,
+                                               STATUS_NEW)
 
 from sqlalchemy import create_engine, desc, and_, or_, not_
 
@@ -367,8 +367,7 @@ class DBRepository:
                 r_person.sort_key = naam.sort_key()
             else:
                 msg = 'merged_biography should at least have one name defined! %s' % person.bioport_id
-                raise Exception(msg)
-                logging.error('This is strange and should not happen: bioport id %s has no name' % person.bioport_id)
+                raise RuntimeError(msg)
                 
             r_person.categories = [RelPersonCategory(category_id=id) for state in merged_biography.get_states(type='categories')]
             r_person.has_illustrations = merged_biography.get_illustrations() and True or False
@@ -418,34 +417,6 @@ class DBRepository:
             self.update_name(bioport_id, s = r_person.names) 
             self.update_source(bioport_id, source_ids = [b.source_id for b in person.get_biographies()])
         
-    def update_persons(self):
-        """update the information of all the persons in the database"""
-       
-        #XXX perhaps this should be "bioport_ids" from the registry, rather than persons from the Person table
-        persons = self.get_persons()
-        i = 0
-        for p in persons:
-            i += 1
-            try:
-                self.update_person(p.get_bioport_id())
-            # XXX - this is evil and should be rewritten; 
-            # it's so evil I don't know how to insert the context manager
-            except Exception, error:
-                # if this person does not have any biographical information
-                # associated with it we delete from the person list
-                for bio in p.get_biographies():
-                    if bio.source_id != 'bioport' and bio.biodes_document:
-                        #there is some real info
-                        raise error
-                # we did not re-raise the error, so we delete this perosn 
-                session = self.get_session()
-                session.flush()
-                self.delete_person(p.bioport_id)
-                session.flush()
-                # XXX this method isn't tested, I'm blindly adding the following:
-                session.rollback() # as suggested by:
-                # http://www.sqlalchemy.org/trac/wiki/FAQ#Thetransactionisinactiveduetoarollbackinasubtransaction
-
     def update_name(self, bioport_id, s):
         """update the table person_name"""
         with self.get_session_context() as session:           
@@ -660,52 +631,51 @@ class DBRepository:
         result = [Person(bioport_id=r.bioport_id, repository=self.repository, record=r) for r in ls]
         return result   
     
-    def _get_persons_query(self,             
-        bioport_id=None,
-#        beroep_id=None,
-#        auteur_id=None,
-        beginletter=None,
-        category=None,
-        geboortejaar_min=None,
-        geboortejaar_max=None,
-        geboortemaand_min=None,
-        geboortemaand_max=None,
-        geboortedag_min=None,
-        geboortedag_max=None,
-        levendjaar_min=None,
-        levendjaar_max=None,
-        levendmaand_min=None,
-        levendmaand_max=None,
-        levenddag_min=None,
-        levenddag_max=None,
-        geboorteplaats = None,
-        geslacht=None,
-        has_illustrations=None, #boolean: does this person have illustrations?
-        is_identified=None,
-        match_term=None, #use for myqsl 'matching' (With stopwords and stuff)
-        order_by='sort_key', 
-        place=None,
-        search_term=None,  #
-        search_name=None, #use for mysql REGEXP matching
-        search_soundex=None, #a string - will convert it to soundex, and try to match (all) of these
-        any_soundex=[], #a list of soundex expressions - try to match any of these
-        source_id=None,
-        source_id2=None,
-        sterfjaar_min=None,
-        sterfjaar_max=None,
-        sterfmaand_min=None,
-        sterfmaand_max=None,
-        sterfdag_min=None,
-        sterfdag_max=None,
-        sterfplaats = None,
-        start=None,
-        size=None,
-        status=None,
-        hide_invisible=True, #if true, do not return "invisible" persons, such as those marked as "troep"
-        hide_foreigners=False, #if true, do not return persons marked as "buitenlands"
-        where_clause=None,
-        has_contradictions=False,
-        ):
+    def _get_persons_query(self,bioport_id=None,
+                                #beroep_id=None,
+                                #auteur_id=None,
+                                beginletter=None,
+                                category=None,
+                                geboortejaar_min=None,
+                                geboortejaar_max=None,
+                                geboortemaand_min=None,
+                                geboortemaand_max=None,
+                                geboortedag_min=None,
+                                geboortedag_max=None,
+                                levendjaar_min=None,
+                                levendjaar_max=None,
+                                levendmaand_min=None,
+                                levendmaand_max=None,
+                                levenddag_min=None,
+                                levenddag_max=None,
+                                geboorteplaats = None,
+                                geslacht=None,
+                                has_illustrations=None, #boolean: does this person have illustrations?
+                                is_identified=None,
+                                match_term=None, #use for myqsl 'matching' (With stopwords and stuff)
+                                order_by='sort_key', 
+                                place=None,
+                                search_term=None,  #
+                                search_name=None, #use for mysql REGEXP matching
+                                search_soundex=None, #a string - will convert it to soundex, and try to match (all) of these
+                                any_soundex=[], #a list of soundex expressions - try to match any of these
+                                source_id=None,
+                                source_id2=None,
+                                sterfjaar_min=None,
+                                sterfjaar_max=None,
+                                sterfmaand_min=None,
+                                sterfmaand_max=None,
+                                sterfdag_min=None,
+                                sterfdag_max=None,
+                                sterfplaats = None,
+                                start=None,
+                                size=None,
+                                status=None,
+                                hide_invisible=True, #if true, do not return "invisible" persons, such as those marked as "troep"
+                                hide_foreigners=False, #if true, do not return persons marked as "buitenlands"
+                                where_clause=None,
+                                has_contradictions=False,
+                                ):
         """
         returns:
             a Query instance
@@ -987,12 +957,10 @@ class DBRepository:
             except NoResultFound:
                 pass
 
-    def get_authors(self, 
-            biography=None,
-            beginletter=None,
-            search_term=None,
-            order_by='name',
-            ):
+    def get_authors(self, biography=None,
+                          beginletter=None,
+                          search_term=None,
+                          order_by='name'):
         assert 0, 'get_authors is (perhaps temporarily) disabled (because we do not use it and it eats time and memory)'
         
         session = self.get_session()
@@ -1050,14 +1018,12 @@ class DBRepository:
                 break
         return chain[-1]
     
-    def fill_similarity_cache(self, 
-        person=None, 
-        k=20, 
-        refresh=False, 
-        limit=None,
-        source_id=None,
-        minimal_score=0.86,
-        ):
+    def fill_similarity_cache(self, person=None, 
+                                    k=20, 
+                                    refresh=False, 
+                                    limit=None,
+                                    source_id=None,
+                                    minimal_score=0.86):
         """fill a table CacheSimilarityPersons with, for each name in the index, a record with the 20 most similar other names in the index
        
            arguments:
@@ -1202,7 +1168,7 @@ class DBRepository:
     def get_most_similar_persons(self, start=0, 
                                        size=50, 
                                        refresh=False, 
-                             #         similar_to=None,
+                                       #similar_to=None,
                                        source_id=None,
                                        status=None,
                                        search_name=None,
