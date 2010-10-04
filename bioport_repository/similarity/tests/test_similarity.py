@@ -17,25 +17,7 @@ class SimilarityTestCase(CommonTestCase):
         self.sim = Similarity()
         self.similarity_score = self.sim.similarity_score
         
-    def _add_person(self, naam, 
-        geboortedatum=None,
-        sterfdatum=None,
-        ):
-        #make a new biography
-        bio = Biography( id = 'bioport_test/test_bio_%s' % naam, source_id=self.source.id)
-        
-        bio.from_args( 
-              url_biografie='http://ladida/didum', 
-              naam_publisher='nogeensiets', 
-              url_publisher='http://pbulihser_url',
-              naam=naam,
-              geboortedatum=geboortedatum,
-              sterfdatum=sterfdatum,
-              )
-        
-        #save it
-        self.repo.add_biography(bio)
-        return bio.get_person()
+
     
     def test_similarity(self):
         p1 = self._add_person('Jan', geboortedatum='1000', sterfdatum='2000')

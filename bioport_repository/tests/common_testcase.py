@@ -1,16 +1,16 @@
 import os
-import sys
+#import sys
 import unittest
 import shutil
-import atexit
-import subprocess
-
+#import atexit
+#import subprocess
 from plone.memoize import instance
 import sqlalchemy
 
 from bioport_repository.repository import Repository
 from bioport_repository.source import Source
 from bioport_repository.tests.config import DSN
+from bioport_repository.biography import Biography
 
 from gerbrandyutils import sh
 
@@ -104,7 +104,39 @@ class CommonTestCase(unittest.TestCase):
         self._is_filled = True
         return self.repo
 
-
+    def _add_person(self, naam, 
+        geboortedatum=None,
+        sterfdatum=None,
+        ):
+        """helper function for adding a new person to the repository
+        
+        returns:
+            a Person instance
+        """
+        
+        #make a new biography
+        
+        source_id = 'bioport_test'
+        try:
+            source = self.repo.get_source(source_id)
+        except ValueError: #a source with this id did not exist yet
+	        source = Source(id=source_id)
+	        self.repo.save_source(source)        
+        
+        bio = Biography( id = 'bioport_test/test_bio_%s' % naam, source_id=source_id)
+        
+        bio.from_args( 
+              url_biografie='http://ladida/didum', 
+              naam_publisher='nogeensiets', 
+              url_publisher='http://pbulihser_url',
+              naam=naam,
+              geboortedatum=geboortedatum,
+              sterfdatum=sterfdatum,
+              )
+        
+        #save it
+        self.repo.add_biography(bio)
+        return bio.get_person()
 class CommonTestCaseTest(CommonTestCase):
     
     def test_sanity(self):

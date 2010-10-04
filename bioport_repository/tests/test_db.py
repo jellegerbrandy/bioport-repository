@@ -1,5 +1,5 @@
 from bioport_repository.tests.common_testcase import CommonTestCase, unittest 
-from bioport_repository.db import *
+from bioport_repository.db import Source, BiographyRecord, NaamRecord, PersonRecord, SoundexRecord, SourceRecord, Biography, RelBioPortIdBiographyRecord
 
 
 class DBRepositoryTestCase(CommonTestCase):
@@ -12,7 +12,6 @@ class DBRepositoryTestCase(CommonTestCase):
         assert 'soundex' in db.engine.table_names(), db.engine.table_names()
 
     def test_manipulate_source(self):
-        
         src = Source(id='123')
         self.db.add_source(src)
         self.assertEqual(len(self.db.get_session().query(SourceRecord).all()), 3)
@@ -246,9 +245,8 @@ class DBRepositoryTestCase(CommonTestCase):
         
 def test_suite():
     return unittest.TestSuite((
-        unittest.makeSuite(DBRepositoryTestCase, 'test_get_persons'),
+        unittest.makeSuite(DBRepositoryTestCase, 'test'),
         ))
 
 if __name__=='__main__':
     unittest.main(defaultTest='test_suite')
-

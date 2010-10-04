@@ -279,6 +279,7 @@ class DBRepository:
             if not encodable(item.snippet, error.encoding):
                 s +='item.snippet'
             error.reason += '\nOffending text is: %s' % s
+            session.rollback()
             raise error
         id = item.id 
         return id
@@ -468,10 +469,19 @@ class DBRepository:
                 r =  PersonName(bioport_id=bioport_id, name=name) 
                 session.add(r)
 
+    def _soundex_for_search(self, s):
+        return soundexes_nl(s, 
+            group=2, 
+            length=20, 
+            filter_initials=True, 
+            filter_stop_words=False,
+            wildcards=True,
+            ) #create long phonetic soundexes
+
     def update_soundex(self, bioport_id, s):
         """update the table person_soundex"""
         with self.get_session_context() as session:
-            soundexes = soundexes_nl(s, group=2, length=20, filter_initials=True, filter_stop_words=False) #create long phonetic soundexes
+            soundexes = self._soundex_for_search(s)
             #delete existing references
             session.query(PersonSoundex).filter(PersonSoundex.bioport_id == bioport_id).delete()
             for soundex in soundexes:
@@ -659,54 +669,6 @@ class DBRepository:
         result = [Person(bioport_id=r.bioport_id, repository=self.repository, record=r) for r in ls]
         return result   
     
-
-    def _get_date_filter(self, data, datetype):
-        """
-        This function builds a sqlalchemy filter using data in 'data'.
-        datetype is used to extract variables from data.
-        datetype can be either "geboorte" or "sterf"
-        """
-        datdag_min = data[datetype + 'dag_min']
-        datmaand_min = data[datetype + 'maand_min']
-        datjaar_min = data[datetype + 'jaar_min']
-        datdag_max = data[datetype + 'dag_max']
-        datmaand_max = data[datetype + 'maand_max']
-        datjaar_max = data[datetype + 'jaar_max']
-        maand_min = int(datmaand_min or 1)
-        dag_min = int(datdag_min or 1)
-        maand_max = int(datmaand_max or 12)
-        dag_max = int(datdag_max or 31)
-        date_filter = "TRUE"
-        field = getattr(PersonRecord, datetype + 'datum', None)
-        if datetype == 'levend' and not (datjaar_min or datjaar_max):
-            # Everybody was alive in every period of the year, so this
-            # does not make any sense
-            return date_filter
-        if datjaar_min or datjaar_max:
-            jaar_min = int(datjaar_min or 0)
-            jaar_max = int(datjaar_max or 9999)
-            start_date = "%04i-%02i-%02i" % (jaar_min, maand_min, dag_min)
-            end_date = "%04i-%02i-%02i" % (jaar_max, maand_max, dag_max)
-            if datetype == 'levend':
-                date_filter = and_(PersonRecord.geboortedatum<start_date,
-                              PersonRecord.sterfdatum>end_date)
-            else:
-                date_filter = and_(field >= start_date,
-                                   field <= end_date)
-        elif (datmaand_min or datdag_min
-              or datmaand_max or datdag_max):
-            SUBSTRING = sqlalchemy.func.SUBSTRING
-            no_year = SUBSTRING(field, 6, 5)
-            start_date = "%02i-%02i" % (maand_min, dag_min)
-            end_date = "%02i-%02i" % (maand_max, dag_max)
-            myoperator = and_
-            if start_date>end_date:
-                myoperator = or_
-            date_filter = myoperator(no_year >= start_date, no_year <= end_date)
-            # We want the month to be specified, i.e. at least a 7-char date
-            date_filter = and_(date_filter, sqlalchemy.func.length(field)>=7)
-        return date_filter
-
     def _get_persons_query(self,             
         bioport_id=None,
 #        beroep_id=None,
@@ -866,7 +828,7 @@ class DBRepository:
         
         if any_soundex:
             qry = qry.join(PersonSoundex)
-            qry = qry.filter(PersonSoundex.soundex.in_( any_soundex))
+            qry = qry.filter(PersonSoundex.soundex.in_(any_soundex))
                 
         if source_id:
             qry = qry.join(PersonSource)
@@ -905,7 +867,62 @@ class DBRepository:
         #print qry.statement
         return qry
     
+
+    def _get_date_filter(self, data, datetype):
+        """
+        This function builds a sqlalchemy filter using data in 'data'.
+        datetype is used to extract variables from data.
+        datetype can be either "geboorte" or "sterf"
+        """
+        datdag_min = data[datetype + 'dag_min']
+        datmaand_min = data[datetype + 'maand_min']
+        datjaar_min = data[datetype + 'jaar_min']
+        datdag_max = data[datetype + 'dag_max']
+        datmaand_max = data[datetype + 'maand_max']
+        datjaar_max = data[datetype + 'jaar_max']
+        maand_min = int(datmaand_min or 1)
+        dag_min = int(datdag_min or 1)
+        maand_max = int(datmaand_max or 12)
+        dag_max = int(datdag_max or 31)
+        date_filter = "TRUE"
+        field = getattr(PersonRecord, datetype + 'datum', None)
+        if datetype == 'levend' and not (datjaar_min or datjaar_max):
+            # Everybody was alive in every period of the year, so this
+            # does not make any sense
+            return date_filter
+        if datjaar_min or datjaar_max:
+            jaar_min = int(datjaar_min or 0)
+            jaar_max = int(datjaar_max or 9999)
+            start_date = "%04i-%02i-%02i" % (jaar_min, maand_min, dag_min)
+            end_date = "%04i-%02i-%02i" % (jaar_max, maand_max, dag_max)
+            if datetype == 'levend':
+                date_filter = and_(PersonRecord.geboortedatum<start_date,
+                              PersonRecord.sterfdatum>end_date)
+            else:
+                date_filter = and_(field >= start_date,
+                                   field <= end_date)
+        elif (datmaand_min or datdag_min
+              or datmaand_max or datdag_max):
+            SUBSTRING = sqlalchemy.func.SUBSTRING
+            no_year = SUBSTRING(field, 6, 5)
+            start_date = "%02i-%02i" % (maand_min, dag_min)
+            end_date = "%02i-%02i" % (maand_max, dag_max)
+            myoperator = and_
+            if start_date>end_date:
+                myoperator = or_
+            date_filter = myoperator(no_year >= start_date, no_year <= end_date)
+            # We want the month to be specified, i.e. at least a 7-char date
+            date_filter = and_(date_filter, sqlalchemy.func.length(field)>=7)
+        return date_filter
+
     def _filter_search_name(self, qry, search_name):
+        """Add an appropriate filter to the qry when searching for search_name
+        arguments:
+            qry : a sqlalchemy Query instance
+            search_name : a string
+        returns:
+            a Query instance filtered appropriately
+        """
         #if the name argument is between quotation marts, we search "exact"
         #(but we still ignore the order)
         if not search_name:
@@ -938,14 +955,7 @@ class DBRepository:
         returns: the modified qry
         """
         if search_soundex:
-            soundexes = soundexes_nl(
-                 search_soundex, 
-                 length=-1, 
-                 group=2,
-                 filter_initials=False, 
-                 filter_stop_words=False, 
-                 wildcards=True,
-                 )
+            soundexes = self._soundex_for_search(search_soundex)
             if len(soundexes)==1 and  '?' in soundexes[0] or '*' in soundexes[0]:
                 #we can use wildcards, but only if we have a single soundex
                 s = soundexes[0]

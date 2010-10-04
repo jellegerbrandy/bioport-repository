@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 
-import sys
 import os
-import time
 import re
 import types
 import logging
@@ -71,8 +69,8 @@ class Biography(object, BioDesDoc): #, SVNEntry):
                 self.biodes_document = etree.tostring(self.root)
                 return self.root
             else:
-	            self.root = etree.fromstring(self.biodes_document)
-	            return self.root
+                self.root = etree.fromstring(self.biodes_document)
+                return self.root
    
     def get_source(self):
         try:
@@ -280,12 +278,12 @@ class Biography(object, BioDesDoc): #, SVNEntry):
         for figure in figures:
             url, caption = figure
             if not caption:
-		        caption = 'illustratie uit %s' % self.get_source().description
+                caption = 'illustratie uit %s' % self.get_source().description
             if (not url.startswith('http://')) and (not url.startswith('file://')):
                 #this is a relative url
                 url = '/'.join((os.path.dirname(self.source_url), url))
                 if not url.startswith('file://'):
-	                url = 'file://' + url
+                    url = 'file://' + url
             result.append(Illustration(
                  url=url, 
                  images_cache_local=images_cache_local,
@@ -295,4 +293,3 @@ class Biography(object, BioDesDoc): #, SVNEntry):
                  link_url=self.get_value('url_biografie'),
                  ))
         return result
-
