@@ -247,40 +247,28 @@ class DBRepository:
             naam - an instance of Naam 
             biography - an instance of biography
         """
-        session = self.get_session()
-        session.flush()
-        item = NaamRecord()
-        session.add(item)
-        
-        item.bioport_id = bioport_id
-        item.volledige_naam = naam.guess_normal_form(change_xml=True)
-        item.xml = naam.to_string()
-        item.sort_key = naam.sort_key()
-        item.src = src
-#        item.src = src and unicode(src) or unicode(self.id)
-        
-        assert type(item.xml) == type(u'')
-        assert type(item.sort_key) == type(u'')
+        with self.get_session_context() as session:
+            item = NaamRecord()
+            session.add(item)
+            
+            item.bioport_id = bioport_id
+            item.volledige_naam = naam.guess_normal_form(change_xml=True)
+            item.xml = naam.to_string()
+            item.sort_key = naam.sort_key()
+            item.src = src
+            #item.src = src and unicode(src) or unicode(self.id)
+            
+            assert type(item.xml) == type(u'')
+            assert type(item.sort_key) == type(u'')
 
-        item.soundex = []
-#        item.variant_of = variant_of
-        
-        for s in naam.soundex_nl():
-            soundex = SoundexRecord()
-            soundex.soundex = s
-            item.soundex.append(soundex)
-        # XXX - This is ugly... should be rewritten
-        try:
-            session.flush()
-        except UnicodeEncodeError, error:
-            s = ''
-            if not encodable(item.snippet, error.encoding):
-                s +='item.snippet'
-            error.reason += '\nOffending text is: %s' % s
-            session.rollback()
-            raise error
-        id = item.id 
-        return id
+            item.soundex = []
+            #item.variant_of = variant_of
+            
+            for s in naam.soundex_nl():
+                soundex = SoundexRecord()
+                soundex.soundex = s
+                item.soundex.append(soundex)
+            return item.id 
    
     def delete_names(self, bioport_id):
         session  = self.get_session()
