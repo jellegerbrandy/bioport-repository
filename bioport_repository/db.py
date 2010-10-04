@@ -314,13 +314,14 @@ class DBRepository:
 
         session.expunge_all()
                 
-        #update the information of the associated person (or add a person if the biography is new)
-        default_status = self.get_source(biography.source_id).default_status
-        self.update_person(biography.get_bioport_id(), default_status=default_status)
-        
-        msg  = 'saved biography with id %s' % (biography.id)
-        self.log(msg=msg, record = r_biography)
-        session.flush()
+        # update the information of the associated person (or add a person 
+        # if the biography is new)
+        with self.get_session_context() as session:
+            default_status = self.get_source(biography.source_id).default_status
+            self.update_person(biography.get_bioport_id(), default_status=default_status)
+            
+            msg  = 'saved biography with id %s' % (biography.id)
+            self.log(msg=msg, record = r_biography)
 
     def _add_author(self, author, biography_record):   
         """
@@ -1615,15 +1616,16 @@ order by score desc
         id1, id2 = person1.get_bioport_id(), person2.get_bioport_id()
         session = self.get_session()
         
-        r_defer = DeferIdentificationRecord(bioport_id1 = min(id1, id2),bioport_id2= max(id1, id2)) 
-        try:
-            session.add(r_defer)
-            msg = 'Deferred identification of %s and %s' % (id1, id2)
-            self.log(msg, r_defer)
-            session.flush()
-        except IntegrityError:
-            # this is (most probably) because the record already exists 
-            session.rollback()
+        with self.get_session_context() as session:
+            r_defer = DeferIdentificationRecord(bioport_id1 = min(id1, id2),bioport_id2= max(id1, id2)) 
+            try:
+                session.add(r_defer)
+                msg = 'Deferred identification of %s and %s' % (id1, id2)
+                self.log(msg, r_defer)
+                session.flush()
+            except IntegrityError:
+                # this is (most probably) because the record already exists 
+                session.rollback()
         
         #also remove the persons from the cache
         self._remove_from_cache_similarity_persons(person1, person2)
