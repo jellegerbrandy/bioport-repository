@@ -198,18 +198,19 @@ class Person(object):
         retlist = []        
         bdates, ddates, bplaces, dplaces = [], [], [], []
         for bio in self.get_biographies():
+            source = str(bio.get_source().id)
             x = bio.get_value('birth_date')
             if x is not None:
-                 bdates.append((x, bio.id))
+                 bdates.append((x, source))
             x = bio.get_value('death_date')
             if x is not None:
-                 ddates.append((x, bio.id))
+                 ddates.append((x, source))
             x = bio.get_value('birth_place')
             if x is not None:
-                 bplaces.append((x, bio.id))
+                 bplaces.append((x, source))
             x = bio.get_value('death_place')
             if x is not None:
-                 dplaces.append((x, bio.id))
+                 dplaces.append((x, source))
 
         x = set(x[0] for x in bplaces)
         if len(x) > 1:
@@ -232,14 +233,14 @@ class Contradiction(object):
     biographies.
     """
 
-    __slots__ = ["type", "values"]
+    __slots__ = ["type", "values", "render_html"]
 
     def __init__(self, type, values):
         self.type = type
         self.values = values
-           
+          
     def __str__(self):
-        s = "<%s at %s; type=%s values=%s>" % (self.__class__.__name__, id(self), 
+        s = "<%s at %s; type=%s values=%s>" % (self.__class__.__name__,  id(self), 
                                                repr(self.type), repr(self.values))
         return s
 
@@ -247,4 +248,8 @@ class Contradiction(object):
         return len(self.values)
 
     __repr__ = __str__
+
+    def render(self):
+        return ', '.join("%s (%s)" %(x, y) for x, y in self.values)
+    
 

@@ -1412,7 +1412,21 @@ order by score desc
 
         for bio in old_person.get_biographies(): 
             new_person.add_biography(bio)
-         
+
+        session = self.get_session()
+        query = session.query(PersonRecord)
+        query = query.filter(PersonRecord.bioport_id==new_person.get_bioport_id())
+        obj = query.one()
+        if new_person.get_biography_contradictions():
+            obj.has_contradictions = True
+        else:
+            obj.has_contradictions = False
+        try:
+            session.flush()
+        except:
+            session.rollback()
+            raise
+
         #if we have different bioport biographies, we need to choose one
         new_id = new_person.bioport_id
         old_id = old_person.bioport_id
@@ -1514,7 +1528,7 @@ order by score desc
         Return the number of persons which have contradictory biographies.
         """
         session = self.get_session()
-        persons = self.get_persons()[:1000]  # XXX
+        persons = self.get_persons()[:500]  # XXX
         n = 0
         for person in persons:
             query = session.query(PersonRecord)

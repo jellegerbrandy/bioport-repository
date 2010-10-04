@@ -31,7 +31,7 @@ class Source(object):
    
     def __eq__(self, other):
         return type(self) == type(other) and self.id == other.id
-
+        
     def path(self):
         return os.path.join(self.svn_repository.root_path, self.id)
         
