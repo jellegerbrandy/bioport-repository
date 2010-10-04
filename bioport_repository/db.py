@@ -316,8 +316,7 @@ class DBRepository:
         author - a string
         biography - a biography instance
         """
-        
-        
+
     def save_person(self, person):
         """save the information of this person in the database table
         
@@ -384,6 +383,7 @@ class DBRepository:
             r_person.names = ' '.join([unicode(name) for name in merged_biography.get_names()])
             r_person.geslachtsnaam = naam.geslachtsnaam()
             r_person.snippet = person.snippet()
+            r_person.has_contradictions = bool(person.get_biography_contradictions())
             illustrations =  merged_biography.get_illustrations()
             r_person.thumbnail = illustrations and illustrations[0].image_small_url or ''
             #update categories
@@ -1491,8 +1491,10 @@ order by score desc
         """
         with self.get_session_context() as session:
             persons = self.get_persons()[:500]  # XXX
+            total = len(persons)
             n = 0
-            for person in persons:
+            for index, person in enumerate(persons):
+                logging.info("progress %s/%s" % (index + 1, total))
                 query = session.query(PersonRecord)
                 query = query.filter(PersonRecord.bioport_id==person.get_bioport_id())
                 obj = query.one()
