@@ -290,6 +290,10 @@ class DBRepository:
     
     def save_biography(self, biography):
         with self.get_session_context() as session:
+            #register the biography in the bioportid registry
+            #(note that this changes the XML in the biography object)
+            self._register_biography(biography)
+            
             try:
                 r_biography = session.query(BiographyRecord).filter(BiographyRecord.id==biography.id).one()
             except sqlalchemy.orm.exc.NoResultFound:
@@ -299,10 +303,7 @@ class DBRepository:
                 
             r_biography.source_id = biography.source_id
            
-            #register the biography in the bioportid registry
-            self._register_biography(biography)
             
-            #generated the biodes document only at the end (When all changes are made)  ?? which changes??
             r_biography.biodes_document = biography.to_string()
             r_biography.source_url = unicode(biography.source_url)
 
@@ -372,7 +373,6 @@ class DBRepository:
             else:
                 msg = 'merged_biography should at least have one name defined! %s' \
                       ' - biographies: %s'  % (person.bioport_id, person.get_biographies())
-#                import pdb; pdb.set_trace()
                 raise RuntimeError(msg)
                 
             r_person.categories = [RelPersonCategory(category_id=id) for state in merged_biography.get_states(type='categories')]
@@ -852,7 +852,7 @@ class DBRepository:
         """
         This function builds a sqlalchemy filter using data in 'data'.
         datetype is used to extract variables from data.
-        datetype can be either "geboorte" or "sterf"
+        datetype can be either "geboorte" or "sterf" or "levend"
         """
         datdag_min = data[datetype + 'dag_min']
         datmaand_min = data[datetype + 'maand_min']
@@ -865,19 +865,22 @@ class DBRepository:
         maand_max = int(datmaand_max or 12)
         dag_max = int(datdag_max or 31)
         date_filter = "TRUE"
+        
         field = getattr(PersonRecord, datetype + 'datum', None)
+        
         if datetype == 'levend' and not (datjaar_min or datjaar_max):
             # Everybody was alive in every period of the year, so this
             # does not make any sense
             return date_filter
+        
         if datjaar_min or datjaar_max:
             jaar_min = int(datjaar_min or 0)
             jaar_max = int(datjaar_max or 9999)
             start_date = "%04i-%02i-%02i" % (jaar_min, maand_min, dag_min)
             end_date = "%04i-%02i-%02i" % (jaar_max, maand_max, dag_max)
             if datetype == 'levend':
-                date_filter = and_(PersonRecord.geboortedatum<start_date,
-                              PersonRecord.sterfdatum>end_date)
+                date_filter = and_(PersonRecord.geboortedatum <= start_date,
+                              PersonRecord.sterfdatum >= end_date)
             else:
                 date_filter = and_(field >= start_date,
                                    field <= end_date)
