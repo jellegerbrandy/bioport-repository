@@ -144,12 +144,12 @@ there
 any more""",
               )
         self.assertEqual(bio.snippet(size=20), 'Lemuel is in...')
-        
 
-        bios = self.repo.get_biographies(local_id='knaw/005')
-        assert bios
-        bio = bios[0]
-        assert bio.snippet().startswith('TER')
+        bio.set_value('text', 'abc')
+        self.assertEqual(bio.snippet(), 'abc')
+
+        bio.set_value('text', 'ca. 1800-1900')
+        self.assertEqual(bio.snippet(), 'ca. 1800-1900')
 
     def test_get_illustrations(self):      
         bio = self.repo.get_biography(local_id='knaw/001')
@@ -176,12 +176,12 @@ any more""",
         self.assertEqual(len(bio.get_states(type='category')), 1)
 
 
+ 
 def test_suite():
-    test_suite = unittest.TestSuite()
-    tests = [BiographyTestCase]
-    for test in tests:
-        test_suite.addTest(unittest.makeSuite(test))
-    return test_suite 
+    return unittest.TestSuite((
+        unittest.makeSuite(BiographyTestCase, 'test'),
+        ))
+
 
 if __name__=='__main__':
     unittest.main(defaultTest='test_suite')

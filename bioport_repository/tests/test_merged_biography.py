@@ -46,12 +46,12 @@ class TestMergedBiography(CommonTestCase):
         self.assertEqual(doc.get_value('birth_date'), '2000-02-01')
 
 
+ 
 def test_suite():
-    test_suite = unittest.TestSuite()
-    tests = [TestMergedBiography]
-    for test in tests:
-        test_suite.addTest(unittest.makeSuite(test))
-    return test_suite
+    return unittest.TestSuite((
+        unittest.makeSuite(TestMergedBiography),
+        ))
+
 
 if __name__ == "__main__":
     unittest.main(defaultTest='test_suite')    

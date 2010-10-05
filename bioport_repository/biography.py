@@ -80,6 +80,7 @@ class Biography(object, BioDesDoc): #, SVNEntry):
             return self._source
     
     def get_text_without_markup(self):
+        """get the text of the biography, but remove any HTML codes"""
         text = self.get_value('tekst')
         if text:
             for tagname in ('head', 'style', 'script'):
@@ -125,12 +126,15 @@ class Biography(object, BioDesDoc): #, SVNEntry):
         text = self.get_text_without_markup()
         if not text:
             return ''
-        s = text[:size]
         
-        s = string.rsplit(s, maxsplit=1)[0]
-        if len(s) < len(text):
-            s += '...'
-        return s
+        if len(text) < size:
+            return text
+        else: #we have a text that is longer than size, so we shorten it 
+            s = text[:size]
+            s = string.rsplit(s, maxsplit=1)[0]
+            if len(s) < len(text):
+                s += '...'
+            return s
     
     def get_snippet(self, source_id):
         """get a snippet for a certain source
