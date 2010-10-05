@@ -1372,8 +1372,8 @@ order by score desc
         #we need to merge the two persons, and choose one as the one to "point to"
         #we take the one that uses a biography with the highest trusworthiness
         
-        trust1 = max([bio.get_source().quality for bio in person1.get_biographies() if bio.get_source().id != 'bioport'] )
-        trust2 = max([bio.get_source().quality for bio in person2.get_biographies() if bio.get_source().id != 'bioport'] )
+        trust1 = max([bio.get_source().quality for bio in person1.get_biographies() if bio.get_source().id != 'bioport']  + [0])
+        trust2 = max([bio.get_source().quality for bio in person2.get_biographies() if bio.get_source().id != 'bioport']  + [0])
        
         if trust1 > trust2:
             new_person = person1
