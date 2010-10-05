@@ -195,6 +195,10 @@ class Person(object):
         another one states "y").
         Rerturn a list of Contradiction instances or [].
         """
+        #XXX return empty list to (temporarily) disable the functionality
+        return []
+    
+    
         retlist = []        
         bdates, ddates, bplaces, dplaces = [], [], [], []
         for bio in self.get_biographies():
