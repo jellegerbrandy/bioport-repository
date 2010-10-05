@@ -240,6 +240,7 @@ class Repository(object):
             raise BioPortException('The list at %s does not contain any links to biographies' % source.url)
         total = len(ls)
         skipped = 0
+        ls.sort()
         for iteration, biourl in enumerate(ls):
             iteration += 1
             if not biourl.startswith("http:"):

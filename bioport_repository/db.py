@@ -212,29 +212,29 @@ class DBRepository:
         with self.get_session_context() as session:
             # delete also all biographies associated with this source
             session.query(BiographyRecord).filter_by(source_id = source.id).delete()
-            session.flush()
-            session.execute('delete rel from relbiographyauthor rel left outer join biography b on rel.biography_id = b.id where b.id is null')
-            session.execute('delete a   from author a               left outer join relbiographyauthor rel on rel.author_id = a.id where rel.author_id is null')
-            #delete also all records in person_source table
-            sql = """DELETE  s from person_source s
-			    where s.source_id = '%s'""" % source.id 
-            session.execute(sql)
-            #delete all persons  that have become 'orphans' (i.e. that have no source anymore) 
-            sql = """DELETE  p from person p 
-			    left outer join person_source s
-			    on s.bioport_id = p.bioport_id
-			    where s.bioport_id is Null"""  
-            session.execute(sql)
-            #delete all orphaned names and soundexes
-            sql = """DELETE  n from person_name n 
-			    left outer join person p
-			    on n.bioport_id = p.bioport_id
-			    where n.bioport_id is Null"""  
-            session.execute(sql)
-            sql = "delete n   from naam n   where src = '%s'" % source.id          
-            session.execute(sql)
-            session.execute('delete s   from soundex s            left outer join naam n  on s.naam_id = n.id where n.id is null')
-            #delete orphans inthe similarity cache
+        session.execute('delete rel from relbiographyauthor rel left outer join biography b on rel.biography_id = b.id where b.id is null')
+        session.execute('delete a   from author a               left outer join relbiographyauthor rel on rel.author_id = a.id where rel.author_id is null')
+       #delete also all records in person_record table
+        sql = """DELETE  s from person_source s
+		    where s.source_id = '%s'""" % source.id 
+        session.execute(sql)
+        #delete all persons  that have become 'orphans' (i.e. that have no source anymore) 
+        sql = """DELETE  p from person p 
+		    left outer join person_source s
+		    on s.bioport_id = p.bioport_id
+		    where s.bioport_id is Null"""  
+        session.execute(sql)
+        #delete all orphaned names and soundexes
+        sql = """DELETE  n from person_name n 
+		    left outer join person p
+		    on n.bioport_id = p.bioport_id
+		    where n.bioport_id is Null"""  
+        session.execute(sql)
+        sql = "delete n   from naam n   where src = '%s'" % source.id          
+        session.execute(sql)
+        session.execute('delete s   from soundex s            left outer join naam n  on s.naam_id = n.id where n.id is null')
+        session.expunge_all()
+        #delete orphans inthe similarity cache
 
     @instance.clearafter
     def delete_biography(self, biography):
@@ -281,6 +281,7 @@ class DBRepository:
 #        session.execute('delete c FROM cache_similarity c join naam n2 on c.naam1_id = n2.id where n2.biography_id="%s"' % biography_id)
         session.execute('delete s   from soundex s  left outer join naam n  on s.naam_id = n.id where n.bioport_id = "%s"' % bioport_id)
         session.execute('delete n   from naam n where bioport_id = "%s"' % bioport_id)
+        session.expunge_all()
 
     def add_biography(self, biography):
         """add the biography to the database
@@ -305,7 +306,6 @@ class DBRepository:
             r_biography.biodes_document = biography.to_string()
             r_biography.source_url = unicode(biography.source_url)
 
-        session.expunge_all()
                 
         # update the information of the associated person (or add a person 
         # if the biography is new)
@@ -370,11 +370,13 @@ class DBRepository:
                 r_person.naam = naam.guess_normal_form()
                 r_person.sort_key = naam.sort_key()
             else:
-                msg = 'merged_biography should at least have one name defined! %s' % person.bioport_id
+                msg = 'merged_biography should at least have one name defined! %s' \
+                      ' - biographies: %s'  % (person.bioport_id, person.get_biographies())
+#                import pdb; pdb.set_trace()
                 raise RuntimeError(msg)
                 
             r_person.categories = [RelPersonCategory(category_id=id) for state in merged_biography.get_states(type='categories')]
-            r_person.has_illustrations = merged_biography.get_illustrations() and True or False
+            r_person.has_illustrations = bool(merged_biography.get_illustrations())
             r_person.search_source = person.search_source()
             r_person.sex = merged_biography.get_value('geslacht')
             r_person.sterfdatum = merged_biography.get_value('sterfdatum')
@@ -1087,8 +1089,8 @@ class DBRepository:
                         s = s[s.find('FROM'):]
                         s = s % ("'%s'" %  source_id)
                         s = 'DELETE cache_similarity_persons %s' % s
-                        
                         session.execute(s)
+                        session.expunge_all()
                     else:
                         qry.delete()
                                    
@@ -1155,15 +1157,7 @@ class DBRepository:
                             logging.info(msg)
                         except UnicodeEncodeError:
                             logging.info('scores could not be printed due to UnicodeEncodeError')
-                #print '-' * 20
-            
-        try:
-            session.expunge_all() # removes objects from session
-            session.close()  
-        except:
-            session.rollback()
-            raise            
-    
+
     def add_to_similarity_cache(self,bioport_id1, bioport_id2,score):
         with self.get_session_context() as session:
             id1 = min(bioport_id1, bioport_id2)
