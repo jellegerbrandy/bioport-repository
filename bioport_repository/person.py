@@ -192,9 +192,14 @@ class Person(object):
     @classmethod
     def _are_dates_different(cls, pairs):
         def are_equal(x, y):
+            lenx = len(x)
+            leny = len(y)
             # "1980-09-10" and "1980" are equal
-            if len(x) == 4 or len(y) == 4:
+            if lenx == 4 or leny == 4:
                 return x.startswith(y[:4])
+            # "1980-09" and "1980" are equal
+            elif lenx == 7 or leny == 7:
+                return x.startswith(y[:7])
             # "1980-09-10" and "1980-09-12" are not
             else:
                 return x == y

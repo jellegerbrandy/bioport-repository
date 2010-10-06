@@ -177,7 +177,11 @@ class InconsistentPersonsTestCase(CommonTestCase):
         self.assertEqual(con.type, 'death dates')
         
     def test_are_dates_different(self):   
+        # false
         pairs = [("1877-02-26", "bioport"),
+                 ("1877", "bwn"),]
+        self.assertFalse(Person._are_dates_different(pairs))
+        pairs = [("1877-02", "bioport"),
                  ("1877", "bwn"),]
         self.assertFalse(Person._are_dates_different(pairs))
         pairs = [("1877-02-26", "bioport"),
@@ -185,9 +189,12 @@ class InconsistentPersonsTestCase(CommonTestCase):
                  ("1877", "bwn"),
                  ("1877", "bar"),]
         self.assertFalse(Person._are_dates_different(pairs))
+        
+        # true
         pairs = [("1877-02-26", "bioport"),
                  ("1877-02-27", "bioport"),
                  ("1877", "bwn"),]
+                 
         self.assertTrue(Person._are_dates_different(pairs))
         pairs = [("1877-02-26", "bioport"),
                  ("1877-02-26", "bioport"),
@@ -197,7 +204,7 @@ class InconsistentPersonsTestCase(CommonTestCase):
 
 def test_suite():
     test_suite = unittest.TestSuite()
-    tests = [PersonTestCase,  # XXX - re-enable this once done
+    tests = [PersonTestCase,
              InconsistentPersonsTestCase,
              ]
     for test in tests:
