@@ -638,9 +638,11 @@ class DBRepository:
         qry = session.query(PersonRecord)
         return qry.count()
     
-    def get_persons(self, 
-            **args
-            ):
+    def get_persons(self, **args):
+        # XXX - There seems to be a memory leak when calling session.execute()
+        # this is the same problem described here:
+        # http://www.mail-archive.com/sqlalchemy@googlegroups.com/msg13511.html
+        # We should investigate further.
         qry = self._get_persons_query(**args)
         #executing the qry.statement is MUCH faster than qry.all()
         ls = self.get_session().execute(qry.statement)
