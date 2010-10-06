@@ -53,7 +53,7 @@ class InconsistentPersonsTestCase(CommonTestCase):
     
     def get_bio(self, bdate=None, ddate=None, bplace=None, dplace=None):
         self.x += 1
-        bio = Biography(id=str(self.x), source_id="knaw",
+        bio = Biography(id=str(self.x), source_id=u"knaw",
                         repository=self.repo)        
         bio.from_args(url_biografie='http://google.it', 
                       naam_publisher='jelle', 
@@ -108,9 +108,7 @@ class InconsistentPersonsTestCase(CommonTestCase):
         self.assertEqual(len(cons), 1)
         con = cons[0]
         con.values.sort(key=lambda x: x[0])
-        self.assertEqual(len(con), 3)
-        self.assertEqual(con.values, [('bar', 'knaw'), ('foo', 'knaw'), 
-                                      ('foo', 'knaw')])
+        self.assertEqual(con.values, [('bar', 'knaw'), ('foo', 'knaw')])
         self.assertEqual(con.type, 'death places')
 
     def test_places_contradictions_2(self):
@@ -129,18 +127,17 @@ class InconsistentPersonsTestCase(CommonTestCase):
         cons.sort(key=lambda x: x.type)
 
         self.assertEqual(len(cons), 2)
-
         birth_con = cons[0]
-        self.assertEqual(len(birth_con), 5)
-        self.assertEqual(birth_con.values, [('birth1', 'knaw'), ('birth1', 'knaw'), 
-                                            ('birth1', 'knaw'), ('birth2', 'knaw'), 
-                                            ('birth3', 'knaw')])
+        self.assertEqual(birth_con.values, [('birth1', 'knaw'), 
+                                            ('birth2', 'knaw'), 
+                                            ('birth3', 'knaw')]
+                        )
         self.assertEqual(birth_con.type, 'birth places')
 
         death_con = cons[1]
-        self.assertEqual(len(death_con), 3)
-        self.assertEqual(death_con.values, [('death1','knaw'), ('death1', 'knaw'), 
-                                            ('death2', 'knaw')])
+        self.assertEqual(death_con.values, [('death1','knaw'), 
+                                            ('death2', 'knaw')]
+                        )
         self.assertEqual(death_con.type, 'death places')
 
     def test_birthdate_contradictions(self):
@@ -157,9 +154,7 @@ class InconsistentPersonsTestCase(CommonTestCase):
         self.assertEqual(len(cons), 1)
         con = cons[0]
         con.values.sort(key=lambda x: x[0])
-        self.assertEqual(len(con), 3)
         self.assertEqual(con.values, [('2010-10-10', 'knaw'), 
-                                      ('2010-10-10', 'knaw'),
                                       ('2010-11-10', 'knaw')])
         self.assertEqual(con.type, 'birth dates')
 
@@ -177,16 +172,32 @@ class InconsistentPersonsTestCase(CommonTestCase):
         self.assertEqual(len(cons), 1)
         con = cons[0]
         con.values.sort(key=lambda x: x[0])
-        self.assertEqual(len(con), 3)
-        con.values.sort(key=lambda x: x[0])
         self.assertEqual(con.values, [('2010-10-10', 'knaw'), 
-                                      ('2010-10-10', 'knaw'),
                                       ('2010-11-10', 'knaw')])
         self.assertEqual(con.type, 'death dates')
+        
+    def test_are_dates_different(self):   
+        pairs = [("1877-02-26", "bioport"),
+                 ("1877", "bwn"),]
+        self.assertFalse(Person._are_dates_different(pairs))
+        pairs = [("1877-02-26", "bioport"),
+                 ("1877-02-26", "foo"),
+                 ("1877", "bwn"),
+                 ("1877", "bar"),]
+        self.assertFalse(Person._are_dates_different(pairs))
+        pairs = [("1877-02-26", "bioport"),
+                 ("1877-02-27", "bioport"),
+                 ("1877", "bwn"),]
+        self.assertTrue(Person._are_dates_different(pairs))
+        pairs = [("1877-02-26", "bioport"),
+                 ("1877-02-26", "bioport"),
+                 ("1876", "bwn"),]
+        self.assertTrue(Person._are_dates_different(pairs))
+
 
 def test_suite():
     test_suite = unittest.TestSuite()
-    tests = [#PersonTestCase,
+    tests = [#PersonTestCase,  # XXX - re-enable this once done
              InconsistentPersonsTestCase,
              ]
     for test in tests:

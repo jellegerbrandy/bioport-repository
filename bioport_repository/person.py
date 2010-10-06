@@ -6,24 +6,24 @@ from bioport_repository.repocommon import is_valid_bioport_id
 from bioport_repository.merged_biography import MergedBiography
 
 
-class Person(object): 
-    """A Person is an object that is identified with a bioport 
+class Person(object):
+    """A Person is an object that is identified with a bioport
     identifier.  It is usually associated with one or more Biography
     objects.
     """
-    
-    def __init__(self, bioport_id, 
+
+    def __init__(self, bioport_id,
                        biographies=None,  # XXX - this is not used!
-                       repository=None, 
-                       record=None,  
-                       status=None, 
-                       remarks=None, 
+                       repository=None,
+                       record=None,
+                       status=None,
+                       remarks=None,
                        score=None,
                 ):
         """
         Arguments:
             bioport_id - a unique identifier for this person
-                bioport_id is MANDATORY because persons are by definitiion identified 
+                bioport_id is MANDATORY because persons are by definitiion identified
             biographies - a list of Biography instances
             repository - a Repository instance
             record - an instance of PersonRecord
@@ -38,10 +38,10 @@ class Person(object):
         self.remarks = remarks
         if record is not None:
             self.status = record.status
-            self.remarks = record.remarks 
+            self.remarks = record.remarks
             self.has_illustrations = record.has_illustrations
-        self.score = score 
-        
+        self.score = score
+
     def __eq__(self, other):
         if type(other) == type(self) and other.bioport_id == self.bioport_id:
             return True
@@ -52,17 +52,17 @@ class Person(object):
         """empty the cache"""
         # XXX - why is it not implemented?
         pass
-    
+
     def singleton_id(self, id, **args):
         # XXX - what is this?
         return self.id
-    
+
     def __str__(self):
         if self.get_names():
 	        return '<Person %s with id %s>' % (self.get_names()[0], self.id)
         else:
 	        return '<Person with id %s>' % (self.id)
-    
+
     __repr__ = __str__
 
     @instance.clearafter
@@ -76,43 +76,43 @@ class Person(object):
         of this person.
         """
         ls = self.repository.get_biographies(person=self, order_by='quality',
-                                             source_id=source_id)            
+                                             source_id=source_id)
         if source_id:
             if ls:
                 return ls[0]
             else:
-                return None  # XXX - this should be [] 
+                return None  # XXX - this should be []
         else:
             return ls
-        
+
     def get_bioport_id(self):
         return self.id
-    
+
     def get_sources(self):
         return [bio.get_source() for bio in self.get_biographies()]
-    
+
     def get_quality(self):
         return max([bio.get_quality() for bio in self.get_biographies()])
-    
+
     @instance.memoize
     def get_value(self, k, default=None):
         return self.get_merged_biography().get_value(k, default)
-      
+
     @instance.memoize
     def get_merged_biography(self):
         """
-        Return a Biography that represents the 'cascaded information' 
+        Return a Biography that represents the 'cascaded information'
         contained in the biographies of this person.
         """
         return MergedBiography(self.get_biographies())
-    
+
     def get_bioport_biography(self):
         #convenience mthod
-        return  self.repository.get_bioport_biography(self) 
-    
-    def get_names(self):    
+        return  self.repository.get_bioport_biography(self)
+
+    def get_names(self):
         return self.get_merged_biography().get_names()
-        
+
     def title(self):
         return self.get_merged_biography().title()
 
@@ -124,29 +124,29 @@ class Person(object):
             self._name = self.get_merged_biography().naam()
             return self._name
 
-    naam = name 
-    
+    naam = name
+
     def redirects_to(self):
         """
-        Does this bioport_id redirect somewhere else? if yes, return 
+        Does this bioport_id redirect somewhere else? if yes, return
         that id, if not, return self.bioport_id.
         """
         return self.repository.redirects_to(self.get_bioport_id())
-    
+
     def invalidate_cache(self, k):
         if hasattr(self, k):
             delattr(self, k)
-            
+
     def search_source(self):
-        result =[] 
+        result =[]
         for name in self.get_names():
             result.append(name.volledige_naam())
         for bio in self.get_biographies():
-            
+
             result.append(bio.get_text_without_markup())
         result = [unicode(s) for s in result]
         return '\n'.join(result)
-    
+
     def snippet(self, term=None):
         """
         Ask a snippet to each biography, and return the first we can find.
@@ -160,7 +160,7 @@ class Person(object):
                 if s:
                     self._snippet = s
                     return self._snippet
-                
+
     def get_comments(self):
         return self.repository.db.get_comments(bioport_id=self.id)
 
@@ -188,32 +188,45 @@ class Person(object):
 
     def db_name(self):
         return self.record.naam
-    
+
+    @classmethod
+    def _are_dates_different(cls, pairs):
+        def are_equal(x, y):
+            # "1980-09-10" and "1980" are equal
+            if len(x) == 4 or len(y) == 4:
+                return x.startswith(y[:4])
+            # "1980-09-10" and "1980-09-12" are not
+            else:
+                return x == y
+
+        dates = set([x[0] for x in pairs])
+        for tocheck, source in pairs:
+            for d in dates:
+                if not are_equal(tocheck, d):
+                    return True
+        return False
+
     def get_biography_contradictions(self):
-        """Iterates over all biographies and checks birth dates and 
+        """Iterates over all biographies and checks birth dates and
         places for contradictions (e.g. one bio states "x" while
         another one states "y").
         Rerturn a list of Contradiction instances or [].
         """
-        #XXX return empty list to (temporarily) disable the functionality
-        return []
-    
-    
-        retlist = []        
+        retlist = []
         bdates, ddates, bplaces, dplaces = [], [], [], []
         for bio in self.get_biographies():
             source = str(bio.get_source().id)
             x = bio.get_value('birth_date')
-            if x is not None:
+            if x is not None and not (x, source) in bdates:
                  bdates.append((x, source))
             x = bio.get_value('death_date')
-            if x is not None:
+            if x is not None and not (x, source) in ddates:
                  ddates.append((x, source))
             x = bio.get_value('birth_place')
-            if x is not None:
+            if x is not None and not (x, source) in bplaces:
                  bplaces.append((x, source))
             x = bio.get_value('death_place')
-            if x is not None:
+            if x is not None and not (x, source) in dplaces:
                  dplaces.append((x, source))
 
         x = set(x[0] for x in bplaces)
@@ -224,10 +237,12 @@ class Person(object):
             retlist.append(Contradiction("death places", dplaces))
         x = set(x[0] for x in bdates)
         if len(x) > 1:
-            retlist.append(Contradiction("birth dates", bdates))
+            if self._are_dates_different(bdates):
+                retlist.append(Contradiction("birth dates", bdates))
         x = set(x[0] for x in ddates)
         if len(x) > 1:
-            retlist.append(Contradiction("death dates", ddates))
+            if self._are_dates_different(ddates):
+                retlist.append(Contradiction("death dates", ddates))
 
         return retlist
 
@@ -237,14 +252,14 @@ class Contradiction(object):
     biographies.
     """
 
-    __slots__ = ["type", "values", "render_html"]
+    __slots__ = ["type", "values"]
 
     def __init__(self, type, values):
         self.type = type
         self.values = values
-          
+
     def __str__(self):
-        s = "<%s at %s; type=%s values=%s>" % (self.__class__.__name__,  id(self), 
+        s = "<%s at %s; type=%s values=%s>" % (self.__class__.__name__,  id(self),
                                                repr(self.type), repr(self.values))
         return s
 
@@ -253,7 +268,7 @@ class Contradiction(object):
 
     __repr__ = __str__
 
-    def render(self):
-        return ', '.join("%s (%s)" %(x, y) for x, y in self.values)
-    
+#    def render(self):
+#        return ', '.join("%s (%s)" %(x, y) for x, y in self.values)
+
 
