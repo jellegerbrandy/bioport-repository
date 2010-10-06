@@ -1503,7 +1503,7 @@ order by score desc
         Return the number of persons which have contradictory biographies.
         """
         with self.get_session_context() as session:
-            persons = self.get_persons()[:500]  # XXX
+            persons = self.get_persons()
             total = len(persons)
             n = 0
             for index, person in enumerate(persons):

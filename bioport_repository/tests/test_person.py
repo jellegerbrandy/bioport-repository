@@ -197,7 +197,7 @@ class InconsistentPersonsTestCase(CommonTestCase):
 
 def test_suite():
     test_suite = unittest.TestSuite()
-    tests = [#PersonTestCase,  # XXX - re-enable this once done
+    tests = [PersonTestCase,  # XXX - re-enable this once done
              InconsistentPersonsTestCase,
              ]
     for test in tests:
