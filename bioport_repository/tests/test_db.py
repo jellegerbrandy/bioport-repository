@@ -119,11 +119,6 @@ class DBRepositoryTestCase(CommonTestCase):
         self.assertEqual(len(repo.get_persons(source_id=u'knaw', source_id2=u'knaw2')), 1)
         self.assertEqual(len(repo.get_persons(is_identified=True)), 1)
         
-        p = repo.get_persons()[0]
-        bio = p.get_bioport_biography()
-        bio.set_category([1])
-        repo.save_biography(bio)
-        
         self.assertEqual(len(repo.get_persons(category=1)), 1)
         
         self.assertEqual(len(repo.get_persons(search_name='jan')), 1)
