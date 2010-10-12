@@ -21,7 +21,6 @@ class WorkflowTestCase(CommonTestCase):
         #------------------------ 
         #download data from a source
         #------------------------ 
-#        import pdb;pdb.set_trace()
         url = 'file://%s' % os.path.join(THIS_DIR, 'data/knaw/list.xml')
         source = Source(id=u'test', url=url , description=u'test', repository=repository)
         

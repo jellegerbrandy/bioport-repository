@@ -65,7 +65,6 @@ class IllustrationTestCase(CommonTestCase):
         self.failUnless(os.path.exists(image_path))
         self.failUnless(os.listdir(images_cache_local))
         image_url = ill.image_url
-#        import pdb; pdb.set_trace()
 #        image_contents = urllib2.urlopen(image_url).read()   # XXX failing because it's a fs pathname
 #        self.failUnless(image_contents)
         

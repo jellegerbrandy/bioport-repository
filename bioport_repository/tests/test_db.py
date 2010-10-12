@@ -1,5 +1,6 @@
 from bioport_repository.tests.common_testcase import CommonTestCase, unittest 
 from bioport_repository.db import Source, BiographyRecord, NaamRecord, PersonRecord, SoundexRecord, SourceRecord, Biography, RelBioPortIdBiographyRecord
+from bioport_repository.db_definitions import RelPersonCategory
 
 
 class DBRepositoryTestCase(CommonTestCase):
@@ -60,6 +61,7 @@ class DBRepositoryTestCase(CommonTestCase):
         self.db.add_biography(bio1)
         person = self.db.get_person(bio1.get_bioport_id())
         self.assertEqual(person.snippet(), 'text2')
+        
     def test_source_updating(self):
         self.create_filled_repository()    
         src = self.repo.get_source(id=u'knaw')
@@ -73,6 +75,32 @@ class DBRepositoryTestCase(CommonTestCase):
         self.create_filled_repository(sources=1)
         self.repo.db.update_persons()
         
+    def test_saving_of_categories(self): 
+        repo = self.repo
+        #get some person from the database
+        
+        p = repo.get_persons()[1]
+        #set some properties here and there
+        categories = [1,2,3]
+        bio = p.get_bioport_biography()
+        bio.set_category(categories)
+        
+        #save the changes in the repository
+        self.repo.save_biography(bio)
+        
+        #sanity checks: see if the person knows about this
+        self.assertEqual(len(bio.get_states(type='category')), len(categories))
+        self.assertEqual(len(p.get_bioport_biography().get_states(type='category')), len(categories))
+        self.assertEqual(len(p.get_merged_biography().get_states(type='category')), len(categories))
+        
+
+        #do we have these categories in the database
+        self.assertEqual(repo.db.get_session().query(RelPersonCategory).filter(RelPersonCategory.bioport_id==p.get_bioport_id()).count(), len(categories))
+        #now try to find the person again, and see if the changes hold (and are in the db)
+        
+        new_p = repo.get_person(p.get_bioport_id())
+        self.assertEqual(len(new_p.get_merged_biography().get_states(type='category')), len(categories))
+        self.assertTrue(p in repo.get_persons(category=categories[0]))
         
     def test_get_persons(self):
         self.create_filled_repository()
@@ -90,7 +118,14 @@ class DBRepositoryTestCase(CommonTestCase):
         self.assertEqual(len(repo.get_persons(source_id2=u'knaw2')), 5)
         self.assertEqual(len(repo.get_persons(source_id=u'knaw', source_id2=u'knaw2')), 1)
         self.assertEqual(len(repo.get_persons(is_identified=True)), 1)
+        
+        p = repo.get_persons()[0]
+        bio = p.get_bioport_biography()
+        bio.set_category([1])
+        repo.save_biography(bio)
+        
         self.assertEqual(len(repo.get_persons(category=1)), 1)
+        
         self.assertEqual(len(repo.get_persons(search_name='jan')), 1)
         self.assertEqual(len(repo.get_persons(search_term='molloy')), 1)
         self.assertEqual(len(repo.get_persons(has_illustrations=True)), 2)
@@ -245,7 +280,7 @@ class DBRepositoryTestCase(CommonTestCase):
         
 def test_suite():
     return unittest.TestSuite((
-        unittest.makeSuite(DBRepositoryTestCase, 'test'),
+        unittest.makeSuite(DBRepositoryTestCase, 'test_'),
         ))
 
 if __name__=='__main__':
