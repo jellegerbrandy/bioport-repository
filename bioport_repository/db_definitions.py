@@ -343,3 +343,10 @@ STATUS_VALUES =  [
     (13, 'portrait'), 
     (0, '(geen status toegekend)'),
 ]
+
+def strstatus(code):
+    """Return the status string corresponding to the status code in
+    STATUS_VALUES.
+    """
+    return dict(STATUS_VALUES)[code]
+
