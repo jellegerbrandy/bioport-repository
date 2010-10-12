@@ -148,13 +148,14 @@ class Repository(object):
         elif self.ENABLE_SVN:
             self._sources = self.svn_repository.get_sources(order_by=order_by, desc=desc)
         return self._sources
-   
-    def get_status_values(self, k=None):
+    
+    def get_status_value(self, k, default=None):
         items = STATUS_VALUES
-        if k:
-            return dict(items)[k]
-        else:
-            return items
+        return dict(items).get(k, default)
+        
+    def get_status_values(self):
+        return STATUS_VALUES
+    
     def get_authors(self, **args):
         if self.ENABLE_DB:
             return self.db.get_authors(**args)
@@ -176,6 +177,7 @@ class Repository(object):
         else:
             raise TypeError('Cannot save a object %s in the repository: unknown type' % x)
 
+    @instance.clearafter
     def save_biography(self, biography):
         biography.repository = self
         if self.ENABLE_DB:
@@ -372,6 +374,7 @@ class Repository(object):
         if self.ENABLE_SVN:
             raise NotImplementedError#        id = self.get_identifier(bioport_id)
 
+    @instance.clearbefore
     def get_bioport_biography(self, person):
         """get, or if it does not yet exist, create, a biodes document that represents the interventions 
         of the editors in the biographical portal

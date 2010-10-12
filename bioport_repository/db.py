@@ -46,7 +46,7 @@ ECHO = False
 
 
 class DBRepository:
-    """XXX - needs docstring"""
+    """Interface with the MySQL database"""
     
     NaamRecord = NaamRecord
     SoundexRecord = SoundexRecord
@@ -112,6 +112,7 @@ class DBRepository:
         in case of errors.
         """
         session = self.get_session()
+
         try:
             yield session
         except:
@@ -216,19 +217,19 @@ class DBRepository:
         session.execute('delete a   from author a               left outer join relbiographyauthor rel on rel.author_id = a.id where rel.author_id is null')
        #delete also all records in person_record table
         sql = """DELETE  s from person_source s
-		    where s.source_id = '%s'""" % source.id 
+            where s.source_id = '%s'""" % source.id 
         session.execute(sql)
         #delete all persons  that have become 'orphans' (i.e. that have no source anymore) 
         sql = """DELETE  p from person p 
-		    left outer join person_source s
-		    on s.bioport_id = p.bioport_id
-		    where s.bioport_id is Null"""  
+            left outer join person_source s
+            on s.bioport_id = p.bioport_id
+            where s.bioport_id is Null"""  
         session.execute(sql)
         #delete all orphaned names and soundexes
         sql = """DELETE  n from person_name n 
-		    left outer join person p
-		    on n.bioport_id = p.bioport_id
-		    where n.bioport_id is Null"""  
+            left outer join person p
+            on n.bioport_id = p.bioport_id
+            where n.bioport_id is Null"""  
         session.execute(sql)
         sql = "delete n   from naam n   where src = '%s'" % source.id          
         session.execute(sql)
@@ -302,8 +303,6 @@ class DBRepository:
                 session.add(r_biography)
                 
             r_biography.source_id = biography.source_id
-           
-            
             r_biography.biodes_document = biography.to_string()
             r_biography.source_url = unicode(biography.source_url)
 
@@ -375,7 +374,6 @@ class DBRepository:
                       ' - biographies: %s'  % (person.bioport_id, person.get_biographies())
                 raise RuntimeError(msg)
                 
-            r_person.categories = [RelPersonCategory(category_id=id) for state in merged_biography.get_states(type='categories')]
             r_person.has_illustrations = bool(merged_biography.get_illustrations())
             r_person.search_source = person.search_source()
             r_person.sex = merged_biography.get_value('geslacht')
@@ -394,6 +392,7 @@ class DBRepository:
             illustrations =  merged_biography.get_illustrations()
             r_person.thumbnail = illustrations and illustrations[0].image_small_url or ''
             #update categories
+#            r_person.categories = [RelPersonCategory(category_id=id) for state in merged_biography.get_states(type='categories')]
             session.query(RelPersonCategory).filter(RelPersonCategory.bioport_id==bioport_id).delete()
             for category in person.get_merged_biography().get_states(type='category'):
                 category_id = category.get('idno')
@@ -405,7 +404,8 @@ class DBRepository:
                     raise Exception(msg)
                 r = RelPersonCategory(bioport_id=bioport_id, category_id=category_id)
                 session.add(r)
-            
+                session.flush()
+                
             #refresh the names 
             self.delete_names(bioport_id=bioport_id)
             
@@ -423,6 +423,7 @@ class DBRepository:
             self.update_soundex(bioport_id=bioport_id, s=r_person.names)
             self.update_name(bioport_id, s = r_person.names) 
             self.update_source(bioport_id, source_ids = [b.source_id for b in person.get_biographies()])
+            session.flush()
             
     def update_persons(self):
         """Update the information of all the persons in the database.
@@ -730,7 +731,6 @@ class DBRepository:
             qry = qry.filter(not_(sqlalchemy.func.ifnull(PersonRecord.status.in_([5, 9]), False)))
         if hide_foreigners:
             qry = qry.filter(not_(sqlalchemy.func.ifnull(PersonRecord.status.in_([11]), False)))
-            
 #            (1, 'nieuw'),
 #            (2, 'bewerkt'),
 #            (3, 'moeilijk geval'),
@@ -1057,7 +1057,7 @@ class DBRepository:
                limit - an integer - compute only for that amount of persons
         """     
         if source_id:
-	        source_id = unicode(source_id)
+            source_id = unicode(source_id)
         
         if refresh:
             with self.get_session_context() as session:
@@ -1718,7 +1718,6 @@ order by score desc
         r = ChangeLog()
         r.user = user
         r.msg = msg
-        dir(ChangeLog.metadata)
         r.table = record.__tablename__ 
         if hasattr(record, 'id'):
             id = record.id

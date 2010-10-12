@@ -253,15 +253,19 @@ class Biography(object, BioDesDoc): #, SVNEntry):
         
         for el in self.get_states(type='category'):
             el.getparent().remove(el)
-#        if type(category_ids) == type(set([])):
-#            category_ids = list(category_ids)
+            
         if type(category_ids) != types.ListType:
             category_ids = [category_ids]
+            
         category_ids = set([str(id) for id in category_ids]) #filter out any duplicates
+        
         for category_id in category_ids:
             assert  category_id.isdigit(), 'category_id should be a digit (not %s)' % category_id
             #look for the category
             category = self.repository.get_category(category_id)
+            if category is None:
+                pass #it would have been better to raise an error here, but the application expects us to ignore non-valid arguments
+#                raise KeyError('No category found with this ID: %s' % category_id)
             if category:
                 name = category.name   
                 self.add_state(type='category', idno=str(category_id), text=name)               
