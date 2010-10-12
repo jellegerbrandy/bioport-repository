@@ -6,7 +6,7 @@ setup(name = 'bioport_repository',
                  ],
 
       install_requires=['gerbrandyutils',
-                        'PIL',
+
                         'biodes',
                         'plone.memoize',
                         'sqlalchemy',
