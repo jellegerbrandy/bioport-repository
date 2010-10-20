@@ -14,6 +14,7 @@ from bioport_repository.biography import Biography
 
 from gerbrandyutils import sh
 
+from names.name import Name
 
 THIS_DIR = os.path.split(os.path.abspath(__file__))[0]
 SVN_REPOSITORY  = os.path.abspath(os.path.join(THIS_DIR, 'data/bioport_repository'))
@@ -104,7 +105,9 @@ class CommonTestCase(unittest.TestCase):
         self._is_filled = True
         return self.repo
 
-    def _add_person(self, naam, 
+    def _add_person(self, 
+        name=None, 
+        names=None,
         geboortedatum=None,
         sterfdatum=None,
         ):
@@ -116,20 +119,27 @@ class CommonTestCase(unittest.TestCase):
         
         #make a new biography
         
-        source_id = 'bioport_test'
+        source_id = u'bioport_test'
         try:
             source = self.repo.get_source(source_id)
         except ValueError: #a source with this id did not exist yet
-	        source = Source(id=source_id)
-	        self.repo.save_source(source)        
+            source = Source(id=source_id)
+            self.repo.save_source(source)        
         
-        bio = Biography( id = 'bioport_test/test_bio_%s' % naam, source_id=source_id)
-        
+        #make some hopefully unique id
+        i = len(self.repo.get_biographies(source=source)) + 1
+        bio = Biography( id = 'bioport_test/test_bio_%s_%s' % (name, i), source_id=source_id)
+        if name:
+            name = Name(name)
+        if names:
+            names= [Name(n) for n in names]
+            
         bio.from_args( 
               url_biografie='http://ladida/didum', 
               naam_publisher='nogeensiets', 
               url_publisher='http://pbulihser_url',
-              naam=naam,
+              naam=name,
+              names=names,
               geboortedatum=geboortedatum,
               sterfdatum=sterfdatum,
               )
@@ -148,5 +158,4 @@ def create_mysqldump():
     """create a .sql file that is used for setting up the database for each test"""
     open(SQLDUMP_FILENAME,'w').write('show tables')
     unittest.main(defaultTest='CommonTestCase.create_filled_repository_from_scratch')   
-
 

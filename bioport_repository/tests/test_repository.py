@@ -1,7 +1,8 @@
-from bioport_repository.tests.common_testcase import CommonTestCase, unittest , THIS_DIR
+import os
 
-from bioport_repository.repository import *
-from bioport_repository.db_definitions import *
+from bioport_repository.tests.common_testcase import CommonTestCase, unittest , THIS_DIR
+from bioport_repository.repository import  Source, Biography 
+from bioport_repository.db_definitions import CacheSimilarityPersons, AntiIdentifyRecord, STATUS_NEW
 from bioport_repository.person import Person
 
 
@@ -368,7 +369,10 @@ class RepositoryTestCase(CommonTestCase):
         self.debug_info()
         self.assertEqual(len(self.repo.get_most_similar_persons()), new_len-2 )        
         
-        score, p1, p2 = self.repo.get_most_similar_persons()[4] 
+        for score, p1, p2 in self.repo.get_most_similar_persons()[3:]:
+            #sanity check if we have not identified one of these people before (if so, it messes up the tests below)
+            if (p1 not in self.repo.get_identified() and p2 not in self.repo.get_identified()):
+                break
         repo.defer_identification(p1, p2)
         self.debug_info()
         self.assertEqual(len(self.repo.get_deferred()), 2)
@@ -382,14 +386,13 @@ class RepositoryTestCase(CommonTestCase):
        
        
         #(p1,p2) were deferred, but now we identify them after all
-        self.assertEqual(len(self.repo.get_identified()), 1)
+        identifieds = self.repo.get_identified()
+        self.assertEqual(len(identifieds), 1)
         person = repo.identify(p1, p2)
-        self.assertEqual(len(self.repo.get_identified()), 2)
-        self.debug_info()
-        
         self.assertEqual(len(self.repo.get_deferred()), 1)
         self.assertEqual(len(self.repo.get_identified()), 2)
         self.assertEqual(len(self.repo.get_antiidentified()), 1)
+        
         #XXX if the next @#$%#$% test FAILS, it is because some obscure reaons in the ORDER of the "get_most_similar_persons"
         #(I THING)- try to run the test again...
         #XXX FIX the problem described above and resurrect the follwoing test
@@ -399,7 +402,6 @@ class RepositoryTestCase(CommonTestCase):
         
         #all these identifications should also be persistent after we refill the cache
         repo.db.fill_similarity_cache(refresh=True,minimal_score=0.0)
-        #self.debug_info()
         #XXX THIS SHOULD NOT FAIL!! 
 #        self.assertEqual(len(self.repo.get_most_similar_persons()), original_length-4)
 
@@ -479,4 +481,3 @@ def test_suite():
 
 if __name__=='__main__':
     unittest.main(defaultTest='test_suite')    
-

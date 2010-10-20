@@ -59,9 +59,9 @@ class Person(object):
 
     def __str__(self):
         if self.get_names():
-	        return '<Person %s with id %s>' % (self.get_names()[0], self.id)
+            return '<Person %s with id %s>' % (self.get_names()[0], self.id)
         else:
-	        return '<Person with id %s>' % (self.id)
+            return '<Person with id %s>' % (self.id)
 
     __repr__ = __str__
 
@@ -189,25 +189,37 @@ class Person(object):
     def db_name(self):
         return self.record.naam
 
+
+    @classmethod
+    def _are_dates_equal(cls, date1, date2):
+        """return True if the two dates are 'equal'
+        
+        arguments:
+            date1, date2 are strings in ISO-xxxxx format.
+        """
+        # "1980-09-10" and "1980" are equal
+        # "1980-09" and "1980" are equal
+        # "1980-09-10" and "1980-09-12" are not
+        
+        x, y = date1, date2
+        lenx = len(x)
+        leny = len(y)
+        # "1980-09-10" and "1980" are equal
+        if lenx == 4 or leny == 4:
+            return x.startswith(y[:4])
+        # "1980-09" and "1980" are equal
+        elif lenx == 7 or leny == 7:
+            return x.startswith(y[:7])
+        # "1980-09-10" and "1980-09-12" are not
+        else:
+            return x == y
+
     @classmethod
     def _are_dates_different(cls, pairs):
-        def are_equal(x, y):
-            lenx = len(x)
-            leny = len(y)
-            # "1980-09-10" and "1980" are equal
-            if lenx == 4 or leny == 4:
-                return x.startswith(y[:4])
-            # "1980-09" and "1980" are equal
-            elif lenx == 7 or leny == 7:
-                return x.startswith(y[:7])
-            # "1980-09-10" and "1980-09-12" are not
-            else:
-                return x == y
-
         dates = set([x[0] for x in pairs])
         for tocheck, source in pairs:
             for d in dates:
-                if not are_equal(tocheck, d):
+                if not cls._are_dates_equal(tocheck, d):
                     return True
         return False
 
@@ -223,16 +235,16 @@ class Person(object):
             source = str(bio.get_source().id)
             x = bio.get_value('birth_date')
             if x is not None and not (x, source) in bdates:
-                 bdates.append((x, source))
+                bdates.append((x, source))
             x = bio.get_value('death_date')
             if x is not None and not (x, source) in ddates:
-                 ddates.append((x, source))
+                ddates.append((x, source))
             x = bio.get_value('birth_place')
             if x is not None and not (x, source) in bplaces:
-                 bplaces.append((x, source))
+                bplaces.append((x, source))
             x = bio.get_value('death_place')
             if x is not None and not (x, source) in dplaces:
-                 dplaces.append((x, source))
+                dplaces.append((x, source))
 
         x = set(x[0] for x in bplaces)
         if len(x) > 1:
@@ -275,5 +287,4 @@ class Contradiction(object):
 
 #    def render(self):
 #        return ', '.join("%s (%s)" %(x, y) for x, y in self.values)
-
 

@@ -1,4 +1,3 @@
-from db_definitions import STATUS_NEW
 
 import os
 from svn_repository import SVNRepository, SVNEntry

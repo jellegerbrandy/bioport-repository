@@ -5,8 +5,14 @@ from names.common import to_ymd
 
 
 class Similarity(Similarity):
-
+    """compares a person to a list of persons"""
     def __init__(self, person=None, persons=None):
+        """
+        
+        arguments:
+            person:  an instance of Person
+            persons: a list of Person's
+        """
         self._computed =False
         self._person = person
         self._persons = persons
@@ -22,52 +28,69 @@ class Similarity(Similarity):
             person.score = self.similarity_score(self._person, person)
         self._computed = True
         return self._persons
-
-    def _decennium(self, s):
+    
+    
+    @classmethod
+    def _decennium(cls, s):
         """ """
         if s:
             ymd= to_ymd(s)  
             y, m, d = ymd
             return y
-    def similarity_score(self, p1, p2):
+    
+    @classmethod
+    def are_surely_equal(cls, p1, p2):
+        """return True if we are sure these two persons are the same
+        
+        (for example, if they have a name in common, plus dates of birth and death"""
+        return  cls.similarity_score(p1, p2) == 1.0
+    
+    
+    @classmethod
+    def similarity_score(cls, p1, p2):
         """compute how similar these two persons are"""
         #people with the same birth dates gat a high score
-        b1 = self._decennium(p1.geboortedatum())
-        b2 = self._decennium(p2.geboortedatum())
-        d1 = self._decennium(p1.sterfdatum())
-        d2 = self._decennium(p2.sterfdatum())
+        birth1 = p1.get_value('birth_date')
+        birth2 = p2.get_value('birth_date')
+        death1 = p1.get_value('death_date')
+        death2 = p2.get_value('death_date')
+        same_dates = 1.0
+        if birth1 and birth2:
+            if p1._are_dates_equal(birth1, birth2):
+                same_dates *= 1.0
+            elif birth1[:3] == birth2[:3]:
+                same_dates *= 0.9
+            else:
+                same_dates *= 0.5
+        else:
+            same_dates *= 0.9
+    
+        if death1 and death2:
+            if p1._are_dates_equal(death1, death2):
+                same_dates *= 1.0
+            #we have all data available
+            elif death1[:3] == death2[:3]:
+                same_dates *= 0.9
+            else:
+                same_dates *= 0.5
+        else:
+            same_dates *= 0.9
         
-#        if p1.geboortedatum() and p1.geboortedatum() == p2.geboortedatum()  and p1.sterfdatum() and p1.sterfdatum() == p2.sterfdatum():
-#            return 1.0
+        if not (birth1 and birth2) and not (death1 and death2):
+            same_dates = 0.9
             
-        max_ratio_names = 0
         #compare the names
+        ratios = []
         for n1 in p1.get_names():
             for n2 in p2.get_names():
-                max_ratio_names = max(self.ratio(n1, n2, optimize=True), max_ratio_names)
-        ratio = max_ratio_names
-        #XXX better not use "deceninium" here, but the difference between the years
-        #(say, penalize for more than 10 years difference)
-        if b1 and b2:
-            if  b1 == b2:
-                ratio = (ratio + 2.0 ) /3.0
-            elif abs(b1-b2) < 3:
-                ratio = (ratio + 1.0 ) /2.0
-            else:
-                ratio = (ratio + 0.8) / 2.0
+                ratios.append(cls.ratio(n1, n2))
+        if ratios:
+            ratio = max(ratios)
+        else:
+            ratio = 0.0
+        final_score = ratio * same_dates
+        return final_score
         
-        if d1 and d2:
-            if d1 == d2:
-                ratio = (ratio + 2.0 ) /3.0
-            elif abs(d1-d2) < 3:
-                ratio = (ratio + 1.0 ) /2.0
-            else:
-                ratio = (ratio + 0.8) / 2.0
-                
-        if not d1 and not d2:
-            ratio = (ratio + 0.98) / 2.0
-        return ratio
-                
     def sort(self):
         self.compute()
         ls = [(p.score, p) for p in self._persons]
@@ -75,4 +98,3 @@ class Similarity(Similarity):
         self._persons = [p[1] for p in ls]
         return self._persons
         
-

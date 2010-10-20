@@ -80,7 +80,7 @@ class IllustrationTestCase(CommonTestCase):
                 for illustration in biography.get_illustrations():
                     # should have downloaded this image
                     try:
-                       illustration.download()
+                        illustration.download()
                     except CantDownloadImage:
                         continue
                     self.failUnless(os.path.exists(illustration.images_directory))

@@ -103,9 +103,7 @@ class DBRepositoryTestCase(CommonTestCase):
         self.assertTrue(p in repo.get_persons(category=categories[0]))
         
     def test_get_persons(self):
-        self.create_filled_repository()
         repo = self.repo
-       
         #check sanity
         self.assertEqual(len(repo.get_persons()), 10)
        
@@ -118,7 +116,6 @@ class DBRepositoryTestCase(CommonTestCase):
         self.assertEqual(len(repo.get_persons(source_id2=u'knaw2')), 5)
         self.assertEqual(len(repo.get_persons(source_id=u'knaw', source_id2=u'knaw2')), 1)
         self.assertEqual(len(repo.get_persons(is_identified=True)), 1)
-        
         self.assertEqual(len(repo.get_persons(category=1)), 1)
         
         self.assertEqual(len(repo.get_persons(search_name='jan')), 1)
@@ -275,7 +272,7 @@ class DBRepositoryTestCase(CommonTestCase):
         
 def test_suite():
     return unittest.TestSuite((
-        unittest.makeSuite(DBRepositoryTestCase, 'test_'),
+        unittest.makeSuite(DBRepositoryTestCase, 'test'),
         ))
 
 if __name__=='__main__':

@@ -1,5 +1,6 @@
+import os
 from bioport_repository.tests.common_testcase import CommonTestCase, unittest 
-from bioport_repository.repository import *
+#from bioport_repository.repository import
 from bioport_repository.source import Source
 
 

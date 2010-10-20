@@ -4,16 +4,15 @@
 
 import os
 import time
-import urllib2
 import logging
 import shutil
 
 from plone.memoize import instance
 from lxml import etree
-from sqlalchemy.exceptions import IntegrityError, InvalidRequestError
+from sqlalchemy.exceptions import InvalidRequestError
 import biodes
 
-from bioport_repository.db_definitions import STATUS_NEW, STATUS_VALUES
+from bioport_repository.db_definitions import STATUS_VALUES
 from bioport_repository.biography import Biography
 from bioport_repository.db import DBRepository
 from bioport_repository.person import Person
@@ -24,7 +23,6 @@ from bioport_repository.illustration import CantDownloadImage
 
 
 class Repository(object):
-    #__metaclass__ = Singleton
     
     ENABLE_SVN = False
     ENABLE_DB = True

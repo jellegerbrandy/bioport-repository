@@ -1,11 +1,10 @@
-
 #XXX move this test to similarity/tests
 from bioport_repository.tests.common_testcase import CommonTestCase, unittest
 from bioport_repository.db_definitions import CacheSimilarityPersons
 from bioport_repository.similarity.similarity import Similarity
 
-
 class SimilarityTestCase(CommonTestCase):
+    
     def test_new_thing(self):
         persons = self.repo.get_persons()
         sim = Similarity(persons[1], persons)
@@ -30,7 +29,6 @@ class SimilarityTestCase(CommonTestCase):
             assert p1.bioport_id in [pa.bioport_id, pb.bioport_id]
         ls = repo.get_most_similar_persons(source_id=self.repo.get_sources()[0].id)
         ls = repo.get_most_similar_persons(search_name='jan')
-
 
 def test_suite():
     test_suite = unittest.TestSuite()

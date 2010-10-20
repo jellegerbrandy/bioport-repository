@@ -215,7 +215,7 @@ class DBRepository:
             session.query(BiographyRecord).filter_by(source_id = source.id).delete()
         session.execute('delete rel from relbiographyauthor rel left outer join biography b on rel.biography_id = b.id where b.id is null')
         session.execute('delete a   from author a               left outer join relbiographyauthor rel on rel.author_id = a.id where rel.author_id is null')
-       #delete also all records in person_record table
+        #delete also all records in person_record table
         sql = """DELETE  s from person_source s
             where s.source_id = '%s'""" % source.id 
         session.execute(sql)
@@ -488,9 +488,10 @@ class DBRepository:
         for person in persons:
             i += 1
             if not i % 10:
-                print '%s of %s' % (i, len(persons))
+                logging.info('%s of %s' % (i, len(persons)))
             names = person.record.names 
             self.update_soundex(person.bioport_id, names)
+        logging.info('done')
         
     def fresh_identifier(self):
         session = self.get_session()
@@ -986,7 +987,6 @@ class DBRepository:
                           search_term=None,
                           order_by='name'):
         assert 0, 'get_authors is (perhaps temporarily) disabled (because we do not use it and it eats time and memory)'
-        
         session = self.get_session()
         qry = session.query(AuthorRecord)
         if biography:
@@ -1047,7 +1047,7 @@ class DBRepository:
                                     refresh=False, 
                                     limit=None,
                                     source_id=None,
-                                    minimal_score=0.86):
+                                    minimal_score=0.70):
         """fill a table CacheSimilarityPersons with, for each name in the index, a record with the 20 most similar other names in the index
        
            arguments:
@@ -1059,45 +1059,45 @@ class DBRepository:
         if source_id:
             source_id = unicode(source_id)
         
+        logging.info('Refreshing similarity table for %s, refresh=%s' % (source_id, refresh))
         if refresh:
             with self.get_session_context() as session:
                 #if refresh is true, we delete all relevant records
-                logging.info('Refilling similarity table')
-                logging.info('Deleting all records from cachesimilaritypersons')
                 qry = session.query(CacheSimilarityPersons)
                 if person:
                     #just remove the records of this person
+                    logging.info('Deleting all records from cachesimilaritypersons related to %s' % person)
                     qry = qry.filter(CacheSimilarityPersons.bioport_id1==person.get_bioport_id())  
                     qry.delete()   
                     qry = qry.filter(CacheSimilarityPersons.bioport_id2==person.get_bioport_id())  
                     qry.delete()   
                     
+                elif source_id:
+                    logging.info('Deleting all records from cachesimilaritypersons related to %s' % source_id)
+                    qry = qry.outerjoin((
+                        RelBioPortIdBiographyRecord, 
+                        or_( RelBioPortIdBiographyRecord.bioport_id==CacheSimilarityPersons.bioport_id1,
+                             RelBioPortIdBiographyRecord.bioport_id==CacheSimilarityPersons.bioport_id2
+                        )
+                    ))
+                    qry = qry.join((BiographyRecord, 
+                           BiographyRecord.id ==RelBioPortIdBiographyRecord.biography_id,
+                           ))
+                    qry = qry.filter(BiographyRecord.source_id==source_id)
+                        
+                    #the next statement fails fro some obscure reason
+                    #qry.delete()
+                        
+                    #hack our way to a delete query
+                    s = unicode(qry.statement)
+                    s = s[s.find('FROM'):]
+                    s = s % ("'%s'" %  source_id)
+                    s = 'DELETE cache_similarity_persons %s' % s
+                    session.execute(s)
+                    session.expunge_all()
                 else:
-                    #print 'deleting all information from cache_similarity_persons'
-                    if source_id:
-                        qry = qry.outerjoin((
-                            RelBioPortIdBiographyRecord, 
-                            or_( RelBioPortIdBiographyRecord.bioport_id==CacheSimilarityPersons.bioport_id1,
-                                 RelBioPortIdBiographyRecord.bioport_id==CacheSimilarityPersons.bioport_id2
-                            )
-                        ))
-                        qry = qry.join((BiographyRecord, 
-                               BiographyRecord.id ==RelBioPortIdBiographyRecord.biography_id,
-                               ))
-                        qry = qry.filter(BiographyRecord.source_id==source_id)
-                        
-                        #the next statement fails fro some obscure reason
-                        #qry.delete()
-                        
-                        #hack our way to a delete query
-                        s = unicode(qry.statement)
-                        s = s[s.find('FROM'):]
-                        s = s % ("'%s'" %  source_id)
-                        s = 'DELETE cache_similarity_persons %s' % s
-                        session.execute(s)
-                        session.expunge_all()
-                    else:
-                        qry.delete()
+                    logging.info('Deleting all records from cachesimilaritypersons related')
+                    qry.delete()
                                    
         #if the person argument is not given, we update for all persons
         if person:
@@ -1111,7 +1111,6 @@ class DBRepository:
                 i += 1
                 if limit and i > limit:
                     break
-                logging.info('computing similarities for %s out of %s: %s' % (i, len(persons), person))
                 bioport_id = person.bioport_id
                 #check if we have alread done this naam
                 qry = session.query(CacheSimilarityPersons.bioport_id1)
@@ -1120,8 +1119,10 @@ class DBRepository:
                 if qry.all():
                     #we have already done this person , and we did not explicitly call for a refresh
     #                print 'already done'
+                    logging.info('skipped computing similarities for %s out of %s: %s - already in database' % (i, len(persons), person))
                     continue
                 else:
+                    logging.info('computing similarities for %s out of %s: %s' % (i, len(persons), person))
                     #we add the identity score so that we can check later that we have 'done' this record, 
                     self.add_to_similarity_cache(bioport_id, bioport_id, score=1.0)
                 
@@ -1134,8 +1135,7 @@ class DBRepository:
                                          group=2,
                                          filter_initials=True, 
                                          filter_stop_words=False, #XXX look out withthis: 'koning' and 'heer' are also last names 
-                                         filter_custom=TUSSENVOEGSELS,
-                                         wildcards=False,
+                                         filter_custom=TUSSENVOEGSELS + ['Van'], wildcards=False,
                                          )
                 
                 logging.info('searching for persons matching any of %s' % soundexes)
@@ -1265,99 +1265,99 @@ class DBRepository:
         ls = [(r.score, Person(r.bioport_id1, repository=self, score=r.score), Person(r.bioport_id2, repository=self, score=r.score)) for r in session.execute(qry)]
         return ls
      
-    def XXX_fill_most_similar_persons_cache(self, refresh=False): #, start=0, size=20):
-        #this gives us the most similar SimilarityCacheopbjects
-        with self.get_session_context() as session:
-            qry = session.query(CacheSimilarityPersons)
-            if not refresh and qry.count():
-                return
-            else:
-                logging.info('fill most similar persons cache' )
-                qry.delete()
-        
-        i = 0
-        min_score = 0
-        sql = """SELECT score, n1.id, n1.xml, n2.id, n2.xml,
-        r1.bioport_id as bioport_id1, 
-        r2.bioport_id as bioport_id2
-        FROM cache_similarity c 
-inner join naam n1
-on n1.id = c.naam1_id
-inner join naam n2
-on n2.id = c.naam2_id
-inner join biography b1
-on n1.biography_id = b1.id
-inner join biography b2
-on n2.biography_id = b2.id
-inner join relbioportidbiography r1
-on r1.biography_id = b1.id
-inner join relbioportidbiography r2
-on r2.biography_id = b2.id
-left outer join antiidentical a
-on 
-    a.bioport_id1 =  IF( r1.bioport_id < r2.bioport_id, r1.bioport_id, r2.bioport_id)
-     and a.bioport_id2 = IF( r1.bioport_id < r2.bioport_id, r2.bioport_id, r1.bioport_id)
-left outer join defer_identification d
-on 
-    d.bioport_id1 =  IF( r1.bioport_id < r2.bioport_id, r1.bioport_id, r2.bioport_id) 
-    and d.bioport_id2 = IF( r1.bioport_id < r2.bioport_id, r2.bioport_id, r1.bioport_id)
-left outer join bioportid b 
-on ((b.bioport_id = r1.bioport_id and b.redirect_to = r2.bioport_id) or (b.bioport_id = r1.bioport_id and b.redirect_to = r2.bioport_id))
-where 
-n1.id != n2.id /*different names */
-and r1.bioport_id != r2.bioport_id /*different persones */
-and a.bioport_id1 is null /* not antiidentical */ 
-and a.bioport_id2 is null
-and d.bioport_id1 is null /*not deferred */ 
-and d.bioport_id2 is null
-and b.bioport_id is null /* not redirected to others */
-and b.redirect_to is null
-and b1.source_id != b2.source_id /*from different sources */
-order by score desc
-        """
-
-        with self.get_session_context() as session:
-            rs = session.execute(sql)
-            for r in rs:
-                score = r.score 
-                id1 = r.bioport_id1            
-                id2 = r.bioport_id2            
-                
-    #            if id1 != id2: # and not qry.count():
-                #p1 = Person(id1, repository=self)
-                #p2 = Person(id2, repository=self)
-                #srcs1 = [src for src in [bio.get_source() for bio in p1.get_biographies()]]
-                #srcs2 = [src for src in [bio.get_source() for bio in p2.get_biographies()]]
-                #srcs_intersection = [s for s in srcs1 if s in srcs2]
-                #if srcs_intersection == []:
-                i += 1
-                id1, id2 = (min(id1, id2), max(id1, id2)) 
-                r_cache = CacheSimilarityPersons(score=score, bioport_id1=id1, bioport_id2=id2)
-                session.add(r_cache) 
-                try:
-                    session.flush()
-                except (IntegrityError, InvalidRequestError), e:
-                    session.transaction.rollback()
-                    # this must be a duplicate - which is no problem 
-                    # XXX but we must take the highest score
-                    r_existing = session.query(CacheSimilarityPersons).filter(
-                        CacheSimilarityPersons.bioport_id1==id1).filter(
-                        CacheSimilarityPersons.bioport_id2==id2).one()
-                    if score > r_existing.score:
-                        r_existing.score = score
-                        session.flush()
-                    
-                # give some minimal user feedback
-                if i % 100 == 0:
-                    logging.info(str(i))
-                        
-                        #if i > start+size:
-                        #    return
-            session.flush()
-            
-            #notify caching machinery that the table is filled
-            self._cache_filled_similarity_persons = True 
-            logging.info('done')
+#    def XXX_fill_most_similar_persons_cache(self, refresh=False): #, start=0, size=20):
+#        #this gives us the most similar SimilarityCacheopbjects
+#        with self.get_session_context() as session:
+#            qry = session.query(CacheSimilarityPersons)
+#            if not refresh and qry.count():
+#                return
+#            else:
+#                logging.info('fill most similar persons cache' )
+#                qry.delete()
+#        
+#        i = 0
+#        min_score = 0
+#        sql = """SELECT score, n1.id, n1.xml, n2.id, n2.xml,
+#        r1.bioport_id as bioport_id1, 
+#        r2.bioport_id as bioport_id2
+#        FROM cache_similarity c 
+#inner join naam n1
+#on n1.id = c.naam1_id
+#inner join naam n2
+#on n2.id = c.naam2_id
+#inner join biography b1
+#on n1.biography_id = b1.id
+#inner join biography b2
+#on n2.biography_id = b2.id
+#inner join relbioportidbiography r1
+#on r1.biography_id = b1.id
+#inner join relbioportidbiography r2
+#on r2.biography_id = b2.id
+#left outer join antiidentical a
+#on 
+#    a.bioport_id1 =  IF( r1.bioport_id < r2.bioport_id, r1.bioport_id, r2.bioport_id)
+#     and a.bioport_id2 = IF( r1.bioport_id < r2.bioport_id, r2.bioport_id, r1.bioport_id)
+#left outer join defer_identification d
+#on 
+#    d.bioport_id1 =  IF( r1.bioport_id < r2.bioport_id, r1.bioport_id, r2.bioport_id) 
+#    and d.bioport_id2 = IF( r1.bioport_id < r2.bioport_id, r2.bioport_id, r1.bioport_id)
+#left outer join bioportid b 
+#on ((b.bioport_id = r1.bioport_id and b.redirect_to = r2.bioport_id) or (b.bioport_id = r1.bioport_id and b.redirect_to = r2.bioport_id))
+#where 
+#n1.id != n2.id /*different names */
+#and r1.bioport_id != r2.bioport_id /*different persones */
+#and a.bioport_id1 is null /* not antiidentical */ 
+#and a.bioport_id2 is null
+#and d.bioport_id1 is null /*not deferred */ 
+#and d.bioport_id2 is null
+#and b.bioport_id is null /* not redirected to others */
+#and b.redirect_to is null
+#and b1.source_id != b2.source_id /*from different sources */
+#order by score desc
+#        """
+#
+#        with self.get_session_context() as session:
+#            rs = session.execute(sql)
+#            for r in rs:
+#                score = r.score 
+#                id1 = r.bioport_id1            
+#                id2 = r.bioport_id2            
+#                
+#    #            if id1 != id2: # and not qry.count():
+#                #p1 = Person(id1, repository=self)
+#                #p2 = Person(id2, repository=self)
+#                #srcs1 = [src for src in [bio.get_source() for bio in p1.get_biographies()]]
+#                #srcs2 = [src for src in [bio.get_source() for bio in p2.get_biographies()]]
+#                #srcs_intersection = [s for s in srcs1 if s in srcs2]
+#                #if srcs_intersection == []:
+#                i += 1
+#                id1, id2 = (min(id1, id2), max(id1, id2)) 
+#                r_cache = CacheSimilarityPersons(score=score, bioport_id1=id1, bioport_id2=id2)
+#                session.add(r_cache) 
+#                try:
+#                    session.flush()
+#                except (IntegrityError, InvalidRequestError), e:
+#                    session.transaction.rollback()
+#                    # this must be a duplicate - which is no problem 
+#                    # XXX but we must take the highest score
+#                    r_existing = session.query(CacheSimilarityPersons).filter(
+#                        CacheSimilarityPersons.bioport_id1==id1).filter(
+#                        CacheSimilarityPersons.bioport_id2==id2).one()
+#                    if score > r_existing.score:
+#                        r_existing.score = score
+#                        session.flush()
+#                    
+#                # give some minimal user feedback
+#                if i % 100 == 0:
+#                    logging.info(str(i))
+#                        
+#                        #if i > start+size:
+#                        #    return
+#            session.flush()
+#            
+#            #notify caching machinery that the table is filled
+#            self._cache_filled_similarity_persons = True 
+#            logging.info('done')
         
     def identify(self, person1, person2):    
         """identify person1 and person2

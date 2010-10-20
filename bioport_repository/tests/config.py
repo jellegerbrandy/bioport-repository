@@ -4,6 +4,7 @@ from sqlalchemy import create_engine
 DB_NAME = 'bioport_test'
 POSSIBLE_DSN = ['mysql://root@localhost/%s' % DB_NAME,
                 'mysql://jge:MilanO8@localhost/%s' % DB_NAME,
+                'mysql://localhost/%s' % DB_NAME,
                ]
 
 def _find_valid_dsn():
@@ -14,9 +15,7 @@ def _find_valid_dsn():
             pass
         else:
             return s
-    return None
     raise ValueError("no valid DSN found")
 
-# XXX - remove all this aliases
 DB_CONNECTION = DSN = _find_valid_dsn()
 
