@@ -15,7 +15,7 @@ def _find_valid_dsn():
             pass
         else:
             return s
-    raise ValueError("no valid DSN found")
+#    raise ValueError("no valid DSN found")
 
 DB_CONNECTION = DSN = _find_valid_dsn()
 
