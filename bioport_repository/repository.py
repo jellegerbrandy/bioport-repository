@@ -210,6 +210,8 @@ class Repository(object):
             if self.ENABLE_SVN:
                 raise NotImplementedError
     
+    def delete_biography(self, biography):
+        return self.db.delete_biography(biography)
     def download_biographies(self, source, limit=None, sleep=0):
         """Download all biographies from source.url and add them to the repository.
         Mark any biographies that we did not find (anymore), by removing the source_url property.
@@ -372,7 +374,6 @@ class Repository(object):
         if self.ENABLE_SVN:
             raise NotImplementedError#        id = self.get_identifier(bioport_id)
 
-    @instance.clearbefore
     def get_bioport_biography(self, person):
         """get, or if it does not yet exist, create, a biodes document that represents the interventions 
         of the editors in the biographical portal
@@ -402,7 +403,7 @@ class Repository(object):
             ls = [b for (x, b) in ls]
             return ls[0]
         
-    @instance.clearafter 
+    @instance.clearafter
     def _create_bioport_biography(self, person):
         source = BioPortSource(id='dummy')
         bio = Biography(id='%s/%s'  % (source.id, person.get_bioport_id()), source_id=source.id)

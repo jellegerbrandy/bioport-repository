@@ -33,17 +33,17 @@ class SimilarityTestCase(CommonTestCase):
         p5 = self._add_person('Jan', geboortedatum='1001', sterfdatum='2000')
         self.assertEqual(self.similarity_score(p1, p2), 1)
         self.assertTrue(0 < self.similarity_score(p1, p3)< 1)
-        self.assertTrue( self.similarity_score(p1, p4) < 1.0)
-        self.assertEqual( self.similarity_score(p1, p5) , 0.9)
+        self.assertTrue(self.similarity_score(p1, p4) < 1.0)
+        self.assertEqual(self.similarity_score(p1, p5) , 0.9)
     
     def test_similarity_with_dates(self):
         p1 = self._add_person('Lucky', geboortedatum='1000', sterfdatum='2000')
         p2 = self._add_person('Lucky', geboortedatum='1001', sterfdatum='2000')
-        p3 = self._add_person('Lucky', geboortedatum='1900', sterfdatum='2000')
-        p4 = self._add_person('Lucky', geboortedatum='1001', sterfdatum='')
-        p5 = self._add_person('Lucky', geboortedatum='', sterfdatum='')
-        p6 = self._add_person('Lucky', geboortedatum='', sterfdatum='2000')
+        p4 = self._add_person('Lucky', geboortedatum='', sterfdatum='')
+        p5 = self._add_person('Lucky', geboortedatum='', sterfdatum='2000')
+        p6 = self._add_person('Lucky', geboortedatum='1001', sterfdatum='')
         p7 = self._add_person('Lucky', geboortedatum='1000', sterfdatum='3000')
+        p8 = self._add_person('Lucky', geboortedatum='1900', sterfdatum='2000')
         
         self.assert_similarity_order([
           (p1, p1),
@@ -51,8 +51,8 @@ class SimilarityTestCase(CommonTestCase):
           (p1, p4),
           (p1, p5),
           (p1, p6),
-          (p1, p3),
           (p1, p7),
+          (p1, p8),
           ]) 
         
     def test_surely_equal(self):
@@ -68,7 +68,10 @@ class SimilarityTestCase(CommonTestCase):
         p9 = self._add_person('Dongen, Kees van', geboortedatum='1000', sterfdatum='1200')
         p10 = self._add_person('Kees van Dongen', geboortedatum='1000', sterfdatum='1200')
         p11 = self._add_person(names=['Kees van Dongen', 'Cornelius van Dongen'], geboortedatum='1000', sterfdatum='1200')
-        
+        p12 = self._add_person('Mercier', geboortedatum='1000', sterfdatum='1200')
+        bio = self._create_biography(name='Dongen, Kees van')
+        p12.add_biography(bio)
+        self.repo.save_biography(bio)
         self.assertTrue(Similarity.are_surely_equal( p0, p1))
         self.assertFalse(Similarity.are_surely_equal(p0, p2))
         self.assertTrue(Similarity.are_surely_equal(p0, p3))
@@ -78,6 +81,8 @@ class SimilarityTestCase(CommonTestCase):
         self.assertTrue(Similarity.are_surely_equal(p7, p8))
         self.assertTrue(Similarity.are_surely_equal(p9, p10))
         self.assertTrue(Similarity.are_surely_equal(p9, p11))
+        import pdb;pdb.set_trace()
+        self.assertTrue(Similarity.are_surely_equal(p10, p12))
         
     def _read_testsets(self): 
         fn_identified =  os.path.join(os.path.dirname(__file__), 'data', 'identified_examples.pickle')

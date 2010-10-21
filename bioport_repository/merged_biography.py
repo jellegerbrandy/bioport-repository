@@ -1,10 +1,11 @@
 #!/usr/bin/env python
-
+import copy
 from plone.memoize import instance
 from biodes import BioDesDoc
 from bioport_repository.data_extraction import BioDataExtractor
+from bioport_repository.biography import Biography
 from lxml.etree import SubElement
-
+from lxml import etree
 
 class MergedBiography:    
     """ """
@@ -162,4 +163,88 @@ class MergedBiography:
             s= b.naam()
             if s:
                 return s
+
+class BiographyMerger(object): 
+    @staticmethod
+    def merge_biographies(bios):
+        """merge the biographies in bios into a single one
+        
+        if bios is None, merges all bioport biographies of self, and delete the copies
+        if the bios are not mergeable (they may have different data), don't change anything, and return the list
+        """
+        if len(bios) < 2:
+            return bios
+        source_ids = [bio.source_id for bio in bios]
+        assert len(set(source_ids)) == 1
+        source_id = source_ids[0]
+        merged_bio = Biography(source_id=source_id).from_string(bios[0].to_string())
+        for bio in bios[1:]:
+            merged_bio = BiographyMerger._merge_biographies(merged_bio, bio)
+            if not merged_bio:
+                return bios
+        return merged_bio
+    @staticmethod
+    def _merge_biographies(bio1, bio2):
+        """try to merge bio1 and bio2 - if we cannot (because they are not consistent), return None""" 
+        #single values that must be equal in both biographies
+        ls = ['name_publisher', 'url_publisher', 'url_biography', 'sex', 'title_biography']
+        dct = {}
+        for k in ls:
+            v1= bio1.get_value(k)
+            v2= bio2.get_value(k)
+            if v1 and v2 and v1 != v2:
+                return
+            else:
+                dct[k] = v1 or v2
+                
+        names = bio1.get_names()
+        for n2 in  bio2.get_names():
+            if n2 not in names:
+                names.append(n2)
             
+        dct['names'] = names
+        
+        merged_bio = Biography(source_id=bio1.source_id, biodes_document=bio1.to_string())
+        merged_bio.from_args(**dct)
+        
+        #unique states
+        unique_states = []
+        #non-unique states 
+        states1 = bio1.get_states()
+#        states1 = [state for state in states1 if state.get('type') not in unique_states]
+        states2 = bio2.get_states()
+#        states2 = [state for state in states2 if state.get('type') not in unique_states]
+        for state in states2:
+            if etree.tostring(state).strip() not in [etree.tostring(s).strip() for s in states1]:
+                #copy the state (instead of moving it, which will change bio2 as well)
+                state = copy.deepcopy(state)
+                merged_bio._add_state_element(state)
+            
+        #unique events
+        unique_events = ['birth', 'death']
+        #non-unieuqe events
+        events1 = merged_bio.get_events() #these are all events from bio1
+        events2 = bio2.get_events()
+        events = events1
+        for bio2_event in events2:
+            if etree.tostring(bio2_event).strip() not in [etree.tostring(e).strip() for e in events]:
+                if bio2_event.get('type') in unique_events:
+                    #if this event can occur only once, we check for consistency with an eventual existing event
+                    #and if they are consistent, update accordingly
+                    bio1_event = merged_bio.get_event(type=bio2_event.get('type'))
+                    if bio1_event is not None:
+                        when1 = bio1_event.get('when', '')
+                        when2 = bio2_event.get('when', '')
+                        if when1 and when2 and not (when1 in when2 or when2 in when1):
+                            #these are incompatible
+                            return
+                        elif when1 in when2:
+                            bio1_event.set('when', when2)
+                        
+                    else:
+                        #no event of this type exists yet in bio1
+                        merged_bio._add_event_element(copy.deepcopy(bio2_event))
+                else:
+                    merged_bio._add_event_element(copy.deepcopy(bio2_event))
+        return  merged_bio
+        

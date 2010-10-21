@@ -289,6 +289,7 @@ class DBRepository:
         """
         return self.save_biography( biography)
     
+    @instance.clearafter 
     def save_biography(self, biography):
         with self.get_session_context() as session:
             #register the biography in the bioportid registry
@@ -1390,12 +1391,13 @@ class DBRepository:
             
         #now attach all biographies to the new bioportid
         for bio in new_person.get_biographies() + old_person.get_biographies(): 
-            bio.set_value('bioport_id',new_person.get_bioport_id())
-            self.save_biography(bio)
-
-        for bio in old_person.get_biographies(): 
             new_person.add_biography(bio)
-
+            self.save_biography(bio)
+        
+        #mege the bioport biographies in the new person
+        #XXX Uncomment when merge_bioport_biographies is well tested
+#        new_person.merge_bioport_biographies()
+        
         with self.get_session_context() as session:
             query = session.query(PersonRecord)
             query = query.filter(PersonRecord.bioport_id==new_person.get_bioport_id())

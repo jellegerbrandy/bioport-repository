@@ -104,7 +104,15 @@ class CommonTestCase(unittest.TestCase):
             sh('mysqldump -u %s -p%s bioport_test > %s' % (username, passwd, SQLDUMP_FILENAME))
         self._is_filled = True
         return self.repo
-
+    
+    def _add_source(self, source_id):
+        try:
+            source = self.repo.get_source(source_id)
+        except ValueError: #a source with this id did not exist yet
+            source = Source(id=source_id)
+            self.repo.save_source(source)        
+        return source
+    
     def _add_person(self, 
         name=None, 
         names=None,
@@ -116,19 +124,13 @@ class CommonTestCase(unittest.TestCase):
         returns:
             a Person instance
         """
-        
         #make a new biography
         
         source_id = u'bioport_test'
-        try:
-            source = self.repo.get_source(source_id)
-        except ValueError: #a source with this id did not exist yet
-            source = Source(id=source_id)
-            self.repo.save_source(source)        
-        
+        source =self._add_source(source_id)
         #make some hopefully unique id
         i = len(self.repo.get_biographies(source=source)) + 1
-        bio = Biography( id = 'bioport_test/test_bio_%s_%s' % (name, i), source_id=source_id)
+        bio = Biography(id = 'bioport_test/test_bio_%s_%s' % (name, i), source_id=source_id)
         if name:
             name = Name(name)
         if names:
@@ -147,6 +149,19 @@ class CommonTestCase(unittest.TestCase):
         #save it
         self.repo.add_biography(bio)
         return bio.get_person()
+    
+    def _create_biography(self, **args):
+        source_id= 'bioport_test'
+        self._add_source(source_id)
+        defaults = {
+            'naam_publisher':'x',
+            'url_biografie': 'http://placeholder.com',
+            'url_publisher': 'http://placeholder.com',
+            }
+        defaults.update(args)
+        id = str(len(self.repo.get_biographies()))
+        return Biography(repository=self.repo, source_id=source_id, id=id).from_args(**defaults)
+    
 class CommonTestCaseTest(CommonTestCase):
     
     def test_sanity(self):
@@ -158,4 +173,3 @@ def create_mysqldump():
     """create a .sql file that is used for setting up the database for each test"""
     open(SQLDUMP_FILENAME,'w').write('show tables')
     unittest.main(defaultTest='CommonTestCase.create_filled_repository_from_scratch')   
-

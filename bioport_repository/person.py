@@ -3,8 +3,7 @@
 from plone.memoize import instance
 
 from bioport_repository.repocommon import is_valid_bioport_id
-from bioport_repository.merged_biography import MergedBiography
-
+from bioport_repository.merged_biography import MergedBiography, BiographyMerger
 
 class Person(object):
     """A Person is an object that is identified with a bioport
@@ -77,13 +76,7 @@ class Person(object):
         """
         ls = self.repository.get_biographies(person=self, order_by='quality',
                                              source_id=source_id)
-        if source_id:
-            if ls:
-                return ls[0]
-            else:
-                return None  # XXX - this should be []
-        else:
-            return ls
+        return ls
 
     def get_bioport_id(self):
         return self.id
@@ -263,7 +256,26 @@ class Person(object):
 
         return retlist
 
-
+    def merge_bioport_biographies(self):
+        """merge the bioport biographies of this person 
+        
+        if the bios are not mergeable (they may have different data), don't change anything
+        otherwise, add the merged biography, and remove all the old ones
+        """
+        bios = self.get_biographies(source_id='bioport')
+        if not bios:
+            return 
+        elif type(bios) != type([]):
+            return bios
+        elif len(bios) < 2:
+            return bios
+        merged_bio = BiographyMerger.merge_biographies(bios)
+        for bio in  bios:
+            self.repository.delete_biography(bio)
+        self.add_biography(merged_bio)
+        return merged_bio
+    
+        
 class Contradiction(object):
     """An object which represents a person with contradictory
     biographies.
@@ -287,4 +299,3 @@ class Contradiction(object):
 
 #    def render(self):
 #        return ', '.join("%s (%s)" %(x, y) for x, y in self.values)
-

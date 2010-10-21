@@ -44,7 +44,7 @@ class Biography(object, BioDesDoc): #, SVNEntry):
         self.biodes_document = biodes_document
         self.source_url = source_url        
         if self.biodes_document:
-            self.id = self.get_id()
+            self.id = self.create_id()
 
     def __str__(self):
         s = '<BioPort Biography %s>' % (self.id)
@@ -246,6 +246,8 @@ class Biography(object, BioDesDoc): #, SVNEntry):
         if self.naam():
             return self.naam().volledige_naam()
 
+    def get_category_ids(self):
+        return [c.get('idno') for c in self.get_states(type='category')]
     def set_category(self, category_ids=[]):
         """set the categories of the biography to the given set
         
