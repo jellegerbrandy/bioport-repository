@@ -34,26 +34,42 @@ class SimilarityTestCase(CommonTestCase):
         self.assertEqual(self.similarity_score(p1, p2), 1)
         self.assertTrue(0 < self.similarity_score(p1, p3)< 1)
         self.assertTrue(self.similarity_score(p1, p4) < 1.0)
-        self.assertEqual(self.similarity_score(p1, p5) , 0.9)
+        self.assertTrue(self.similarity_score(p1, p5) < 1.0)
     
     def test_similarity_with_dates(self):
         p1 = self._add_person('Lucky', geboortedatum='1000', sterfdatum='2000')
-        p2 = self._add_person('Lucky', geboortedatum='1001', sterfdatum='2000')
+        p2 = self._add_person('Lucky', geboortedatum='', sterfdatum='2000')
+        p3 = self._add_person('Lucky', geboortedatum='1000', sterfdatum='')
         p4 = self._add_person('Lucky', geboortedatum='', sterfdatum='')
-        p5 = self._add_person('Lucky', geboortedatum='', sterfdatum='2000')
-        p6 = self._add_person('Lucky', geboortedatum='1001', sterfdatum='')
-        p7 = self._add_person('Lucky', geboortedatum='1000', sterfdatum='3000')
-        p8 = self._add_person('Lucky', geboortedatum='1900', sterfdatum='2000')
-        
         self.assert_similarity_order([
           (p1, p1),
           (p1, p2),
+          (p1, p3),
           (p1, p4),
-          (p1, p5),
-          (p1, p6),
-          (p1, p7),
-          (p1, p8),
-          ]) 
+        ]) 
+        p2 = self._add_person('Lucky', geboortedatum='1001', sterfdatum='2000')
+        p3 = self._add_person('Lucky', geboortedatum='1900', sterfdatum='2000')
+       
+        self.assert_similarity_order([
+          (p1, p1),
+          (p1, p2),
+          (p1, p3),
+        ]) 
+        
+        p1 = self._add_person('Lucky, Pozzo Vladimir Estragon', geboortedatum='1000', sterfdatum='2000')
+        p2 = self._add_person('Luckie, Pozzo Vladimir Estragon', geboortedatum='1000', sterfdatum='2000')
+        p3 = self._add_person('Lucky, Pozzo Vladimir Estragon', geboortedatum='', sterfdatum='')
+        p4 = self._add_person('Luckie, Pozzo Vladimir Estragon', geboortedatum='', sterfdatum='')
+        score1 = Similarity.similarity_score(p1, p2) 
+        score2 = Similarity.ratio(p1.get_names()[0], p2.get_names()[0])
+        #given the fact that they have the same birth and death dates, the scores of p1 and p2 shoudl imporve wrt the "bare" names
+        self.assertTrue(score1 > score2)
+        self.assert_similarity_order([
+          (p1, p1),
+          (p1, p2),
+          (p1, p3),
+          (p1, p4),
+        ])
         
     def test_surely_equal(self):
         p0 = self._add_person('Estragon', geboortedatum='1000', sterfdatum='2000')
@@ -81,7 +97,6 @@ class SimilarityTestCase(CommonTestCase):
         self.assertTrue(Similarity.are_surely_equal(p7, p8))
         self.assertTrue(Similarity.are_surely_equal(p9, p10))
         self.assertTrue(Similarity.are_surely_equal(p9, p11))
-        import pdb;pdb.set_trace()
         self.assertTrue(Similarity.are_surely_equal(p10, p12))
         
     def _read_testsets(self): 

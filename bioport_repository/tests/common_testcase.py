@@ -128,20 +128,12 @@ class CommonTestCase(unittest.TestCase):
         
         source_id = u'bioport_test'
         source =self._add_source(source_id)
-        #make some hopefully unique id
-        i = len(self.repo.get_biographies(source=source)) + 1
-        bio = Biography(id = 'bioport_test/test_bio_%s_%s' % (name, i), source_id=source_id)
         if name:
             name = Name(name)
         if names:
             names= [Name(n) for n in names]
             
-        bio.from_args( 
-              url_biografie='http://ladida/didum', 
-              naam_publisher='nogeensiets', 
-              url_publisher='http://pbulihser_url',
-              naam=name,
-              names=names,
+        bio = self._create_biography(name=name, names=names,
               geboortedatum=geboortedatum,
               sterfdatum=sterfdatum,
               )

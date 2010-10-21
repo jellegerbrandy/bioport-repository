@@ -1136,7 +1136,7 @@ class DBRepository:
                                          group=2,
                                          filter_initials=True, 
                                          filter_stop_words=False, #XXX look out withthis: 'koning' and 'heer' are also last names 
-                                         filter_custom=TUSSENVOEGSELS + ['Van'], wildcards=False,
+                                         filter_custom=TUSSENVOEGSELS + [w.capitalize() for w in TUSSENVOEGSELS], wildcards=False,
                                          )
                 
                 logging.info('searching for persons matching any of %s' % soundexes)

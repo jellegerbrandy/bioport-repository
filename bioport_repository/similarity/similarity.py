@@ -57,27 +57,27 @@ class Similarity(Similarity):
         same_dates = 1.0
         if birth1 and birth2:
             if p1._are_dates_equal(birth1, birth2):
-                same_dates *= 1.0
+                same_dates *=  1.0
             elif birth1[:3] == birth2[:3]:
-                same_dates *= 0.9
+                same_dates *= 0.9 
             else:
                 same_dates *= 0.5
         else:
-            same_dates *= 0.9
+            same_dates *= 0.9 
     
         if death1 and death2:
             if p1._are_dates_equal(death1, death2):
-                same_dates *= 1.0
+                same_dates *=  1.0
             #we have all data available
             elif death1[:3] == death2[:3]:
-                same_dates *= 0.9
+                same_dates *= 0.9 
             else:
-                same_dates *= 0.5
+                same_dates *= 0.5 
         else:
-            same_dates *= 0.9
+            same_dates *= 0.9 
         
         if not (birth1 and birth2) and not (death1 and death2):
-            same_dates = 0.9
+            same_dates *= 0.9 
             
         #compare the names
         ratios = []
@@ -88,7 +88,7 @@ class Similarity(Similarity):
             ratio = max(ratios)
         else:
             ratio = 0.0
-        final_score = ratio * same_dates
+        final_score = (ratio + same_dates) / 2.0
         return final_score
         
     def sort(self):
