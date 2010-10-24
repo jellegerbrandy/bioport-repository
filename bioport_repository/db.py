@@ -1191,6 +1191,11 @@ class DBRepository:
                                        search_name=None,
                                        bioport_id=None,
                                        ):
+        """return pairs of persons that are similar but not yet identified or defererred
+        returns:
+            a list tuples of the form (score, person1, person2), where score is a real in [0,1] and person1, persons are PErson instances
+            the result is ordered descendinly by score
+        """
         session = self.get_session() 
         if refresh: 
             #(re) fill the cache

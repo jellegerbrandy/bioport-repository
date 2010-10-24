@@ -4,8 +4,6 @@ import pickle
 from common import CommonTestCase, unittest
 from bioport_repository.similarity.similarity import Similarity
 
-
-
 class SimilarityTestCase(CommonTestCase):
     
     def setUp(self):
@@ -24,7 +22,6 @@ class SimilarityTestCase(CommonTestCase):
                             _format_person(sims[i][1]), _format_person(sims[i][2]), sims[i][0]
                             ))
             
-    
     def test_similarity(self):
         p1 = self._add_person('Jan', geboortedatum='1000', sterfdatum='2000')
         p2 = self._add_person('Jan', geboortedatum='1000', sterfdatum='2000')
@@ -97,8 +94,9 @@ class SimilarityTestCase(CommonTestCase):
         self.assertTrue(Similarity.are_surely_equal(p7, p8))
         self.assertTrue(Similarity.are_surely_equal(p9, p10))
         self.assertTrue(Similarity.are_surely_equal(p9, p11))
+        self.assertTrue(Similarity.are_surely_equal(p9, p12))
         self.assertTrue(Similarity.are_surely_equal(p10, p12))
-        
+       
     def _read_testsets(self): 
         fn_identified =  os.path.join(os.path.dirname(__file__), 'data', 'identified_examples.pickle')
         self._identified = []

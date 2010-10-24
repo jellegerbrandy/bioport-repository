@@ -59,7 +59,7 @@ class Similarity(Similarity):
             if p1._are_dates_equal(birth1, birth2):
                 same_dates *=  1.0
             elif birth1[:3] == birth2[:3]:
-                same_dates *= 0.9 
+                same_dates *= 0.8 
             else:
                 same_dates *= 0.5
         else:
@@ -70,7 +70,7 @@ class Similarity(Similarity):
                 same_dates *=  1.0
             #we have all data available
             elif death1[:3] == death2[:3]:
-                same_dates *= 0.9 
+                same_dates *= 0.8 
             else:
                 same_dates *= 0.5 
         else:
