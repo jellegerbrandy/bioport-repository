@@ -118,6 +118,7 @@ class CommonTestCase(unittest.TestCase):
         names=None,
         geboortedatum=None,
         sterfdatum=None,
+        xml_source=None,
         ):
         """helper function for adding a new person to the repository
         
@@ -132,18 +133,23 @@ class CommonTestCase(unittest.TestCase):
             name = Name(name)
         if names:
             names= [Name(n) for n in names]
-            
-        bio = self._create_biography(name=name, names=names,
-              geboortedatum=geboortedatum,
-              sterfdatum=sterfdatum,
-              )
+        
+        if xml_source: 
+            bio = self._create_biography(xml_source=xml_source)
+        else:
+	        bio = self._create_biography(
+                 name=name, 
+                 names=names,
+	             geboortedatum=geboortedatum,
+	             sterfdatum=sterfdatum,
+	             )
         
         #save it
         self.repo.add_biography(bio)
         return bio.get_person()
     
     def _create_biography(self, **args):
-        source_id= 'bioport_test'
+        source_id= u'bioport_test'
         self._add_source(source_id)
         defaults = {
             'naam_publisher':'x',
@@ -152,7 +158,11 @@ class CommonTestCase(unittest.TestCase):
             }
         defaults.update(args)
         id = str(len(self.repo.get_biographies()))
-        return Biography(repository=self.repo, source_id=source_id, id=id).from_args(**defaults)
+        xml_source= args.get('xml_source')
+        if xml_source:
+	        return Biography(repository=self.repo, source_id=source_id, id=id).from_string(xml_source)
+        else:
+	        return Biography(repository=self.repo, source_id=source_id, id=id).from_args(**defaults)
     
 class CommonTestCaseTest(CommonTestCase):
     
