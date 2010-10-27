@@ -212,6 +212,7 @@ class Repository(object):
     
     def delete_biography(self, biography):
         return self.db.delete_biography(biography)
+        
     def download_biographies(self, source, limit=None, sleep=0):
         """Download all biographies from source.url and add them to the repository.
         Mark any biographies that we did not find (anymore), by removing the source_url property.
@@ -266,6 +267,8 @@ class Repository(object):
             shutil.rmtree(os.path.dirname(ls[0]))
 
         s = '%s biographies downloaded from source %s' % (iteration, source.id)
+        source.last_bios_update = time.time()
+        self.save_source(source)
         self.delete_orphaned_persons(source_id=source.id)
         return total, skipped
     

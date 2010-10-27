@@ -19,6 +19,9 @@ class Source(object):
         self.quality = quality
         self.repository = repository
         self.default_status = default_status
+        # last times "download biographies" button has been pressed and 
+        # action completed
+        self.last_bios_update = None  
         if self.xml:
             self._from_xml(xml)
     
@@ -34,7 +37,6 @@ class Source(object):
     def path(self):
         return os.path.join(self.svn_repository.root_path, self.id)
         
-## NEXT function is not used - attributes of sources are stored separately in the databse
     def _to_xml(self):
         """create an xml file with enough info to reconstruct the source
         
@@ -47,6 +49,7 @@ class Source(object):
             'description',
             'quality',
             'default_status',
+            'last_bios_update'
             ]
         n = etree.Element('biodes_source')
         for k in keys:
