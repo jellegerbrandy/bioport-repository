@@ -212,8 +212,8 @@ class Repository(object):
     
     def delete_biography(self, biography):
         return self.db.delete_biography(biography)
-        
-    def download_biographies(self, source, limit=None, sleep=0):
+    
+    def download_biographies(self, source, limit=None ):
         """Download all biographies from source.url and add them to the repository.
         Mark any biographies that we did not find (anymore), by removing the source_url property.
         Return the number of total and skipped biographies.
@@ -231,6 +231,7 @@ class Repository(object):
         assert source.url, 'No URL was defined with the source "%s"' % source.id
         
         logging.info('downloading data at %s' % source.url)
+        logging.info('parsing source url')
         try:
             ls = biodes.parse_list(source.url)
             if limit:
@@ -238,9 +239,15 @@ class Repository(object):
         except etree.XMLSyntaxError, error:
             raise BioPortException('Error parsing data at %s -- check if this is valid XML\n%s' % (source.url, error))
         
-        logging.info('done parsing source url')
         if not ls:
             raise BioPortException('The list at %s does not contain any links to biographies' % source.url)
+        
+        #we have a valid list of biographies to download
+        #first we remove all previously imported biographies at this source
+        logging.info('deleting existing biographies from %s' % source)
+        self.delete_biographies(source=source)
+        
+        logging.info('downloading biodes files')
         total = len(ls)
         skipped = 0
         ls.sort()
@@ -256,8 +263,6 @@ class Repository(object):
             logging.info('progress %s/%s: adding biography at %s' %(iteration, len(ls), biourl))
             #create a Biography object 
             bio = Biography(source_id=source.id, repository=source.repository)
-            if sleep:
-                time.sleep(sleep)  
             bio.from_url(biourl)
             self.add_biography(bio)
 
@@ -267,8 +272,11 @@ class Repository(object):
             shutil.rmtree(os.path.dirname(ls[0]))
 
         s = '%s biographies downloaded from source %s' % (iteration, source.id)
+        logging.info(s)
+        logging.info('deleting orphaned persons')
         source.last_bios_update = time.time()
         self.save_source(source)
+
         self.delete_orphaned_persons(source_id=source.id)
         return total, skipped
     

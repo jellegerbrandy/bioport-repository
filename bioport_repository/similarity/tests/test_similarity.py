@@ -3,6 +3,8 @@ import pickle
 
 from common import CommonTestCase, unittest
 from bioport_repository.similarity.similarity import Similarity
+from bioport_repository.person import Person
+from bioport_repository.db_definition import CacheSimilirityPersons
 
 class SimilarityTestCase(CommonTestCase):
     
@@ -11,6 +13,12 @@ class SimilarityTestCase(CommonTestCase):
         self.sim = Similarity()
         self.similarity_score = self.sim.similarity_score
     
+    def test_sanity(self):
+        persons = self.repo.get_persons()
+        sim = Similarity(persons[1], persons)
+        sim.compute()
+        sim.sort()
+
     def assert_similarity_order(self, ls):
         def _format_person(p):
             return '%s (%s-%s)' % (p.get_names(), p.get_value('birth_date'), p.get_value('death_date'))
@@ -68,6 +76,7 @@ class SimilarityTestCase(CommonTestCase):
           (p1, p4),
         ])
         
+        
     def test_surely_equal(self):
         p0 = self._add_person('Estragon', geboortedatum='1000', sterfdatum='2000')
         p1 = self._add_person('Estragon', geboortedatum='1000', sterfdatum='2000')
@@ -96,12 +105,80 @@ class SimilarityTestCase(CommonTestCase):
         self.assertTrue(Similarity.are_surely_equal(p9, p11))
         self.assertTrue(Similarity.are_surely_equal(p9, p12))
         self.assertTrue(Similarity.are_surely_equal(p10, p12))
-       
+    
+    def test_with_biodes_files(self):
+        s1 = """<biodes version="1.0.1">
+  <fileDesc>
+    <title/>
+    <ref target="http://www.rkd.nl/rkddb/dispatcher.aspx?action=search&amp;database=ChoiceArtists&amp;search=priref=19815"/>
+    <publisher>
+      <name>Rijksbureau voor Kunsthistorische Documentatie</name>
+      <ref target="http://www.rkd.nl/"/>
+    </publisher>
+  </fileDesc>
+  <person>
+    <persName>Dam, Max van</persName>
+    <event type="birth" when="1910-03-19">
+      <place>Winterswijk</place>
+    </event>
+    <event type="death" when="1943-09-20">
+      <place>S&#243;bibor (Polen)</place>
+    </event>
+    <state type="occupation">schilder</state>
+    <state type="occupation">tekenaar</state>
+    <idno type="id">19815</idno>
+  </person>
+  <biography>
+    <text>Schilder, tekenaar. Geboren: 19 maart 1910, Winterswijk. Gestorven: 20 september 1943, S&#243;bibor (Polen). </text>
+  </biography>
+</biodes>"""
+
+        s2 = """    
+<biodes version="1.0.1">
+  <fileDesc>
+    <title/>
+    <publisher/>
+  </fileDesc>
+  <person>
+    <idno type="id">50019330</idno>
+  <persName>Max van Dam</persName><event type="birth" when="1910-03-19"><place>Winterswijk</place></event><event type="death" when="1943-09-20"><place>Sobibor, Polen</place></event><event type="funeral"><place/></event><event type="baptism"><place/></event><sex value="1"/><state type="category" idno="8">Maatschappelijke bewegingen</state><state type="floruit" from="" to=""><place/></state></person>
+  <biography><snippet source_id="jews/109.xml"/></biography>
+</biodes>"""
+        p1 = self._add_person(xml_source=s1)
+        p2 = self._add_person(xml_source=s2)
+        self.assertTrue(Similarity.are_surely_equal(p1, p2))
+        
     def _read_testsets(self): 
         fn_identified =  os.path.join(os.path.dirname(__file__), 'data', 'identified_examples.pickle')
         self._identified = []
         for bio1, bio2 in pickle.load(open(fn_identified)):
             self._identified.append((bio1, bio2))
             
+    def test_most_similar_persons(self):
+        repo= self.repo
+        self.assertEqual(len(self.repo.get_persons()) ,10)
+        self.repo.db.fill_similarity_cache(minimal_score=0.0)
+        for r in self.repo.db.get_session().query(CacheSimilarityPersons).all():
+            assert r.bioport_id1 <= r.bioport_id2, (r.bioport_id1, r.bioport_id2)
+        
+        ls = repo.get_most_similar_persons(size=3) 
+        ls = list(ls)
+        self.assertEqual(len(ls) ,3)
+        score, p1, p2  = ls[0]
+        self.assertNotEqual(p1.get_bioport_id(), p2.get_bioport_id())
+        
+        ls = repo.get_most_similar_persons(bioport_id=p1.bioport_id)
+        for score, pa, pb in ls:
+            assert p1.bioport_id in [pa.bioport_id, pb.bioport_id]
+        ls = repo.get_most_similar_persons(source_id=self.repo.get_sources()[0].id)
+        ls = repo.get_most_similar_persons(search_name='jan')
+
+def test_suite():
+    test_suite = unittest.TestSuite()
+    tests = [SimilarityTestCase]
+    for test in tests:
+        test_suite.addTest(unittest.makeSuite(test))
+    return test_suite
+ 
 if __name__ == "__main__":
     unittest.main() #defaultTest='SimilarityTestCase.test_cases_to_optimize')

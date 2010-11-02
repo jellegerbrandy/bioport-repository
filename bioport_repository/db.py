@@ -1241,7 +1241,6 @@ class DBRepository:
             qry = qry.join((BiographyRecord, 
                    BiographyRecord.id ==RelBioPortIdBiographyRecord.biography_id,
                    ))
-            qry = qry.filter(BiographyRecord.source_id.in_(source_id))
 #            qry = qry.filter(RelBioPortIdBiographyRecord.biography.source_id==source_id)
             RelBioPortIdBiographyRecord2 = aliased(RelBioPortIdBiographyRecord)
             qry = qry.join((
@@ -1252,7 +1251,10 @@ class DBRepository:
             qry = qry.join((BiographyRecord2, 
                    BiographyRecord2.id ==RelBioPortIdBiographyRecord2.biography_id,
                    ))
-            qry = qry.filter(BiographyRecord2.source_id.in_(source_id))
+            qry = qry.filter(or_(
+                BiographyRecord.source_id.in_(source_id),
+                BiographyRecord2.source_id.in_(source_id)
+                ))
         if search_name:
             qry = qry.join((PersonRecord, 
                PersonRecord.bioport_id==CacheSimilarityPersons.bioport_id1
@@ -1266,7 +1268,11 @@ class DBRepository:
         qry = qry.distinct()
         qry = qry.order_by(desc(CacheSimilarityPersons.score))
         qry = qry.order_by(CacheSimilarityPersons.bioport_id1)
-        qry = qry.slice(start, start + size)
+        if size:
+            qry = qry.slice(start, start + size)
+        else:
+            start = 1000
+            qry = qry.slice(start, start + size)
         logging.info('executing %s'% qry.statement)
         ls = [(r.score, Person(r.bioport_id1, repository=self, score=r.score), Person(r.bioport_id2, repository=self, score=r.score)) for r in session.execute(qry)]
         return ls
