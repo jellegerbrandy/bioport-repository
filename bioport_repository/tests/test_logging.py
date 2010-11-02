@@ -40,7 +40,6 @@ class LoggingTestCase(CommonTestCase):
         self.repo.add_source(source)
         self.assertEqual(self.last_log_message().table, 'source')
         self.repo.download_biographies(source)
-        self.assertTrue(self.last_log_message().msg.startswith('saved biography'))
         self.assertEqual(self.last_log_message().table, 'biography')
         #download biographies
         
