@@ -53,7 +53,12 @@ class Source(object):
             ]
         n = etree.Element('biodes_source')
         for k in keys:
-            etree.SubElement(n, k).text = unicode(getattr(self, k, ''))
+            value = getattr(self, k)
+            if value is not None:
+                value = unicode(value)
+            else:
+                value = ''
+            etree.SubElement(n, k).text = value
         return etree.tostring(n, pretty_print=True)
 
     def _from_xml(self, xml):
