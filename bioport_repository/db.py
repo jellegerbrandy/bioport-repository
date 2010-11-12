@@ -133,7 +133,6 @@ class DBRepository:
             self._session.close()
             self._session = None
 
-    @instance.clearbefore
     def add_source(self, src):
         assert src.id
         r = SourceRecord(id=src.id, url=src.url, description=src.description, xml=src._to_xml())
@@ -163,7 +162,6 @@ class DBRepository:
             msg = 'Added bioport_id %s to the registry'
             self.log(msg, r_bioportid)
 
-    #@instance.memoize
     def get_source(self, source_id):
         """Get a Source instance with id= source_id """
         with self.get_session_context() as session:
@@ -175,7 +173,6 @@ class DBRepository:
             source = Source(id=r.id, url=r.url, description = r.description, quality=r.quality, xml=r.xml)
             return source
     
-    @instance.memoize
     def get_sources(self, order_by='quality', desc=True): 
         with self.get_session_context() as session:
             qry = session.query(SourceRecord)
@@ -188,7 +185,6 @@ class DBRepository:
             #session.close()
             return [Source(r.id, r.url, r.description, quality=r.quality, xml = r.xml, repository=self) for r in ls]
 
-    @instance.clearafter
     def delete_source(self, source):
         session = self.get_session()
         qry =  session.query(SourceRecord).filter_by(id=source.id)
@@ -208,7 +204,6 @@ class DBRepository:
         rs = session.query(BioPortIdRecord.bioport_id).distinct().all()
         return map(lambda x: x[0], rs)
 
-    @instance.clearafter
     def delete_biographies(self, source): #, biography=None): 
         with self.get_session_context() as session:
             # delete also all biographies associated with this source
@@ -237,7 +232,6 @@ class DBRepository:
         session.expunge_all()
         #delete orphans inthe similarity cache
 
-    @instance.clearafter
     def delete_biography(self, biography):
         with self.get_session_context() as session:
             # delete also all biographies associated with this source
@@ -289,7 +283,6 @@ class DBRepository:
         """
         return self.save_biography( biography)
     
-    @instance.clearafter 
     def save_biography(self, biography):
         with self.get_session_context() as session:
             #register the biography in the bioportid registry
@@ -344,7 +337,6 @@ class DBRepository:
             msg = 'Changed person'
             self.log(msg, r)
 
-    @instance.clearbefore
     def update_person(self,bioport_id, default_status=STATUS_NEW):
         """add or update a person table with the information contained in its biographies
         
