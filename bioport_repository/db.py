@@ -9,7 +9,6 @@ import contextlib
 from datetime import datetime
 
 from lxml import etree
-from plone.memoize import instance
 
 import sqlalchemy
 from sqlalchemy.exceptions import IntegrityError, InvalidRequestError
