@@ -146,11 +146,11 @@ class DBRepositoryTestCase(CommonTestCase):
         self.assertEqual(len(repo.get_persons(search_name=u'"mollo??"')), 1)
         self.assertEqual(len(repo.get_persons(search_name=u'"mollo*"')), 1)
 
-    def test_get_orphaned_persons(self):
-        self.assertEqual(len(self.repo.get_persons(is_orphaned=True)), 0)
-        source = self.repo.get_sources()[0]
-        self.repo.delete_biographies(source)
-        self.assertEqual(len(self.repo.get_persons(is_orphaned=True)), 0)
+#    def test_get_orphaned_persons(self):
+#        self.assertEqual(len(self.repo.get_persons(is_orphaned=True)), 0)
+#        source = self.repo.get_sources()[0]
+#        self.repo.delete_biographies(source)
+#        self.assertEqual(len(self.repo.get_persons(is_orphaned=True)), 0)
     def test_complex_geboorte_date_get_persons_full(self):
         self.create_filled_repository()
         repo = self.repo
