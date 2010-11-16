@@ -887,8 +887,8 @@ class DBRepository:
             start_date = "%04i-%02i-%02i" % (jaar_min, maand_min, dag_min)
             end_date = "%04i-%02i-%02i" % (jaar_max, maand_max, dag_max)
             if datetype == 'levend':
-                date_filter = and_(PersonRecord.geboortedatum <= start_date,
-                              PersonRecord.sterfdatum >= end_date)
+                date_filter = and_(PersonRecord.geboortedatum <= end_date,
+                              PersonRecord.sterfdatum >= start_date)
             else:
                 date_filter = and_(field >= start_date,
                                    field <= end_date)

@@ -168,6 +168,10 @@ class DBRepositoryTestCase(CommonTestCase):
         self.assertEqual(len(repo.get_persons(**qry)), 2)
         qry.update(dict(levendjaar_min=1770, levendjaar_max=1770))
         self.assertEqual(len(repo.get_persons(**qry)), 1)
+
+        qry = dict(levendjaar_min=1700, levendmaand_min=1, levenddag_min=12)
+        qry.update(dict(levendjaar_max=1800, levendmaand_max=2, levenddag_max=21))
+        self.assertEqual(len(repo.get_persons(**qry)), 4)
         
     def test_complex_geboorte_date_get_persons_partial(self):
         self.create_filled_repository()
