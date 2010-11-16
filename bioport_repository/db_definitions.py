@@ -342,6 +342,7 @@ STATUS_VALUES =  [
     (11, 'buitenlands'), 
     (13, 'portrait'), 
     (0, '(geen status toegekend)'),
+    (9999, 'no external biographies')
 ]
 
 def strstatus(code):

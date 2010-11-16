@@ -38,7 +38,7 @@ from sqlalchemy import create_engine, desc, and_, or_, not_
 from bioport_repository.similarity.similarity import Similarity
 from bioport_repository.person import Person
 from bioport_repository.biography import Biography 
-from bioport_repository.source import Source
+from bioport_repository.source import Source, BioPortSource
 
 LENGTH = 8  # the length of a bioport id
 ECHO = False
@@ -361,11 +361,12 @@ class DBRepository:
             if naam:
                 r_person.naam = naam.guess_normal_form()
                 r_person.sort_key = naam.sort_key()
+                r_person.geslachtsnaam = naam.geslachtsnaam()
             else:
                 msg = 'merged_biography should at least have one name defined! %s' \
                       ' - biographies: %s'  % (person.bioport_id, person.get_biographies())
-                raise RuntimeError(msg)
-                
+                logging.warning(msg)
+                r_person.naam = ''
             r_person.has_illustrations = bool(merged_biography.get_illustrations())
             r_person.search_source = person.search_source()
             r_person.sex = merged_biography.get_value('geslacht')
@@ -378,7 +379,6 @@ class DBRepository:
             r_person.geboorteplaats = merged_biography.get_value('geboorteplaats')
             r_person.sterfplaats = merged_biography.get_value('sterfplaats')
             r_person.names = ' '.join([unicode(name) for name in merged_biography.get_names()])
-            r_person.geslachtsnaam = naam.geslachtsnaam()
             r_person.snippet = person.snippet()
             r_person.has_contradictions = bool(person.get_biography_contradictions())
             illustrations =  merged_biography.get_illustrations()
@@ -403,6 +403,7 @@ class DBRepository:
             
             #'the' source -- we take the first non-bioport source as 'the' source
             #and we use it only for filterling later
+            #XXX ??? 
             src = [s for s in merged_biography.get_biographies() if s.source_id != 'bioport']
             if src:
                 src = src[0].source_id
@@ -688,8 +689,10 @@ class DBRepository:
                                 status=None,
                                 hide_invisible=True, #if true, do not return "invisible" persons, such as those marked as "troep"
                                 hide_foreigners=False, #if true, do not return persons marked as "buitenlands"
+                                hide_no_external_biographies=True, #if true, do not return persons that have no external biographies
                                 where_clause=None,
                                 has_contradictions=False,
+                                no_empty_names=True,
                                 ):
         """
         returns:
@@ -720,9 +723,15 @@ class DBRepository:
 #            qry = qry.join(BioPortIdRecord).join(RelBioPortIdBiographyRecord)
 #            qry = qry.filter(RelBioPortIdBiographyRecord.biography_id.count() > 1)
             
+#        if hide_no_external_biographies:
+#            qry = qry.filter(not_(sqlalchemy.func.ifnull(PersonRecord.status.in_([9999]), False)))
         if hide_invisible:
-            qry = qry.filter(not_(sqlalchemy.func.ifnull(PersonRecord.status.in_([5, 9]), False)))
+            
+            #(5, 'moeilijk geval (troep)'),
+            #(9, 'verwijslemma'), 
+            qry = qry.filter(not_(sqlalchemy.func.ifnull(PersonRecord.status.in_([5, 9, 9999]), False)))
         if hide_foreigners:
+            #  (11, 'buitenlands'), 
             qry = qry.filter(not_(sqlalchemy.func.ifnull(PersonRecord.status.in_([11]), False)))
 #            (1, 'nieuw'),
 #            (2, 'bewerkt'),
@@ -738,6 +747,10 @@ class DBRepository:
 #
         if beginletter:
             qry = qry.filter(PersonRecord.naam.startswith(beginletter))
+        
+        elif no_empty_names:
+            qry = qry.filter(PersonRecord.naam != None)
+            qry = qry.filter(PersonRecord.naam != "")
             
         if bioport_id: 
             qry = qry.filter(PersonRecord.bioport_id==bioport_id)
