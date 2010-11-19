@@ -139,18 +139,21 @@ class DBRepositoryTestCase(CommonTestCase):
 
         self.assertEqual(len(repo.get_persons(sterfplaats='Lisse')), 1)
         
-        self.assertEqual(len(repo.get_persons(search_soundex=u'molloyx')), 1)
+    def test_search_soundex(self):
+        repo = self.repo
+        
         self.assertEqual(len(repo.get_persons(search_soundex=u'boschma')), 9, self.repo.get_persons())
+        self.assertEqual(len(repo.get_persons(search_soundex=u'molloyx')), 1)
         self.assertEqual(len(repo.get_persons(search_soundex=u'bosma')), 9) #, self.repo.get_persons())
         self.assertEqual(len(repo.get_persons(search_soundex='bo?ma')), 9)
         self.assertEqual(len(repo.get_persons(search_name=u'"mollo??"')), 1)
         self.assertEqual(len(repo.get_persons(search_name=u'"mollo*"')), 1)
 
-#    def test_get_orphaned_persons(self):
-#        self.assertEqual(len(self.repo.get_persons(is_orphaned=True)), 0)
-#        source = self.repo.get_sources()[0]
-#        self.repo.delete_biographies(source)
-#        self.assertEqual(len(self.repo.get_persons(is_orphaned=True)), 0)
+        self.assertEqual(len(repo.get_persons(search_soundex=u'hilbrand')), 9)
+        self.assertEqual(len(repo.get_persons(search_family_name_only=True, search_soundex=u'hilbrand')), 0)
+        self.assertEqual(len(repo.get_persons(search_family_name_only=True, search_soundex=u'bosma')), 9) 
+
+
     def test_complex_geboorte_date_get_persons_full(self):
         self.create_filled_repository()
         repo = self.repo
@@ -181,6 +184,7 @@ class DBRepositoryTestCase(CommonTestCase):
         self.assertEqual(len(repo.get_persons(**qry)), 3)
         qry.update(dict(geboortemaand_max="1", geboortedag_max="10"))
         self.assertEqual(len(repo.get_persons(**qry)), 2)
+        
     def test_complex_sterf_date_get_persons_full(self):
         self.create_filled_repository()
         repo = self.repo
@@ -189,6 +193,7 @@ class DBRepositoryTestCase(CommonTestCase):
         self.assertEqual(len(repo.get_persons(**qry)), 2)
         qry['sterfmaand_max'] = '11'
         self.assertEqual(len(repo.get_persons(**qry)), 3)
+        
     def test_complex_sterf_date_get_persons_partial(self):
         self.create_filled_repository()
         repo = self.repo
@@ -281,7 +286,7 @@ class DBRepositoryTestCase(CommonTestCase):
         
 def test_suite():
     return unittest.TestSuite((
-        unittest.makeSuite(DBRepositoryTestCase, 'test_get_or'),
+        unittest.makeSuite(DBRepositoryTestCase, 'test_'),
         ))
 
 if __name__=='__main__':

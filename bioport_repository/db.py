@@ -357,7 +357,10 @@ class DBRepository:
             #refresh the names (move this code to "save_person"
             merged_biography = person.get_merged_biography()
             assert merged_biography.get_biographies(), person.bioport_id
+            
             naam = merged_biography.naam()
+            
+            names = merged_biography.get_names()
             if naam:
                 r_person.naam = naam.guess_normal_form()
                 r_person.sort_key = naam.sort_key()
@@ -378,7 +381,7 @@ class DBRepository:
                 r_person.geboortejaar = to_ymd(r_person.geboortedatum)[0]
             r_person.geboorteplaats = merged_biography.get_value('geboorteplaats')
             r_person.sterfplaats = merged_biography.get_value('sterfplaats')
-            r_person.names = ' '.join([unicode(name) for name in merged_biography.get_names()])
+            r_person.names = ' '.join([unicode(name) for name in names])
             r_person.snippet = person.snippet()
             r_person.has_contradictions = bool(person.get_biography_contradictions())
             illustrations =  merged_biography.get_illustrations()
@@ -413,7 +416,7 @@ class DBRepository:
             for naam in merged_biography.get_names():
                 self.add_naam(naam=naam, bioport_id=bioport_id, src=src)
             
-            self.update_soundex(bioport_id=bioport_id, s=r_person.names)
+            self.update_soundex(bioport_id=bioport_id, names=names)
             self.update_name(bioport_id, s = r_person.names) 
             self.update_source(bioport_id, source_ids = [b.source_id for b in person.get_biographies()])
             session.flush()
@@ -431,7 +434,7 @@ class DBRepository:
         return total
         
     def update_name(self, bioport_id, s):
-        """update the table person_name"""
+        """update the table person_name with all words in s"""
         with self.get_session_context() as session:           
             names = re.split('[^\w]+', s)
             #delete existing references
@@ -449,18 +452,26 @@ class DBRepository:
             wildcards=True,
             ) #create long phonetic soundexes
 
-    def update_soundex(self, bioport_id, s):
-        """update the table person_soundex"""
+    def update_soundex(self, bioport_id, names):
+        """update the table person_soundex
+        
+        arguments:
+            names : a list of Name instances"""
         with self.get_session_context() as session:
-            soundexes = self._soundex_for_search(s)
             #delete existing references
             session.query(PersonSoundex).filter(PersonSoundex.bioport_id == bioport_id).delete()
-            for soundex in soundexes:
-                r = PersonSoundex(bioport_id=bioport_id, soundex=soundex) 
-                session.add(r)   
+            for name in names:
+                full_name = name.guess_normal_form()
+                family_name = name.geslachtsnaam()
+                soundexes_full_name = self._soundex_for_search(full_name)
+                soundexes_family_name = self._soundex_for_search(family_name)
+                for soundex in soundexes_full_name:
+                    is_family_name = soundex in soundexes_family_name
+                    r = PersonSoundex(bioport_id=bioport_id, soundex=soundex, geslachtsnaam=is_family_name) 
+                    session.add(r)   
  
     def update_source(self, bioport_id, source_ids):   
-        """update the table person_source"""
+        """update th table person_source"""
         with self.get_session_context() as session:
             #delete existing references
             session.query(PersonSource).filter(PersonSource.bioport_id == bioport_id).delete()
@@ -647,56 +658,62 @@ class DBRepository:
         result = [Person(bioport_id=r.bioport_id, repository=self.repository, record=r) for r in ls]
         return result   
     
-    def _get_persons_query(self,bioport_id=None,
-                                #beroep_id=None,
-                                #auteur_id=None,
-                                beginletter=None,
-                                category=None,
-                                geboortejaar_min=None,
-                                geboortejaar_max=None,
-                                geboortemaand_min=None,
-                                geboortemaand_max=None,
-                                geboortedag_min=None,
-                                geboortedag_max=None,
-                                levendjaar_min=None,
-                                levendjaar_max=None,
-                                levendmaand_min=None,
-                                levendmaand_max=None,
-                                levenddag_min=None,
-                                levenddag_max=None,
-                                geboorteplaats = None,
-                                geslacht=None,
-                                has_illustrations=None, #boolean: does this person have illustrations?
-                                is_identified=None,
-                                match_term=None, #use for myqsl 'matching' (With stopwords and stuff)
-                                order_by='sort_key', 
-                                place=None,
-                                search_term=None,  #
-                                search_name=None, #use for mysql REGEXP matching
-                                search_soundex=None, #a string - will convert it to soundex, and try to match (all) of these
-                                any_soundex=[], #a list of soundex expressions - try to match any of these
-                                source_id=None,
-                                source_id2=None,
-                                sterfjaar_min=None,
-                                sterfjaar_max=None,
-                                sterfmaand_min=None,
-                                sterfmaand_max=None,
-                                sterfdag_min=None,
-                                sterfdag_max=None,
-                                sterfplaats = None,
-                                start=None,
-                                size=None,
-                                status=None,
-                                hide_invisible=True, #if true, do not return "invisible" persons, such as those marked as "troep"
-                                hide_foreigners=False, #if true, do not return persons marked as "buitenlands"
-                                hide_no_external_biographies=True, #if true, do not return persons that have no external biographies
-                                where_clause=None,
-                                has_contradictions=False,
-                                no_empty_names=True,
-                                ):
-        """
+    def _get_persons_query(self,
+                           bioport_id=None,
+                        #beroep_id=None,
+                            #auteur_id=None,
+                            beginletter=None,
+                            category=None,
+                            geboortejaar_min=None,
+                            geboortejaar_max=None,
+                            geboortemaand_min=None,
+                            geboortemaand_max=None,
+                            geboortedag_min=None,
+                            geboortedag_max=None,
+                            levendjaar_min=None,
+                            levendjaar_max=None,
+                            levendmaand_min=None,
+                            levendmaand_max=None,
+                            levenddag_min=None,
+                            levenddag_max=None,
+                            geboorteplaats = None,
+                            geslacht=None,
+                            has_illustrations=None, #boolean: does this person have illustrations?
+                            is_identified=None,
+                            match_term=None, #use for myqsl 'matching' (With stopwords and stuff)
+                            order_by='sort_key', 
+                            place=None,
+                            search_term=None,  #
+                            search_name=None, #use for mysql REGEXP matching
+                            search_soundex=None, #a string - will convert it to soundex, and try to match (all) of these
+                            any_soundex=[], #a list of soundex expressions - try to match any of these
+                            search_family_name_only=False, 
+                            source_id=None,
+                            source_id2=None,
+                            sterfjaar_min=None,
+                            sterfjaar_max=None,
+                            sterfmaand_min=None,
+                            sterfmaand_max=None,
+                            sterfdag_min=None,
+                            sterfdag_max=None,
+                            sterfplaats = None,
+                            start=None,
+                            size=None,
+                            status=None,
+                            hide_invisible=True, #if true, do not return "invisible" persons, such as those marked as "troep"
+                            hide_foreigners=False, #if true, do not return persons marked as "buitenlands"
+                            hide_no_external_biographies=True, #if true, do not return persons that have no external biographies
+                            where_clause=None,
+                            has_contradictions=False,
+                            no_empty_names=True,
+                            ):
+        """construct a sqlalchemy Query filter accordin to the criteria given
+        
         returns:
             a Query instance
+        
+        arguments:
+            search_family_name_only (Boolean): if True, consider only the geslachtsnaam (family name) when searching
         """
         session=self.get_session()
         qry = session.query(
@@ -794,11 +811,6 @@ class DBRepository:
         if match_term:
             qry = qry.filter(PersonRecord.naam.match(match_term))
             
-#        if search_term:
-#            search_term = search_term.replace('*', '.*')
-#            search_term = search_term.replace('?', '.')
-#            for s in search_term.split():
-#                qry = qry.filter(PersonRecord.search_source.op('regexp')('[[:<:]]%s[[:>:]]' % s))
         if search_term:
             #full-text search
             ### next code is for MATCH ###
@@ -810,9 +822,9 @@ class DBRepository:
             qry = qry.filter('match (search_source) against '
                               '("%s" in boolean mode)' % words_query)
             
-        qry = self._filter_search_name(qry, search_name)
+        qry = self._filter_search_name(qry, search_name, search_family_name_only=search_family_name_only)
         
-        qry = self._filter_soundex(qry, search_soundex)
+        qry = self._filter_soundex(qry, search_soundex, search_family_name_only=search_family_name_only)
         
         if any_soundex:
             qry = qry.join(PersonSoundex)
@@ -906,7 +918,7 @@ class DBRepository:
             date_filter = and_(date_filter, sqlalchemy.func.length(field)>=7)
         return date_filter
 
-    def _filter_search_name(self, qry, search_name):
+    def _filter_search_name(self, qry, search_name, search_family_name_only=False):
         """Add an appropriate filter to the qry when searching for search_name
         arguments:
             qry : a sqlalchemy Query instance
@@ -935,15 +947,21 @@ class DBRepository:
                 else: 
                     qry = qry.filter(alias.name ==s)
         else:
-            qry = self._filter_soundex(qry, search_name)
+            qry = self._filter_soundex(qry, search_name, search_family_name_only=search_family_name_only)
         return qry
  
-    def _filter_soundex(self, qry, search_soundex):
+    def _filter_soundex(self, 
+        qry, 
+        search_soundex,
+        search_family_name_only=False,
+        ):
         """Add a filter to the Query object qry
         
         arugments:
             search_soundex is a string
-        returns: the modified qry
+            search_family_name_only : if True, only consider the family name (geslachtsnaam)    
+        returns: 
+            the modified qry
         """
         if search_soundex:
             soundexes = self._soundex_for_search(search_soundex)
@@ -953,12 +971,16 @@ class DBRepository:
                 s = s.replace('?', '_')
                 s = s.replace('*', '%')
                 qry = qry.join(PersonSoundex)
+                if search_family_name_only:
+                    qry = qry.filter(PersonSoundex.geslachtsnaam == True)
                 qry = qry.filter(PersonSoundex.soundex.like(s))
             else:
                 for s in soundexes:
                     alias = aliased(PersonSoundex)
                     qry = qry.join(alias)
                     qry = qry.filter(alias.soundex == s)
+                    if search_family_name_only:
+                        qry = qry.filter(alias.geslachtsnaam == True)
         return qry
 
     def get_person(self, bioport_id):
@@ -1191,14 +1213,19 @@ class DBRepository:
                                        refresh=False, 
                                        #similar_to=None,
                                        source_id=None,
+                                       source_id2=None,
                                        status=None,
                                        search_name=None,
                                        bioport_id=None,
                                        ):
         """return pairs of persons that are similar but not yet identified or defererred
+        
         returns:
             a list tuples of the form (score, person1, person2), where score is a real in [0,1] and person1, persons are PErson instances
             the result is ordered descendinly by score
+        arguments:
+            source_id, source_id2: ids of sources. If one is given, we return tuples where one of the persons has a biography from that source
+                if both are given, we return tuples such that both person1 adn person2 ahve a biography among the sources
         """
         session = self.get_session() 
         if refresh: 
@@ -1234,10 +1261,8 @@ class DBRepository:
         if bioport_id:
             qry = qry.filter(or_(CacheSimilarityPersons.bioport_id1 == bioport_id, CacheSimilarityPersons.bioport_id2==bioport_id))
         
-        if not type(source_id) == type([]):
-            source_id = [source_id]
-        source_id = filter(None, source_id)
-        if source_id:
+        source_ids = filter(None, [source_id, source_id2])
+        if source_ids:
             qry = qry.join((
                 RelBioPortIdBiographyRecord, 
                  RelBioPortIdBiographyRecord.bioport_id==CacheSimilarityPersons.bioport_id1,
@@ -1255,10 +1280,17 @@ class DBRepository:
             qry = qry.join((BiographyRecord2, 
                    BiographyRecord2.id ==RelBioPortIdBiographyRecord2.biography_id,
                    ))
-            qry = qry.filter(or_(
-                BiographyRecord.source_id.in_(source_id),
-                BiographyRecord2.source_id.in_(source_id)
-                ))
+            if len(source_ids) == 1:
+                qry = qry.filter(or_(
+                    BiographyRecord.source_id.in_(source_ids),
+                    BiographyRecord2.source_id.in_(source_ids)
+                    ))
+            else:
+                qry = qry.filter(and_(
+                    BiographyRecord.source_id.in_(source_ids),
+                    BiographyRecord2.source_id.in_(source_ids)
+                    ))
+                
         if search_name:
             qry = qry.join((PersonRecord, 
                PersonRecord.bioport_id==CacheSimilarityPersons.bioport_id1

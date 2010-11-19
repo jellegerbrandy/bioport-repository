@@ -150,6 +150,7 @@ class PersonSoundex(Base):
     id = Column(Integer, primary_key=True)
     bioport_id = Column(MSString(50),ForeignKey('person.bioport_id'), index=True, )
     soundex = Column(Unicode(20), index=True)
+    geslachtsnaam = Column(Boolean)
     
 class PersonName(Base): 
     __tablename__ = 'person_name'

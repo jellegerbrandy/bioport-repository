@@ -195,7 +195,8 @@ class RepositoryTestCase(CommonTestCase):
 
         self.assertEqual(len(list(repo.get_antiidentified())), 1)    
 
-    
+
+        
     def test_unidentify(self):
         repo = self.create_filled_repository(sources=1)
         persons = repo.get_persons()
