@@ -467,7 +467,9 @@ class DBRepository:
                 soundexes_family_name = self._soundex_for_search(family_name)
                 for soundex in soundexes_full_name:
                     is_family_name = soundex in soundexes_family_name
-                    r = PersonSoundex(bioport_id=bioport_id, soundex=soundex, geslachtsnaam=is_family_name) 
+                    r = PersonSoundex(bioport_id=bioport_id, soundex=soundex) 
+                    #XXX add geslachtsnaam thing when putting in production
+#                    r = PersonSoundex(bioport_id=bioport_id, soundex=soundex, geslachtsnaam=is_family_name) 
                     session.add(r)   
  
     def update_source(self, bioport_id, source_ids):   
