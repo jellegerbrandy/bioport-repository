@@ -47,9 +47,6 @@ ECHO = False
 class DBRepository:
     """Interface with the MySQL database"""
     
-    NaamRecord = NaamRecord
-    SoundexRecord = SoundexRecord
-    SimilarityCache = SimilarityCache
 
     def __init__(self, db_connection, 
         #ZOPE_SESSIONS=False, 
@@ -240,7 +237,7 @@ class DBRepository:
             self.update_person(biography.get_bioport_id())
         
     def add_naam(self, naam, bioport_id, src):
-        """ voeg eeen record toe aan de tabel "naam"
+        """add a record to the table 'naam'
         
         arguments:
             naam - an instance of Naam 
@@ -417,7 +414,8 @@ class DBRepository:
                 self.add_naam(naam=naam, bioport_id=bioport_id, src=src)
             
             self.update_soundex(bioport_id=bioport_id, names=names)
-            self.update_name(bioport_id, s = r_person.names) 
+            self.update_name(bioport_id=bioport_id, names=names)
+            
             self.update_source(bioport_id, source_ids = [b.source_id for b in person.get_biographies()])
             session.flush()
             
@@ -433,16 +431,7 @@ class DBRepository:
             self.update_person(person.get_bioport_id())
         return total
         
-    def update_name(self, bioport_id, s):
-        """update the table person_name with all words in s"""
-        with self.get_session_context() as session:           
-            names = re.split('[^\w]+', s)
-            #delete existing references
-            session.query(PersonName).filter(PersonName.bioport_id == bioport_id).delete()
-            for name in names:
-                r =  PersonName(bioport_id=bioport_id, name=name) 
-                session.add(r)
-
+   
     def _soundex_for_search(self, s):
         return soundexes_nl(s, 
             group=2, 
@@ -452,11 +441,33 @@ class DBRepository:
             wildcards=True,
             ) #create long phonetic soundexes
 
+    def update_name(self, bioport_id, names):
+        """update the table person_name
+        
+        arguments:
+            names : a list of Name instances
+        """
+        with self.get_session_context() as session:           
+            #delete existing references
+            session.query(PersonName).filter(PersonName.bioport_id == bioport_id).delete()
+            for name in names:
+                full_name = name.guess_normal_form()
+                family_name = name.geslachtsnaam()
+                full_name_parts =  re.split('[^\w]+', full_name)
+                family_name_parts =  re.split('[^\w]+', family_name)
+                for s in full_name_parts:
+                    if s in family_name_parts:
+                        r = PersonName(bioport_id=bioport_id, name=s, is_from_family_name=True) 
+                    else:
+                        r = PersonName(bioport_id=bioport_id, name=s, is_from_family_name=False) 
+                    session.add(r)
+        
     def update_soundex(self, bioport_id, names):
         """update the table person_soundex
         
         arguments:
-            names : a list of Name instances"""
+            names : a list of Name instances
+        """
         with self.get_session_context() as session:
             #delete existing references
             session.query(PersonSoundex).filter(PersonSoundex.bioport_id == bioport_id).delete()
@@ -467,9 +478,8 @@ class DBRepository:
                 soundexes_family_name = self._soundex_for_search(family_name)
                 for soundex in soundexes_full_name:
                     is_family_name = soundex in soundexes_family_name
-                    r = PersonSoundex(bioport_id=bioport_id, soundex=soundex) 
-                    #XXX add geslachtsnaam thing when putting in production
-#                    r = PersonSoundex(bioport_id=bioport_id, soundex=soundex, geslachtsnaam=is_family_name) 
+#                    r = PersonSoundex(bioport_id=bioport_id, soundex=soundex) 
+                    r = PersonSoundex(bioport_id=bioport_id, soundex=soundex, is_from_family_name=is_family_name) 
                     session.add(r)   
  
     def update_source(self, bioport_id, source_ids):   
@@ -687,7 +697,8 @@ class DBRepository:
                             place=None,
                             search_term=None,  #
                             search_name=None, #use for mysql REGEXP matching
-                            search_soundex=None, #a string - will convert it to soundex, and try to match (all) of these
+                            search_family_name=None, #use for mysql REGEXP matching
+#                            search_soundex=None, #a string - will convert it to soundex, and try to match (all) of these
                             any_soundex=[], #a list of soundex expressions - try to match any of these
                             search_family_name_only=False, 
                             source_id=None,
@@ -783,10 +794,13 @@ class DBRepository:
 
         geboorte_date_filter = self._get_date_filter(locals(), 'geboorte')
         qry = qry.filter(geboorte_date_filter)
+        
         sterf_date_filter = self._get_date_filter(locals(), 'sterf')
         qry = qry.filter(sterf_date_filter)
+        
         levend_date_filter = self._get_date_filter(locals(), 'levend')
         qry = qry.filter(levend_date_filter)
+        
         if geboorteplaats:
             if '*' in geboorteplaats:
                 dafilter = PersonRecord.geboorteplaats.like(
@@ -826,7 +840,7 @@ class DBRepository:
             
         qry = self._filter_search_name(qry, search_name, search_family_name_only=search_family_name_only)
         
-        qry = self._filter_soundex(qry, search_soundex, search_family_name_only=search_family_name_only)
+#        qry = self._filter_soundex(qry, search_soundex, search_family_name_only=search_family_name_only)
         
         if any_soundex:
             qry = qry.join(PersonSoundex)
@@ -928,7 +942,7 @@ class DBRepository:
         returns:
             a Query instance filtered appropriately
         """
-        #if the name argument is between quotation marts, we search "exact"
+        #if the name argument is between quotation marks, we search "exact"
         #(but we still ignore the order)
         if not search_name:
             return qry
@@ -942,6 +956,8 @@ class DBRepository:
 #                    qry = qry.filter(PersonRecord.names.op('regexp')(u'[[:<:]]%s[[:>:]]' % s))
                 alias = aliased(PersonName)
                 qry = qry.join(alias)
+                if search_family_name_only:
+                    qry = qry.filter(alias.is_from_family_name == True)
                 if '?' in s or '*' in s:
                     s = s.replace('?', '_')
                     s = s.replace('*', '%')
@@ -974,7 +990,7 @@ class DBRepository:
                 s = s.replace('*', '%')
                 qry = qry.join(PersonSoundex)
                 if search_family_name_only:
-                    qry = qry.filter(PersonSoundex.geslachtsnaam == True)
+                    qry = qry.filter(PersonSoundex.is_from_family_name == True)
                 qry = qry.filter(PersonSoundex.soundex.like(s))
             else:
                 for s in soundexes:
@@ -982,7 +998,7 @@ class DBRepository:
                     qry = qry.join(alias)
                     qry = qry.filter(alias.soundex == s)
                     if search_family_name_only:
-                        qry = qry.filter(alias.geslachtsnaam == True)
+                        qry = qry.filter(alias.is_from_family_name == True)
         return qry
 
     def get_person(self, bioport_id):
@@ -1047,8 +1063,12 @@ class DBRepository:
     def redirects_to(self, bioport_id):
         """follow the rederiction chain to an endpoint
         
+        arguments:
+            a bioport identifier
         returns:
             a bioport identifier
+        NB:
+            returns bioport_id if no further redirection is found
         """
         orig_id = bioport_id
         chain = [orig_id]

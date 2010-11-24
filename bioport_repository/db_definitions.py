@@ -150,13 +150,14 @@ class PersonSoundex(Base):
     id = Column(Integer, primary_key=True)
     bioport_id = Column(MSString(50),ForeignKey('person.bioport_id'), index=True, )
     soundex = Column(Unicode(20), index=True)
-#    geslachtsnaam = Column(Boolean)
+    is_from_family_name = Column(Boolean)
     
 class PersonName(Base): 
     __tablename__ = 'person_name'
     id = Column(Integer, primary_key=True)
     bioport_id = Column(MSString(50),ForeignKey('person.bioport_id'), index=True, )
     name = Column(Unicode(20), index=True)
+    is_from_family_name = Column(Boolean)
     
 class PersonSource(Base):     
     __tablename__ = 'person_source'
@@ -276,6 +277,7 @@ class Occupation(Base):
     __tablename__ = 'occupation'
     id = Column(Integer, primary_key=True)
     name=Column(MSString(100), index=True) # *   
+    
 class Category(Base):
     __tablename__ = 'category'
     id = Column(Integer, primary_key=True)

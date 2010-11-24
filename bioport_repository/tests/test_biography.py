@@ -27,7 +27,7 @@ class BiographyTestCase(CommonTestCase):
         bio = Biography( id = 'bioport_test/test_bio', source_id=source.id)
         
         self.assertEqual(bio.id, 'bioport_test/test_bio')
-        #XXX Do we need this?
+        
         bio.from_args( 
               url_biografie='http://ladida/didum', 
               naam_publisher='nogeensiets', 
@@ -37,12 +37,9 @@ class BiographyTestCase(CommonTestCase):
         
         #save it
         repo.add_biography(bio)
-        #now, a biography with this id (the same one????) should be in the repository
-        #assert 'test_bio' in [b.id for b in repo.get_biographies()], os.listdir(repo.svn_repository.absolute_path(source.id)) # repo.get_biographies()
         
-        #the biography now also has a bioport_id
+        #the new biography now also has a bioport_id
         assert bio.get_bioport_id()
-        
         self.assertEqual(bio.title(), 'Tiedel Doodle Dum')
        
         p = bio.get_person() 

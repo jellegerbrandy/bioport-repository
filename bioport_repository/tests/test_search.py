@@ -13,10 +13,10 @@ class SearchTestCase(CommonTestCase):
         self.assertEqual(repo.get_persons(search_name=u'IX'), [pius])
         assert pius not in repo.get_persons(search_name=u'ik')
         
-        self.assertEqual(len(repo.get_persons(search_soundex=u'molloyx')), 1)
-        self.assertEqual(len(repo.get_persons(search_soundex=u'boschma')), 9, self.repo.get_persons())
-        self.assertEqual(len(repo.get_persons(search_soundex=u'bosma')), 9) #, self.repo.get_persons())
-        self.assertEqual(len(repo.get_persons(search_soundex='bo?ma')), 9)
+        self.assertEqual(len(repo.get_persons(search_name=u'molloyx')), 1)
+        self.assertEqual(len(repo.get_persons(search_name=u'boschma')), 9) 
+        self.assertEqual(len(repo.get_persons(search_name=u'bosma')), 9) 
+        self.assertEqual(len(repo.get_persons(search_name='bo?ma')), 9)
         self.assertEqual(len(repo.get_persons(search_name=u'"mollo??"')), 1)
         self.assertEqual(len(repo.get_persons(search_name=u'"mollo*"')), 1)
 

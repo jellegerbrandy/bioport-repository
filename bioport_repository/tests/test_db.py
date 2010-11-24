@@ -142,18 +142,26 @@ class DBRepositoryTestCase(CommonTestCase):
     def test_search_soundex(self):
         repo = self.repo
         
-        self.assertEqual(len(repo.get_persons(search_soundex=u'boschma')), 9, self.repo.get_persons())
-        self.assertEqual(len(repo.get_persons(search_soundex=u'molloyx')), 1)
-        self.assertEqual(len(repo.get_persons(search_soundex=u'bosma')), 9) #, self.repo.get_persons())
-        self.assertEqual(len(repo.get_persons(search_soundex='bo?ma')), 9)
+        self.assertEqual(len(repo.get_persons(search_name=u'boschma')), 9, self.repo.get_persons())
+        self.assertEqual(len(repo.get_persons(search_name=u'molloyx')), 1)
+        self.assertEqual(len(repo.get_persons(search_name=u'bosma')), 9) #, self.repo.get_persons())
+        self.assertEqual(len(repo.get_persons(search_name='bo?ma')), 9)
         self.assertEqual(len(repo.get_persons(search_name=u'"mollo??"')), 1)
         self.assertEqual(len(repo.get_persons(search_name=u'"mollo*"')), 1)
 
-        self.assertEqual(len(repo.get_persons(search_soundex=u'hilbrand')), 9)
-        self.assertEqual(len(repo.get_persons(search_family_name_only=True, search_soundex=u'hilbrand')), 0)
-        self.assertEqual(len(repo.get_persons(search_family_name_only=True, search_soundex=u'bosma')), 9) 
+        self.assertEqual(len(repo.get_persons(search_name=u'hilbrand')), 9)
+        self.assertEqual(len(repo.get_persons(search_family_name_only=True, search_name=u'hilbrand')), 0)
+        self.assertEqual(len(repo.get_persons(search_family_name_only=True, search_name=u'bosma')), 9) 
 
-
+    def test_search_exact_name(self):
+        repo = self.repo
+        
+        self.assertEqual(len(repo.get_persons(search_name=u'"hilbrand"')), 9)
+        self.assertEqual(len(repo.get_persons(search_name=u'"boschma"')), 9)
+        self.assertEqual(len(repo.get_persons(search_name=u'"molloyx"')), 1)
+        self.assertEqual(len(repo.get_persons(search_family_name_only=True, search_name=u'"hilbrand"')), 0)
+        self.assertEqual(len(repo.get_persons(search_family_name_only=True, search_name=u'"boschma"')), 9) 
+        
     def test_complex_geboorte_date_get_persons_full(self):
         self.create_filled_repository()
         repo = self.repo
