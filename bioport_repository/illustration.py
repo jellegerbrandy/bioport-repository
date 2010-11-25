@@ -141,6 +141,7 @@ class Illustration:
         return os.path.join(self._images_cache_url, self.id)
 
     def has_image(self):
+        """return True if we a local copy of this image exists"""
         return os.path.isfile(self.cached_local)
      
         

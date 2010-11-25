@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 """
+ALTER TABLE `bioport`.`antiidentical` ADD INDEX `bioport_id1`(`bioport_id1`);
+ALTER TABLE `bioport`.`defer_identification` ADD INDEX `bioport_id1`(`bioport_id1`);
+
+"""
+"""
 ALTER TABLE `bioport`.`person_soundex` ADD COLUMN `is_from_family_name` boolean  AFTER `soundex`;
 ALTER TABLE `bioport`.`person_name` ADD COLUMN `is_from_family_name` boolean  ;
 """

@@ -357,7 +357,7 @@ class DBRepository:
             
             naam = merged_biography.naam()
             
-            names = merged_biography.get_names()
+            names = merged_biography.get_names() 
             if naam:
                 r_person.naam = naam.guess_normal_form()
                 r_person.sort_key = naam.sort_key()
@@ -1230,16 +1230,17 @@ class DBRepository:
                 if score > r_duplicate.score:
                     r_duplicate.score = score
         
-    def get_most_similar_persons(self, start=0, 
-                                       size=50, 
-                                       refresh=False, 
-                                       #similar_to=None,
-                                       source_id=None,
-                                       source_id2=None,
-                                       status=None,
-                                       search_name=None,
-                                       bioport_id=None,
-                                       ):
+    def get_most_similar_persons(self, 
+        start=0, 
+		size=50, 
+#		refresh=False, 
+		#similar_to=None,
+		source_id=None,
+		source_id2=None,
+		status=None,
+		search_name=None,
+		bioport_id=None,
+		):
         """return pairs of persons that are similar but not yet identified or defererred
         
         returns:
@@ -1250,9 +1251,9 @@ class DBRepository:
                 if both are given, we return tuples such that both person1 adn person2 ahve a biography among the sources
         """
         session = self.get_session() 
-        if refresh: 
-            #(re) fill the cache
-            self.fill_similarity_cache(refresh=refresh)            
+#        if refresh: 
+#            (re) fill the cache
+#            self.fill_similarity_cache(refresh=refresh)            
         qry = session.query(CacheSimilarityPersons)
         qry = qry.outerjoin((AntiIdentifyRecord,  
              and_( 
