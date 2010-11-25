@@ -661,6 +661,8 @@ class DBRepository:
         # this is the same problem described here:
         # http://www.mail-archive.com/sqlalchemy@googlegroups.com/msg13511.html
         # We should investigate further.
+        # JG: that thread continues and says "Once I understood that there wasn't really a memory leak, I just... "
+        #
         qry = self._get_persons_query(**args)
         #executing the qry.statement is MUCH faster than qry.all()
         ls = self.get_session().execute(qry.statement)
@@ -671,55 +673,55 @@ class DBRepository:
         return result   
     
     def _get_persons_query(self,
-                           bioport_id=None,
-                        #beroep_id=None,
-                            #auteur_id=None,
-                            beginletter=None,
-                            category=None,
-                            geboortejaar_min=None,
-                            geboortejaar_max=None,
-                            geboortemaand_min=None,
-                            geboortemaand_max=None,
-                            geboortedag_min=None,
-                            geboortedag_max=None,
-                            levendjaar_min=None,
-                            levendjaar_max=None,
-                            levendmaand_min=None,
-                            levendmaand_max=None,
-                            levenddag_min=None,
-                            levenddag_max=None,
-                            geboorteplaats = None,
-                            geslacht=None,
-                            has_illustrations=None, #boolean: does this person have illustrations?
-                            is_identified=None,
-                            match_term=None, #use for myqsl 'matching' (With stopwords and stuff)
-                            order_by='sort_key', 
-                            place=None,
-                            search_term=None,  #
-                            search_name=None, #use for mysql REGEXP matching
-                            search_family_name=None, #use for mysql REGEXP matching
+        bioport_id=None,
+        #beroep_id=None,
+        #auteur_id=None,
+        beginletter=None,
+        category=None,
+        geboortejaar_min=None,
+        geboortejaar_max=None,
+        geboortemaand_min=None,
+        geboortemaand_max=None,
+        geboortedag_min=None,
+        geboortedag_max=None,
+        levendjaar_min=None,
+        levendjaar_max=None,
+        levendmaand_min=None,
+        levendmaand_max=None,
+        levenddag_min=None,
+        levenddag_max=None,
+        geboorteplaats = None,
+        geslacht=None,
+        has_illustrations=None, #boolean: does this person have illustrations?
+        is_identified=None,
+        match_term=None, #use for myqsl 'matching' (With stopwords and stuff)
+        order_by='sort_key', 
+        place=None,
+        search_term=None,  #
+        search_name=None, #use for mysql REGEXP matching
+        search_family_name=None, #use for mysql REGEXP matching
 #                            search_soundex=None, #a string - will convert it to soundex, and try to match (all) of these
-                            any_soundex=[], #a list of soundex expressions - try to match any of these
-                            search_family_name_only=False, 
-                            source_id=None,
-                            source_id2=None,
-                            sterfjaar_min=None,
-                            sterfjaar_max=None,
-                            sterfmaand_min=None,
-                            sterfmaand_max=None,
-                            sterfdag_min=None,
-                            sterfdag_max=None,
-                            sterfplaats = None,
-                            start=None,
-                            size=None,
-                            status=None,
-                            hide_invisible=True, #if true, do not return "invisible" persons, such as those marked as "troep"
-                            hide_foreigners=False, #if true, do not return persons marked as "buitenlands"
-                            hide_no_external_biographies=True, #if true, do not return persons that have no external biographies
-                            where_clause=None,
-                            has_contradictions=False,
-                            no_empty_names=True,
-                            ):
+        any_soundex=[], #a list of soundex expressions - try to match any of these
+        search_family_name_only=False, 
+        source_id=None,
+        source_id2=None,
+        sterfjaar_min=None,
+        sterfjaar_max=None,
+        sterfmaand_min=None,
+        sterfmaand_max=None,
+        sterfdag_min=None,
+        sterfdag_max=None,
+        sterfplaats = None,
+        start=None,
+        size=None,
+        status=None,
+        hide_invisible=True, #if true, do not return "invisible" persons, such as those marked as "troep"
+        hide_foreigners=False, #if true, do not return persons marked as "buitenlands"
+        hide_no_external_biographies=True, #if true, do not return persons that have no external biographies
+        where_clause=None,
+        has_contradictions=False,
+        no_empty_names=True,
+        ):
         """construct a sqlalchemy Query filter accordin to the criteria given
         
         returns:
@@ -809,6 +811,7 @@ class DBRepository:
                 qry = qry.filter(dafilter)
             else:
                 qry = qry.filter(PersonRecord.geboorteplaats == geboorteplaats)
+                
         if sterfplaats:
             if '*' in sterfplaats:
                 dafilter = PersonRecord.sterfplaats.like(
@@ -845,9 +848,11 @@ class DBRepository:
         if any_soundex:
             qry = qry.join(PersonSoundex)
             qry = qry.filter(PersonSoundex.soundex.in_(any_soundex))
+            
+        qry = qry.join(PersonSource)
+        qry = qry.filter(PersonSource.source_id != 'bioport')
                 
         if source_id:
-            qry = qry.join(PersonSource)
             qry = qry.filter(PersonSource.source_id==source_id)
         
         if source_id2:
@@ -875,11 +880,13 @@ class DBRepository:
                 qry = qry.filter(PersonRecord.bioport_id > some_bioportid)
             else:
                 qry = qry.order_by(order_by)        
+                
         if has_contradictions:
             qry = qry.filter(PersonRecord.has_contradictions==True)
+            
         if size:
             qry = qry.limit(size)
-        qry = qry.distinct()
+        qry = qry.distinct() #XXX: why to we need this?
         #print qry.statement
         return qry
     
@@ -1232,15 +1239,15 @@ class DBRepository:
         
     def get_most_similar_persons(self, 
         start=0, 
-		size=50, 
-#		refresh=False, 
-		#similar_to=None,
-		source_id=None,
-		source_id2=None,
-		status=None,
-		search_name=None,
-		bioport_id=None,
-		):
+        size=50, 
+#        refresh=False, 
+        #similar_to=None,
+        source_id=None,
+        source_id2=None,
+        status=None,
+        search_name=None,
+        bioport_id=None,
+        ):
         """return pairs of persons that are similar but not yet identified or defererred
         
         returns:
