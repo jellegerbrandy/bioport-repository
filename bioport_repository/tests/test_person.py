@@ -44,9 +44,31 @@ class PersonTestCase(CommonTestCase):
         p1.get_merged_biography()
         p1.get_merged_biography()
 
+    def test_dates(self):
+        person = self._add_person(name='Estragon')
+        bio = person.get_biographies()[0]
+        bioport_id = person.get_bioport_id()
+        date_birth = '1900'
+        date_baptism = '1901'
+        date_death = '1902'
+        date_burial = '1903'
+        
+        bio._add_event(type='baptism', when=date_baptism)
+        self.repo.save_biography(bio)
+        self.assertEqual(self.repo.get_person(bioport_id).get_dates_for_overview(), (date_baptism,None))
+        
+        bio.set_value('birth_date', date_birth)
+        self.repo.save_biography(bio)
+        self.assertEqual(self.repo.get_person(bioport_id).get_dates_for_overview(), (date_birth, None))
 
-
-
+        bio._add_event(type='burial', when=date_burial)
+        self.repo.save_biography(bio)
+        self.assertEqual(self.repo.get_person(bioport_id).get_dates_for_overview(), (date_birth,date_burial))
+        
+        bio.set_value('death_date', date_death)
+        self.repo.save_biography(bio)
+        self.assertEqual(self.repo.get_person(bioport_id).get_dates_for_overview(), (date_birth,date_death))
+        
 class InconsistentPersonsTestCase(CommonTestCase):
 
     x = 0

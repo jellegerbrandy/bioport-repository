@@ -167,6 +167,27 @@ class Person(object):
     def sterfdatum(self):
         return self.record.sterfdatum
 
+    def get_dates_for_overview(self):
+        """return a tuple of ISO-dates to show in the overview
+        
+        the first data is the date of bith, but if that does not exist, it is date of baptism
+        the second date is the date of death, or, if that does not exist, date of burial
+        """
+        date1 = self.geboortedatum() 
+        if not date1:
+            event = self.get_merged_biography().get_event('baptism')
+            if event is not None:
+                date1 = event.get('when')
+        
+        date2 = self.sterfdatum()
+        if not date2:
+            event = self.get_merged_biography().get_event('burial')
+            if event is not None:
+                date2 = event.get('when')
+        return date1, date2
+            
+        
+    
     def names(self):
         return self.record.names
 
@@ -297,5 +318,3 @@ class Contradiction(object):
 
     __repr__ = __str__
 
-#    def render(self):
-#        return ', '.join("%s (%s)" %(x, y) for x, y in self.values)
