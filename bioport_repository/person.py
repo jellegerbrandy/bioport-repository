@@ -162,10 +162,12 @@ class Person(object):
         return self.repository.db.add_comment(bioport_id=self.id, values=kwargs)
 
     def geboortedatum(self):
-        return self.record.geboortedatum
+        if self.record.geboortedatum_min == self.record.geboortedatum_max:
+	        return self.record.geboortedatum_min
 
     def sterfdatum(self):
-        return self.record.sterfdatum
+        if self.record.sterfdatum_min == self.record.sterfdatum_max:
+	        return self.record.sterfdatum_max
 
     def get_dates_for_overview(self):
         """return a tuple of ISO-dates to show in the overview

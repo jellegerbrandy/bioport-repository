@@ -205,8 +205,12 @@ class DBRepositoryTestCase(CommonTestCase):
     def test_complex_sterf_date_get_persons_partial(self):
         self.create_filled_repository()
         repo = self.repo
-        qry = dict(sterfmaand_min="1", sterfdag_min="10")
-        qry.update(dict(sterfmaand_max="2", sterfdag_max="20"))
+        qry = dict(
+            sterfmaand_min="1", 
+            sterfdag_min="10",
+            sterfmaand_max="2", 
+            sterfdag_max="20",
+            )
         self.assertEqual(len(repo.get_persons(**qry)), 2)
         qry['sterfdag_max'] = '25'
         self.assertEqual(len(repo.get_persons(**qry)), 3)
@@ -221,8 +225,8 @@ class DBRepositoryTestCase(CommonTestCase):
         self.assertEqual(len(repo.get_persons(**qry)), 3)
         #Let's check that a date with the year only is not returned
         self.db.get_session().execute(
-            "UPDATE person set sterfdatum='1882'"
-            " WHERE sterfdatum='1882-01-15'")
+            "UPDATE person set sterfdatum_min ='1882', sterfdatum_max='1882'"
+            " WHERE sterfdatum_min ='1882-01-15'")
         self.assertEqual(len(repo.get_persons(**qry)), 2)
 
     def test_hide_invisible(self):
@@ -291,7 +295,8 @@ class DBRepositoryTestCase(CommonTestCase):
         
         #however, we still should remember with which bioport_ids our biogrpahies were associated
         self.assertEqual(session.query(RelBioPortIdBiographyRecord).count(), 10)
-        
+
+
 def test_suite():
     return unittest.TestSuite((
         unittest.makeSuite(DBRepositoryTestCase, 'test_'),

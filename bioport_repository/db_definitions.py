@@ -109,9 +109,7 @@ class PersonRecord(Base):
     """
     
     __tablename__ = 'person'
-
-    #db_id = Column(Integer, primary_key=True, autoincrement=True)
-#    id = Column(Integer, primary_key=True, auto_increment=True)
+    
     bioport_id = Column(
         MSString(50), 
         ForeignKey('bioportid.bioport_id'), 
@@ -119,10 +117,11 @@ class PersonRecord(Base):
         index=True, 
         unique=True,
         )
-    geboortedatum = Column(MSString(10), index=True)
-    geboortejaar = Column(Integer, index=True)
+    geboortedatum_min = Column(MSString(10), index=True)
+    geboortedatum_max = Column(MSString(10), index=True)
     geboorteplaats = Column(MSString(255), index=True)
-    sterfdatum = Column(MSString(10), index=True)
+    sterfdatum_min = Column(MSString(10), index=True)
+    sterfdatum_max = Column(MSString(10), index=True)
     sterfjaar = Column(Integer, index=True)
     sterfplaats = Column(MSString(255), index=True)
     naam = Column(MSString(255), index=True)
@@ -144,7 +143,14 @@ class PersonRecord(Base):
     
     timestamp = Column(TIMESTAMP)
 #    categories = relation('RelPersonCategory') #this propertie is already defined by backref on RelPresonCategory
-
+    def geboortedatum(self):
+        if self.geboortedatum_min == self.geboortedatum_max:
+            return self.geboortedatum_min 
+        
+    def sterfdatum(self):
+        if self.sterfdatum_min == self.sterfdatum_max:
+            return self.sterfdatum_max 
+        
 class PersonSoundex(Base): 
     __tablename__ = 'person_soundex'
     id = Column(Integer, primary_key=True)

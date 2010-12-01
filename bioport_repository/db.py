@@ -17,7 +17,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
 
 from names.similarity import soundexes_nl
-from names.common import encodable, to_ymd , TUSSENVOEGSELS
+from names.common import to_ymd , TUSSENVOEGSELS
 
 from bioport_repository.db_definitions import PersonRecord, AntiIdentifyRecord
 from bioport_repository.db_definitions import DeferIdentificationRecord
@@ -25,7 +25,7 @@ from bioport_repository.db_definitions import ChangeLog, Occupation
 from bioport_repository.db_definitions import Category, Base, Location, Comment
 from bioport_repository.db_definitions import PersonSource, PersonSoundex, AuthorRecord
 from bioport_repository.db_definitions import RelPersonCategory, PersonName
-from bioport_repository.db_definitions import NaamRecord, SoundexRecord, SimilarityCache
+from bioport_repository.db_definitions import NaamRecord, SoundexRecord
 from bioport_repository.db_definitions import (CacheSimilarityPersons,
                                                BioPortIdRecord,
                                                RelBioPortIdBiographyRecord,
@@ -33,12 +33,13 @@ from bioport_repository.db_definitions import (CacheSimilarityPersons,
                                                SourceRecord,
                                                STATUS_NEW)
 
+
 from sqlalchemy import create_engine, desc, and_, or_, not_
 
 from bioport_repository.similarity.similarity import Similarity
 from bioport_repository.person import Person
 from bioport_repository.biography import Biography 
-from bioport_repository.source import Source, BioPortSource
+from bioport_repository.source import Source 
 
 LENGTH = 8  # the length of a bioport id
 ECHO = False
@@ -370,12 +371,14 @@ class DBRepository:
             r_person.has_illustrations = bool(merged_biography.get_illustrations())
             r_person.search_source = person.search_source()
             r_person.sex = merged_biography.get_value('geslacht')
-            r_person.sterfdatum = merged_biography.get_value('sterfdatum')
-            if r_person.sterfdatum:
-                r_person.sterfjaar = to_ymd(r_person.sterfdatum)[0]
-            r_person.geboortedatum = merged_biography.get_value('geboortedatum')
-            if r_person.geboortedatum:
-                r_person.geboortejaar = to_ymd(r_person.geboortedatum)[0]
+            r_person.sterfdatum_min = merged_biography.get_value('sterfdatum')
+            r_person.sterfdatum_max = merged_biography.get_value('sterfdatum')
+            if r_person.sterfdatum_min and r_person.sterfdatum_min == r_person.sterfdatum_max:
+                r_person.sterfjaar = to_ymd(r_person.sterfdatum_min)[0]
+            r_person.geboortedatum_min = merged_biography.get_value('geboortedatum')
+            r_person.geboortedatum_max = merged_biography.get_value('geboortedatum')
+            if r_person.geboortedatum_min == r_person.geboortedatum_max and r_person.geboortedatum_min:
+                r_person.geboortejaar = to_ymd(r_person.geboortedatum_min)[0]
             r_person.geboorteplaats = merged_biography.get_value('geboorteplaats')
             r_person.sterfplaats = merged_biography.get_value('sterfplaats')
             r_person.names = ' '.join([unicode(name) for name in names])
@@ -736,8 +739,10 @@ class DBRepository:
             PersonRecord.status,
             PersonRecord.remarks,
             PersonRecord.has_illustrations,
-            PersonRecord.geboortedatum,
-            PersonRecord.sterfdatum,
+            PersonRecord.geboortedatum_min,
+            PersonRecord.geboortedatum_max,
+            PersonRecord.sterfdatum_min,
+            PersonRecord.sterfdatum_max,
             PersonRecord.naam,
             PersonRecord.names,
             PersonRecord.geslachtsnaam,
@@ -909,7 +914,6 @@ class DBRepository:
         dag_max = int(datdag_max or 31)
         date_filter = "TRUE"
         
-        field = getattr(PersonRecord, datetype + 'datum', None)
         
         if datetype == 'levend' and not (datjaar_min or datjaar_max):
             # Everybody was alive in every period of the year, so this
@@ -922,25 +926,69 @@ class DBRepository:
             start_date = "%04i-%02i-%02i" % (jaar_min, maand_min, dag_min)
             end_date = "%04i-%02i-%02i" % (jaar_max, maand_max, dag_max)
             if datetype == 'levend':
-                date_filter = and_(PersonRecord.geboortedatum <= end_date,
-                              PersonRecord.sterfdatum >= start_date)
+                date_filter = and_(
+                       self._apply_date_operator('geboorte', '<=', end_date), 
+                       self._apply_date_operator('sterf', '>=', start_date)
+                       ) 
             else:
-                date_filter = and_(field >= start_date,
-                                   field <= end_date)
+                date_filter = and_(
+                       self._apply_date_operator(datetype, '>=',  start_date),
+                       self._apply_date_operator(datetype, '<=', end_date)
+                       )
         elif (datmaand_min or datdag_min
               or datmaand_max or datdag_max):
+            #the user has not specified a year, only a date 
+            #basically, we are now searching for people that have a birthday (or died on a date) in a certain range
+            field_min = getattr(PersonRecord, datetype + 'datum_min', None)
+            field_max = getattr(PersonRecord, datetype + 'datum_max', None)
             SUBSTRING = sqlalchemy.func.SUBSTRING
-            no_year = SUBSTRING(field, 6, 5)
+            field_without_year = SUBSTRING(field_min, 6, 5)
             start_date = "%02i-%02i" % (maand_min, dag_min)
             end_date = "%02i-%02i" % (maand_max, dag_max)
-            myoperator = and_
             if start_date>end_date:
-                myoperator = or_
-            date_filter = myoperator(no_year >= start_date, no_year <= end_date)
+                date_filter = or_(field_without_year >= start_date, field_without_year <= end_date)
+            else:
+                date_filter = and_(field_without_year >= start_date, field_without_year <= end_date)
+                
             # We want the month to be specified, i.e. at least a 7-char date
-            date_filter = and_(date_filter, sqlalchemy.func.length(field)>=7)
+            date_filter = and_(date_filter, sqlalchemy.func.length(field_min)>=7)
+            #also, we want to consider only cases in which we are sure about the date
+            date_filter = and_(date_filter, field_min == field_max)
         return date_filter
 
+        
+    def _apply_date_operator(self, datetype, operator, value):
+        """return a filter that on _min and _max
+        
+        arguments:
+            datetype : one of ['geboorte', 'sterf']
+            operator : one of ['<=', '>=']
+            value : a string in ISO format YYYY[-MM[-DD]] that represents a date
+        returns:
+            a filter (to a apply to a SQL Alchemy query
+        """
+        if datetype == 'geboorte':
+            if operator == '<=' :
+                date_filter = PersonRecord.geboortedatum_max <= value
+    #             and_(
+    #                  PersonRecord.geboortedatum_min <= value,
+    #                  PersonRecord.geboortedatum_max <= value)
+            elif operator == '>=':
+                date_filter = PersonRecord.geboortedatum_min >= value
+                #this would be the 'inclusive' version
+    #            date_filter = PersonRecord.geboortedatum_max >= value
+                
+        elif datetype == 'sterf':
+            if operator == '<=' :
+                date_filter = PersonRecord.sterfdatum_max <= value
+            elif operator == '>=':
+                date_filter = PersonRecord.sterfdatum_min >= value
+        
+        else:
+            raise ValueError("datetype must be one of ['geboorte', 'sterf']") 
+        return date_filter
+    
+  
     def _filter_search_name(self, qry, search_name, search_family_name_only=False):
         """Add an appropriate filter to the qry when searching for search_name
         arguments:

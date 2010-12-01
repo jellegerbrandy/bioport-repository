@@ -1,5 +1,19 @@
 #!/usr/bin/env python
 """
+ALTER TABLE `bioport`.`person` CHANGE COLUMN `geboortedatum` `geboortedatum_max` VARCHAR(10)  CHARACTER SET latin1 COLLATE latin1_swedish_ci DEFAULT NULL,
+ CHANGE COLUMN `sterfdatum` `sterfdatum_max` VARCHAR(10)  CHARACTER SET latin1 COLLATE latin1_swedish_ci DEFAULT NULL,
+ ADD COLUMN `geboortedatum_min` varchar(10)  AFTER `geboortejaar`,
+ ADD COLUMN `sterfdatum_min` varchar(10)  AFTER `sterfplaats`;
+
+ALTER TABLE `bioport`.`person` DROP INDEX `ix_person_geboortedatum`
+, DROP INDEX `ix_person_sterfdatum`,
+ ADD INDEX `ix_person_geboortedatum_max` USING BTREE(`geboortedatum_max`),
+ ADD INDEX `ix_person_sterfdatum_max` USING BTREE(`sterfdatum_max`),
+ ADD INDEX `ix_geboortedatum_min`(`geboortedatum_min`),
+ ADD INDEX `sterfdatum_min`(`sterfdatum_min`);
+
+"""
+"""
 ALTER TABLE `bioport`.`antiidentical` ADD INDEX `bioport_id1`(`bioport_id1`);
 ALTER TABLE `bioport`.`defer_identification` ADD INDEX `bioport_id1`(`bioport_id1`);
 
