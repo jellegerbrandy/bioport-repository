@@ -16,6 +16,7 @@ class CommonTestCase(unittest.TestCase):
         self.assertEqual(to_date('2001-02', round='up'), datetime.datetime(2001, 2, 28, 0, 0))
         #2000 is a leap year
         self.assertEqual(to_date('2000-02', round='up'), datetime.datetime(2000, 2, 29, 0, 0))
+        self.assertEqual(to_date('2000-12', round='up'), datetime.datetime(2000, 12, 31, 0, 0))
  
         self.assertEqual(to_date('2000', round='up'), datetime.datetime(2000, 12, 31, 0, 0))
         self.assertEqual(to_date('0200', round='up'), datetime.datetime(200, 12, 31, 0, 0))

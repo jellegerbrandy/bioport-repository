@@ -20,8 +20,12 @@ def to_date(s, round='down' ):
         format = '%Y-%m'
         result = datetime.datetime.strptime(s, format)
         if round == 'up':
-	        result = result.replace(month=result.month+1)
-	        result = result - datetime.timedelta(1)
+            if result.month == 12:
+		        result = result.replace(month=1, year=result.year + 1)
+		        result = result - datetime.timedelta(1)
+            else: 
+		        result = result.replace(month=result.month+1)
+		        result = result - datetime.timedelta(1)
     elif len(s) == 10:
         format = '%Y-%m-%d'
         result = datetime.datetime.strptime(s, format)
