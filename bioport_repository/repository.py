@@ -41,10 +41,16 @@ class Repository(object):
         self.svn_repository = SVNRepository(svn_repository=svn_repository, svn_repository_local_copy=svn_repository_local_copy)
         self.db = DBRepository(db_connection=db_connection, 
 #                ZOPE_SESSIONS=ZOPE_SESSIONS, 
-				user=user)
+                user=user)
         self.db.repository = self
         if images_cache_local:
-            assert os.path.exists(images_cache_local), 'this path (for "images_local_cache") does not exist; %s'% images_cache_local
+            try:
+                msg = 'this path (for "images_local_cache") does not exist; %s' % images_cache_local
+                assert os.path.exists(images_cache_local), msg
+            except:
+                print msg
+                
+                #XXXP
         self.images_cache_local = images_cache_local
         self.images_cache_url = images_cache_url
         self.user=user
@@ -526,5 +532,4 @@ class AttributeDict(dict):
     def __init__(self, *args, **kwargs):
         dict.__init__(self, *args, **kwargs)
         self.__dict__ = self
-
 

@@ -225,7 +225,7 @@ class DBRepositoryTestCase(CommonTestCase):
         self.assertEqual(len(repo.get_persons(**qry)), 3)
         #Let's check that a date with the year only is not returned
         self.db.get_session().execute(
-            "UPDATE person set sterfdatum_min ='1882', sterfdatum_max='1882'"
+            "UPDATE person set sterfdatum_min ='1882-01-01', sterfdatum_max='1882-12-31'"
             " WHERE sterfdatum_min ='1882-01-15'")
         self.assertEqual(len(repo.get_persons(**qry)), 2)
 
@@ -295,8 +295,7 @@ class DBRepositoryTestCase(CommonTestCase):
         
         #however, we still should remember with which bioport_ids our biogrpahies were associated
         self.assertEqual(session.query(RelBioPortIdBiographyRecord).count(), 10)
-
-
+        
 def test_suite():
     return unittest.TestSuite((
         unittest.makeSuite(DBRepositoryTestCase, 'test_'),

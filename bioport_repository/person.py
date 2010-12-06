@@ -162,12 +162,18 @@ class Person(object):
         return self.repository.db.add_comment(bioport_id=self.id, values=kwargs)
 
     def geboortedatum(self):
-        if self.record.geboortedatum_min == self.record.geboortedatum_max:
-	        return self.record.geboortedatum_min
+        event = self.get_merged_biography().get_event('birth')
+        if event is not None:
+            return event.get('when')
+#        if self.record.geboortedatum_min == self.record.geboortedatum_max:
+#            return self.record.geboortedatum_min
 
     def sterfdatum(self):
-        if self.record.sterfdatum_min == self.record.sterfdatum_max:
-	        return self.record.sterfdatum_max
+        event = self.get_merged_biography().get_event('death')
+        if event is not None:
+            return event.get('when')
+#        if self.record.sterfdatum_min == self.record.sterfdatum_max:
+#            return self.record.sterfdatum_max
 
     def get_dates_for_overview(self):
         """return a tuple of ISO-dates to show in the overview
@@ -319,4 +325,3 @@ class Contradiction(object):
         return len(self.values)
 
     __repr__ = __str__
-

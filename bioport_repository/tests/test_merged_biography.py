@@ -3,6 +3,7 @@ from bioport_repository.merged_biography import MergedBiography, BiographyMerger
 from bioport_repository.biography import Biography
 from names.name import Name
 from lxml import etree
+from datetime import datetime
 
 
     
@@ -48,7 +49,62 @@ class TestMergedBiography(CommonTestCase):
         self.assertEqual(doc.get_value('geboortedatum'), '2000-02-01', doc.to_string())
         self.assertEqual(doc.get_value('birth_date'), '2000-02-01')
 
-
+    def test_min_max_dates(self):
+        date_birth = '1900'
+        date_baptism = '1901'
+        date_death = '1902'
+        date_burial = '1903'
+        bio1 = self._create_biography(naam='Lucky', birth_date='1900', death_date ='1970')
+        m_bio = MergedBiography([bio1])
+        
+        #we gave
+        wanted = (
+            datetime(1900, 1, 1), 
+            datetime(1900, 12, 31),
+            datetime(1970, 1, 1), 
+            datetime(1970, 12, 31),
+            ) 
+        self.assertEqual(m_bio._get_min_max_dates(),  wanted)
+        
+        bio = self._create_biography(naam='Pozzo')
+        bio._add_event(type='baptism', when='1910-01-02')
+        m_bio = MergedBiography([bio])
+        
+        wanted = ( 
+            datetime(1900, 1, 2), #at most 10 years before baptism
+            datetime(1910, 1, 2), #birth_date_max on the day of baptism
+            datetime(1920, 1, 2), #death_date at least 20 years after date_min 
+            datetime(2010, 1, 2), #lived not more than 100 years
+            ) 
+        self.assertEqual(m_bio._get_min_max_dates(),  wanted)
+        
+        #test with only a date of death
+        bio = self._create_biography(naam='Vladimir')
+        bio._add_event(type='death', when='1980-03')
+        m_bio = MergedBiography([bio])
+        
+        wanted = ( 
+            datetime(1880, 3, 1), #min birth 100 years before min death
+            datetime(1960, 3, 31), #max birth 20 years before max death
+            datetime(1980, 3, 1), #
+            datetime(1980, 3, 31), #
+            ) 
+        self.assertEqual(m_bio._get_min_max_dates(), wanted)
+        
+        #test with only a range of date of death
+        bio = self._create_biography(naam='Vladimir')
+        bio._add_event(type='death', notBefore='1980-03', notAfter='1990')
+        m_bio = MergedBiography([bio])
+        
+        wanted = ( 
+            datetime(1880, 3, 1), #min birth 100 years before min death
+            datetime(1970, 12, 31), #max birth 20 years before max death
+            datetime(1980, 3, 1), #
+            datetime(1990, 12, 31), 
+            ) 
+        self.assertEqual(m_bio._get_min_max_dates(), wanted)
+        
+       
 class TestBiographyMerger(CommonTestCase):
     def test_sanity(self):
         bio1 = self._create_biography(naam='Mercier', birth_date='2000-01-01')
@@ -90,15 +146,14 @@ class TestBiographyMerger(CommonTestCase):
         bio6.add_or_update_event(type='birth', when='1900')
         m_bio = BiographyMerger.merge_biographies(bios=[bio6, bio5])
         self.assertEqual(m_bio.get_value('birth_date'), '1900-01-01')
-        
+
+ 
 def test_suite():
     return unittest.TestSuite((
-#        unittest.makeSuite(TestMergedBiography),
+        unittest.makeSuite(TestMergedBiography),
         unittest.makeSuite(TestBiographyMerger),
         ))
 
 
 if __name__ == "__main__":
     unittest.main(defaultTest='test_suite')    
-
-

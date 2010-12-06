@@ -4,6 +4,7 @@ from plone.memoize import instance
 from biodes import BioDesDoc
 from bioport_repository.data_extraction import BioDataExtractor
 from bioport_repository.biography import Biography
+from bioport_repository.common import to_date
 from lxml.etree import SubElement
 from lxml import etree
 
@@ -74,6 +75,75 @@ class MergedBiography:
                 return event.get('when')
             elif event.find('date') is not None:
                 return event.find('date').text
+    
+    def get_geboortedatum_min(self):
+        return self._get_min_max_dates()[0]
+
+    def _get_min_max_dates(self):
+        """return a tuple (birth_date_min, birth_date_max, death_date_min, death_date_max
+        
+        using as much information as is possibly available"""
+        birth_date_min = birth_date_max = death_date_min = death_date_max = None
+        
+        def extract_min_max_from_event(type):
+            """given an event, return a miminal and maximal date
+            
+            returns a tuple of two date instances
+            """
+            event = self.get_event(type)
+            if event is not None:
+                date_min = date_max =  event.get('when')
+                if not date_min:
+                    date_min =  event.get('notBefore')
+                if not date_max:
+                    date_max = event.get('notAfter')
+                date_min = to_date(date_min)
+                date_max = to_date(date_max, round='up')
+                return (date_min, date_max)
+            else:
+                return (None, None)
+        birth_date_min,   birth_date_max   = extract_min_max_from_event('birth') 
+        death_date_min,   death_date_max   = extract_min_max_from_event('death') 
+        baptism_date_min, baptism_date_max = extract_min_max_from_event('baptism') 
+        burial_date_min,  burial_date_max  = extract_min_max_from_event('burial') 
+   
+        #we can assume people in the portal lived for at least 20 years
+        DELTA_BIRTH_DEATH_MIN = 20
+        DELTA_BIRTH_DEATH_MAX = 100
+        DELTA_BIRTH_BAPTISM_MIN = 0
+        DELTA_BIRTH_BAPTISM_MAX = 10 
+        if not birth_date_min:
+            if baptism_date_min:
+                birth_date_min = baptism_date_min.replace(year = baptism_date_min.year-DELTA_BIRTH_BAPTISM_MAX)
+            elif death_date_min:
+                #we assume people live less than 100 year
+                birth_date_min = death_date_min.replace(year = death_date_min.year-DELTA_BIRTH_DEATH_MAX)
+            elif burial_date_min:
+                birth_date_min = burial_date_min.replace(year = burial_date_min.year-DELTA_BIRTH_DATE_MAX)
+                       
+        if not birth_date_max:
+            if baptism_date_min:
+                birth_date_max = baptism_date_min
+            elif death_date_max:
+                birth_date_max = death_date_max.replace(year = death_date_max.year-DELTA_BIRTH_DEATH_MIN)
+            elif burial_date_max:
+                birth_date_max = burial_date_max.replace(year = burial_date_max.year-DELTA_BIRTH_DEATH_MIN)
+        
+        if not death_date_min:
+            if birth_date_min:
+                death_date_min = birth_date_min.replace(year = birth_date_min.year + DELTA_BIRTH_DEATH_MIN)
+       
+        if not death_date_max:
+            if birth_date_max:
+                death_date_max = birth_date_max.replace(year = birth_date_max.year + DELTA_BIRTH_DEATH_MAX) 
+        return birth_date_min, birth_date_max, death_date_min, death_date_max
+    
+    def get_geboortedatum_max(self):
+        return self.geboortedatum()
+    def get_sterfdatum_min(self):
+        return self.sterfdatum()
+    def get_sterfdatum_max(self):
+        return self.sterfdatum()
     def get_event(self, type):
         for bio in self.get_biographies():
             if bio.get_event(type) is not None:
@@ -165,11 +235,16 @@ class MergedBiography:
                 return s
 
 class BiographyMerger(object): 
+    """methods for merging biographies into a single new one"""
     @staticmethod
     def merge_biographies(bios):
         """merge the biographies in bios into a single one
-        
-        if bios is None, merges all bioport biographies of self, and delete the copies
+       
+        arguments:
+            bios: a  list of Biography instances
+        returns:
+            an instnace of Biography if the merge is successfull, None otherwise
+            
         if the bios are not mergeable (they may have different data), don't change anything, and return the list
         """
         if len(bios) < 2:

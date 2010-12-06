@@ -15,6 +15,7 @@ from sqlalchemy.exceptions import IntegrityError, InvalidRequestError
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy import create_engine, desc, and_, or_, not_
 
 from names.similarity import soundexes_nl
 from names.common import to_ymd , TUSSENVOEGSELS
@@ -34,12 +35,12 @@ from bioport_repository.db_definitions import (CacheSimilarityPersons,
                                                STATUS_NEW)
 
 
-from sqlalchemy import create_engine, desc, and_, or_, not_
 
 from bioport_repository.similarity.similarity import Similarity
 from bioport_repository.person import Person
 from bioport_repository.biography import Biography 
 from bioport_repository.source import Source 
+from bioport_repository.common import format_date , to_date
 
 LENGTH = 8  # the length of a bioport id
 ECHO = False
@@ -371,14 +372,15 @@ class DBRepository:
             r_person.has_illustrations = bool(merged_biography.get_illustrations())
             r_person.search_source = person.search_source()
             r_person.sex = merged_biography.get_value('geslacht')
-            r_person.sterfdatum_min = merged_biography.get_value('sterfdatum')
-            r_person.sterfdatum_max = merged_biography.get_value('sterfdatum')
-            if r_person.sterfdatum_min and r_person.sterfdatum_min == r_person.sterfdatum_max:
-                r_person.sterfjaar = to_ymd(r_person.sterfdatum_min)[0]
-            r_person.geboortedatum_min = merged_biography.get_value('geboortedatum')
-            r_person.geboortedatum_max = merged_biography.get_value('geboortedatum')
-            if r_person.geboortedatum_min == r_person.geboortedatum_max and r_person.geboortedatum_min:
-                r_person.geboortejaar = to_ymd(r_person.geboortedatum_min)[0]
+            birth_min, birth_max, death_min, death_max = merged_biography._get_min_max_dates()
+            r_person.geboortedatum_min = format_date(birth_min)
+            r_person.geboortedatum_max = format_date(birth_max)
+            r_person.sterfdatum_min = format_date(death_min)
+            r_person.sterfdatum_max = format_date(death_max)
+#            if r_person.sterfdatum_min and r_person.sterfdatum_min == r_person.sterfdatum_max:
+#                r_person.sterfjaar = to_ymd(r_person.sterfdatum_min)[0]
+#            if r_person.geboortedatum_min == r_person.geboortedatum_max and r_person.geboortedatum_min:
+#                r_person.geboortejaar = to_ymd(r_person.geboortedatum_min)[0]
             r_person.geboorteplaats = merged_biography.get_value('geboorteplaats')
             r_person.sterfplaats = merged_biography.get_value('sterfplaats')
             r_person.names = ' '.join([unicode(name) for name in names])
@@ -870,10 +872,10 @@ class DBRepository:
                 status = None
             qry = qry.filter(PersonRecord.status == status)
 
-        if sterfjaar_min:
-            qry = qry.filter(PersonRecord.sterfjaar >= sterfjaar_min)
-        if sterfjaar_max:
-            qry = qry.filter(PersonRecord.sterfjaar <= sterfjaar_max)
+#        if sterfjaar_min:
+#            qry = qry.filter(PersonRecord.sterfjaar >= sterfjaar_min)
+#        if sterfjaar_max:
+#            qry = qry.filter(PersonRecord.sterfjaar <= sterfjaar_max)
         if where_clause:
             qry = qry.filter(where_clause)
 
@@ -921,7 +923,7 @@ class DBRepository:
             return date_filter
         
         if datjaar_min or datjaar_max:
-            jaar_min = int(datjaar_min or 0)
+            jaar_min = int(datjaar_min or 1)
             jaar_max = int(datjaar_max or 9999)
             start_date = "%04i-%02i-%02i" % (jaar_min, maand_min, dag_min)
             end_date = "%04i-%02i-%02i" % (jaar_max, maand_max, dag_max)
@@ -969,20 +971,20 @@ class DBRepository:
         """
         if datetype == 'geboorte':
             if operator == '<=' :
-                date_filter = PersonRecord.geboortedatum_max <= value
+                date_filter = PersonRecord.geboortedatum_max <= format_date(to_date(value, round='up'))
     #             and_(
     #                  PersonRecord.geboortedatum_min <= value,
     #                  PersonRecord.geboortedatum_max <= value)
             elif operator == '>=':
-                date_filter = PersonRecord.geboortedatum_min >= value
+                date_filter = PersonRecord.geboortedatum_min >= format_date(to_date(value))
                 #this would be the 'inclusive' version
     #            date_filter = PersonRecord.geboortedatum_max >= value
                 
         elif datetype == 'sterf':
             if operator == '<=' :
-                date_filter = PersonRecord.sterfdatum_max <= value
+                date_filter = PersonRecord.sterfdatum_max <= format_date(to_date(value, round='up'))
             elif operator == '>=':
-                date_filter = PersonRecord.sterfdatum_min >= value
+                date_filter = PersonRecord.sterfdatum_min >= format_date(to_date(value))
         
         else:
             raise ValueError("datetype must be one of ['geboorte', 'sterf']") 
