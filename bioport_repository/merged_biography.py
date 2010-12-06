@@ -114,20 +114,35 @@ class MergedBiography:
         DELTA_BIRTH_BAPTISM_MAX = 10 
         if not birth_date_min:
             if baptism_date_min:
-                birth_date_min = baptism_date_min.replace(year = baptism_date_min.year-DELTA_BIRTH_BAPTISM_MAX)
+                try:
+	                birth_date_min = baptism_date_min.replace(year = baptism_date_min.year-DELTA_BIRTH_BAPTISM_MAX)
+                except ValueError:
+                    pass
             elif death_date_min:
                 #we assume people live less than 100 year
-                birth_date_min = death_date_min.replace(year = death_date_min.year-DELTA_BIRTH_DEATH_MAX)
+                try:
+	                birth_date_min = death_date_min.replace(year = death_date_min.year-DELTA_BIRTH_DEATH_MAX)
+                except ValueError:
+                    pass
             elif burial_date_min:
-                birth_date_min = burial_date_min.replace(year = burial_date_min.year-DELTA_BIRTH_DATE_MAX)
+                try:
+	                birth_date_min = burial_date_min.replace(year = burial_date_min.year-DELTA_BIRTH_DATE_MAX)
+                except ValueError:
+                    pass
                        
         if not birth_date_max:
             if baptism_date_min:
                 birth_date_max = baptism_date_min
             elif death_date_max:
-                birth_date_max = death_date_max.replace(year = death_date_max.year-DELTA_BIRTH_DEATH_MIN)
+                try:
+	                birth_date_max = death_date_max.replace(year = death_date_max.year-DELTA_BIRTH_DEATH_MIN)
+                except ValueError:
+                    pass
             elif burial_date_max:
-                birth_date_max = burial_date_max.replace(year = burial_date_max.year-DELTA_BIRTH_DEATH_MIN)
+                try:
+	                birth_date_max = burial_date_max.replace(year = burial_date_max.year-DELTA_BIRTH_DEATH_MIN)
+                except ValueError:
+                    pass
         
         if not death_date_min:
             if birth_date_min:
