@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
-ALTER TABLE `bioport`.`person` CHANGE COLUMN `geboortedatum` `geboortedatum_max` DATETIME DEFAULT NULL,
- CHANGE COLUMN `sterfdatum` `sterfdatum_max` DATETIME  DEFAULT NULL,
+ALTER TABLE `bioport`.`person` ADD COLUMN `geboortedatum_max` DATETIME DEFAULT NULL,
+ ADD COLUMN `sterfdatum_max` DATETIME  DEFAULT NULL,
  ADD COLUMN `geboortedatum_min` DATETIME  AFTER `geboortejaar`,
  ADD COLUMN `sterfdatum_min` DATETIME AFTER `sterfplaats`;
 

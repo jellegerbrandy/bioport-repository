@@ -355,7 +355,8 @@ class DBRepository:
            
             #refresh the names (move this code to "save_person"
             merged_biography = person.get_merged_biography()
-            assert merged_biography.get_biographies(), person.bioport_id
+            if not merged_biography.get_biographies():
+                 logging.warning('NO biographies found for person with bioport id %s' % person.bioport_id)
             
             naam = merged_biography.naam()
             
