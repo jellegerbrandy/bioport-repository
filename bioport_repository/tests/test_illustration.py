@@ -8,7 +8,7 @@ from cStringIO import StringIO
 import shutil
 
 try:
-	from PIL import Image
+    from PIL import Image
 except ImportError:
     import Image
 
@@ -132,4 +132,3 @@ def test_suite():
 
 if __name__ == "__main__":
     unittest.main(defaultTest='test_suite')    
-

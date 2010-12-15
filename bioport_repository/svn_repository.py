@@ -26,7 +26,7 @@ class SVNRepository(object):
             
         self.url = url
             
-        self.client = pysvn.Client()
+#        self.client = pysvn.Client()
 #        repository = repos.open(root_path)
 #        self.fs_ptr = repos.fs(repository)
     

@@ -4,7 +4,7 @@ import pickle
 from common import CommonTestCase, unittest
 from bioport_repository.similarity.similarity import Similarity
 from bioport_repository.person import Person
-from bioport_repository.db_definition import CacheSimilirityPersons
+from bioport_repository.db_definition import CacheSimilarityPersons
 
 class SimilarityTestCase(CommonTestCase):
     

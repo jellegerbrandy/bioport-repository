@@ -30,7 +30,7 @@ def create_dictionary(repository, source, limit):
             d[dbnl_id] = [bio_id]
             
         try:
-	        print i, dbnl_id
+            print i, dbnl_id
         except:
             print i
     return d 

@@ -137,12 +137,12 @@ class CommonTestCase(unittest.TestCase):
         if xml_source: 
             bio = self._create_biography(xml_source=xml_source)
         else:
-	        bio = self._create_biography(
+            bio = self._create_biography(
                  name=name, 
                  names=names,
-	             geboortedatum=geboortedatum,
-	             sterfdatum=sterfdatum,
-	             )
+                 geboortedatum=geboortedatum,
+                 sterfdatum=sterfdatum,
+                 )
         
         #save it
         self.repo.add_biography(bio)
@@ -160,9 +160,9 @@ class CommonTestCase(unittest.TestCase):
         id = str(len(self.repo.get_biographies()))
         xml_source= args.get('xml_source')
         if xml_source:
-	        return Biography(repository=self.repo, source_id=source_id, id=id).from_string(xml_source)
+            return Biography(repository=self.repo, source_id=source_id, id=id).from_string(xml_source)
         else:
-	        return Biography(repository=self.repo, source_id=source_id, id=id).from_args(**defaults)
+            return Biography(repository=self.repo, source_id=source_id, id=id).from_args(**defaults)
     
 class CommonTestCaseTest(CommonTestCase):
     

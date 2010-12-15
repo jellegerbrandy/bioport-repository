@@ -75,7 +75,7 @@ def update_table_dbnl_ids(doubles=doubles, repo=repo):
                 print 'add to dbnl_ids',id1, id2
                 session.add(DBNLIds(bioport_id1=id1, bioport_id2=id2, source1=bio.source_id, source2=bio1.source_id, dbnl_id=dbnl_id))
                 try:
-	                session.commit()
+                    session.commit()
                 except IntegrityError:
                     session.rollback()
             
@@ -83,6 +83,5 @@ def update_table_dbnl_ids(doubles=doubles, repo=repo):
 
 if __name__ == '__main__':
     update_table_dbnl_ids(doubles)
-    test_sanity()
     
     

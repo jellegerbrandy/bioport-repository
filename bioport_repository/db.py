@@ -18,7 +18,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy import create_engine, desc, and_, or_, not_
 
 from names.similarity import soundexes_nl
-from names.common import to_ymd , TUSSENVOEGSELS
+from names.common import TUSSENVOEGSELS, words
 
 from bioport_repository.db_definitions import PersonRecord, AntiIdentifyRecord
 from bioport_repository.db_definitions import DeferIdentificationRecord
@@ -26,7 +26,8 @@ from bioport_repository.db_definitions import ChangeLog, Occupation
 from bioport_repository.db_definitions import Category, Base, Location, Comment
 from bioport_repository.db_definitions import PersonSource, PersonSoundex, AuthorRecord
 from bioport_repository.db_definitions import RelPersonCategory, PersonName
-from bioport_repository.db_definitions import NaamRecord, SoundexRecord
+#from bioport_repository.db_definitions import NaamRecord 
+from bioport_repository.db_definitions import SoundexRecord
 from bioport_repository.db_definitions import (CacheSimilarityPersons,
                                                BioPortIdRecord,
                                                RelBioPortIdBiographyRecord,
@@ -238,35 +239,35 @@ class DBRepository:
             #now update the person associated with this biography
             self.update_person(biography.get_bioport_id())
         
-    def add_naam(self, naam, bioport_id, src):
-        """add a record to the table 'naam'
-        
-        arguments:
-            naam - an instance of Naam 
-            biography - an instance of biography
-        """
-        with self.get_session_context() as session:
-            item = NaamRecord()
-            session.add(item)
-            
-            item.bioport_id = bioport_id
-            item.volledige_naam = naam.guess_normal_form()
-            item.xml = naam.to_string()
-            item.sort_key = naam.sort_key()
-            item.src = src
-            #item.src = src and unicode(src) or unicode(self.id)
-            
-            assert type(item.xml) == type(u'')
-            assert type(item.sort_key) == type(u'')
-
-            item.soundex = []
-            #item.variant_of = variant_of
-            
-            for s in naam.soundex_nl():
-                soundex = SoundexRecord()
-                soundex.soundex = s
-                item.soundex.append(soundex)
-            return item.id 
+#    def add_naam(self, naam, bioport_id, src):
+#        """add a record to the table 'naam'
+#        
+#        arguments:
+#            naam - an instance of Naam 
+#            biography - an instance of biography
+#        """
+#        with self.get_session_context() as session:
+#            item = NaamRecord()
+#            session.add(item)
+#            
+#            item.bioport_id = bioport_id
+#            item.volledige_naam = naam.guess_normal_form()
+#            item.xml = naam.to_string()
+#            item.sort_key = naam.sort_key()
+#            item.src = src
+#            #item.src = src and unicode(src) or unicode(self.id)
+#            
+#            assert type(item.xml) == type(u'')
+#            assert type(item.sort_key) == type(u'')
+#
+#            item.soundex = []
+#            #item.variant_of = variant_of
+#            
+#            for s in naam.soundex_nl():
+#                soundex = SoundexRecord()
+#                soundex.soundex = s
+#                item.soundex.append(soundex)
+#            return item.id 
    
     def delete_names(self, bioport_id):
         session  = self.get_session()
@@ -356,7 +357,7 @@ class DBRepository:
             #refresh the names (move this code to "save_person"
             merged_biography = person.get_merged_biography()
             if not merged_biography.get_biographies():
-                 logging.warning('NO biographies found for person with bioport id %s' % person.bioport_id)
+                logging.warning('NO biographies found for person with bioport id %s' % person.bioport_id)
             
             naam = merged_biography.naam()
             
@@ -416,8 +417,8 @@ class DBRepository:
             else:
                 src = None
                 
-            for naam in merged_biography.get_names():
-                self.add_naam(naam=naam, bioport_id=bioport_id, src=src)
+#            for naam in merged_biography.get_names():
+#                self.add_naam(naam=naam, bioport_id=bioport_id, src=src)
             
             self.update_soundex(bioport_id=bioport_id, names=names)
             self.update_name(bioport_id=bioport_id, names=names)
@@ -456,37 +457,49 @@ class DBRepository:
         with self.get_session_context() as session:           
             #delete existing references
             session.query(PersonName).filter(PersonName.bioport_id == bioport_id).delete()
+            session.query(PersonSoundex).filter(PersonSoundex.bioport_id == bioport_id).delete()
             for name in names:
                 full_name = name.guess_normal_form()
-                family_name = name.geslachtsnaam()
-                full_name_parts =  re.split('[^\w]+', full_name)
-                family_name_parts =  re.split('[^\w]+', family_name)
+                family_name = name.guess_geslachtsnaam()
+                full_name_parts =  words(full_name)
+                family_name_parts =  words(family_name)
                 for s in full_name_parts:
-                    if s in family_name_parts:
-                        r = PersonName(bioport_id=bioport_id, name=s, is_from_family_name=True) 
-                    else:
-                        r = PersonName(bioport_id=bioport_id, name=s, is_from_family_name=False) 
+                    is_from_family_name = (s in family_name_parts or s in TUSSENVOEGSELS)
+                    r = PersonName(bioport_id=bioport_id, name=s, is_from_family_name=is_from_family_name) 
                     session.add(r)
-        
+                    soundex = self._soundex_for_search(s)
+                    assert len(soundex) <= 1
+                    soundex = soundex[0]
+                    r = PersonSoundex(bioport_id=bioport_id, soundex=soundex, is_from_family_name=is_from_family_name) 
+                    session.add(r)
+                    
     def update_soundex(self, bioport_id, names):
         """update the table person_soundex
         
         arguments:
             names : a list of Name instances
         """
-        with self.get_session_context() as session:
-            #delete existing references
-            session.query(PersonSoundex).filter(PersonSoundex.bioport_id == bioport_id).delete()
-            for name in names:
-                full_name = name.guess_normal_form()
-                family_name = name.geslachtsnaam()
-                soundexes_full_name = self._soundex_for_search(full_name)
-                soundexes_family_name = self._soundex_for_search(family_name)
-                for soundex in soundexes_full_name:
-                    is_family_name = soundex in soundexes_family_name
-#                    r = PersonSoundex(bioport_id=bioport_id, soundex=soundex) 
-                    r = PersonSoundex(bioport_id=bioport_id, soundex=soundex, is_from_family_name=is_family_name) 
-                    session.add(r)   
+        return self.update_name(bioport_id, names)
+#        with self.get_session_context() as session:
+#            #delete existing references
+#            session.query(PersonSoundex).filter(PersonSoundex.bioport_id == bioport_id).delete()
+#            for name in names:
+#                full_name = name.guess_normal_form()
+#                family_name = name.guess_geslachtsnaam()
+#                full_name_parts =  words(full_name)
+#                family_name_parts =  words(family_name)
+#                for s in full_name_parts:
+#                    is_from_family_name = (s in family_name_parts or s in TUSSENVOEGSELS)
+#                    r = PersonSoundex(bioport_id=bioport_id, name=s, is_from_family_name=is_from_family_name) 
+#                    session.add(r)
+#
+#                soundexes_full_name = self._soundex_for_search(full_name)
+#                soundexes_family_name = self._soundex_for_search(family_name)
+#                for soundex in soundexes_full_name:
+#                    is_family_name = soundex in soundexes_family_name 
+##                    r = PersonSoundex(bioport_id=bioport_id, soundex=soundex) 
+#                    r = PersonSoundex(bioport_id=bioport_id, soundex=soundex, is_from_family_name=is_family_name) 
+#                    session.add(r)   
  
     def update_source(self, bioport_id, source_ids):   
         """update th table person_source"""

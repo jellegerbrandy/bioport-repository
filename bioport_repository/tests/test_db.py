@@ -1,6 +1,6 @@
 from bioport_repository.tests.common_testcase import CommonTestCase, unittest 
-from bioport_repository.db import Source, BiographyRecord, NaamRecord, PersonRecord, SoundexRecord, SourceRecord, Biography, RelBioPortIdBiographyRecord
-from bioport_repository.db_definitions import RelPersonCategory
+from bioport_repository.db import Source, BiographyRecord,  PersonRecord, SoundexRecord, SourceRecord, Biography, RelBioPortIdBiographyRecord
+from bioport_repository.db_definitions import RelPersonCategory, PersonSoundex
 
 
 class DBRepositoryTestCase(CommonTestCase):
@@ -23,8 +23,9 @@ class DBRepositoryTestCase(CommonTestCase):
     def test_manipulate_biographies(self): 
         """tests for adding and deleting biographies"""
         n_base = len(self.db.get_biographies())
-        n_base_naam = self.db.get_session().query(NaamRecord).count()
-        n_base_soundex = self.db.get_session().query(SoundexRecord).count()
+#        n_base_naam = self.db.get_session().query(NaamRecord).count()
+#        n_base_soundex = self.db.get_session().query(SoundexRecord).count()
+        n_base_soundex = self.db.get_session().query(PersonSoundex).count()
         self.assertEqual(len(self.db.get_session().query(BiographyRecord).all()), n_base )
         src = Source(id='123')
         self.repo.save_source(src)
@@ -37,8 +38,9 @@ class DBRepositoryTestCase(CommonTestCase):
         #we have added one new biography, with one name that corresponds to one single soundex
         self.assertEqual(len(self.db.get_biographies()), n_base + 1)
         self.assertEqual(len(self.db.get_session().query(BiographyRecord).all()), n_base + 1)
-        self.assertEqual(len(self.db.get_session().query(NaamRecord).all()), n_base_naam + 1)
-        self.assertEqual(len(self.db.get_session().query(SoundexRecord).all()), n_base_soundex + 1)
+#        self.assertEqual(len(self.db.get_session().query(NaamRecord).all()), n_base_naam + 1)
+#        self.assertEqual(len(self.db.get_session().query(SoundexRecord).all()), n_base_soundex + 1)
+        self.assertEqual(len(self.db.get_session().query(PersonSoundex).all()), n_base_soundex + 1)
         
         #this biography has one oauthor
         bio1.set_value('auteur', ['Johan'])
@@ -148,11 +150,18 @@ class DBRepositoryTestCase(CommonTestCase):
         self.assertEqual(len(repo.get_persons(search_name='bo?ma')), 9)
         self.assertEqual(len(repo.get_persons(search_name=u'"mollo??"')), 1)
         self.assertEqual(len(repo.get_persons(search_name=u'"mollo*"')), 1)
-
         self.assertEqual(len(repo.get_persons(search_name=u'hilbrand')), 9)
+        
         self.assertEqual(len(repo.get_persons(search_family_name_only=True, search_name=u'hilbrand')), 0)
         self.assertEqual(len(repo.get_persons(search_family_name_only=True, search_name=u'bosma')), 9) 
 
+    def test_search_intrapositions(self):
+        #if we search for family name only, also words like 'van' and 'van der' and such should be included
+        repo = self.repo
+        import ipdb;ipdb.set_trace()
+        self.assertEqual(len(repo.get_persons(search_name=u'van')), 1)
+        self.assertEqual(len(repo.get_persons(search_family_name_only=True, search_name=u'van')), 1) 
+        
     def test_search_exact_name(self):
         repo = self.repo
         

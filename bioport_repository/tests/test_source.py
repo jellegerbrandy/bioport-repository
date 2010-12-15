@@ -1,6 +1,7 @@
 from bioport_repository.tests.common_testcase import CommonTestCase, unittest , THIS_DIR
 
 from bioport_repository.source import *
+from bioport_repository.repository import Repository
 
 
 class SourceTestCase(CommonTestCase):
