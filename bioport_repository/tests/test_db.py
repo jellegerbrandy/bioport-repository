@@ -158,7 +158,6 @@ class DBRepositoryTestCase(CommonTestCase):
     def test_search_intrapositions(self):
         #if we search for family name only, also words like 'van' and 'van der' and such should be included
         repo = self.repo
-        import ipdb;ipdb.set_trace()
         self.assertEqual(len(repo.get_persons(search_name=u'van')), 1)
         self.assertEqual(len(repo.get_persons(search_family_name_only=True, search_name=u'van')), 1) 
         
