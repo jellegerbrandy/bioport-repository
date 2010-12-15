@@ -354,7 +354,6 @@ class DBRepository:
 
             person = Person(bioport_id=bioport_id, record=r_person, repository=self)
            
-            #refresh the names (move this code to "save_person"
             merged_biography = person.get_merged_biography()
             if not merged_biography.get_biographies():
                 logging.warning('NO biographies found for person with bioport id %s' % person.bioport_id)
@@ -374,11 +373,14 @@ class DBRepository:
             r_person.has_illustrations = bool(merged_biography.get_illustrations())
             r_person.search_source = person.search_source()
             r_person.sex = merged_biography.get_value('geslacht')
-            birth_min, birth_max, death_min, death_max = merged_biography._get_min_max_dates()
-            r_person.geboortedatum_min = format_date(birth_min)
-            r_person.geboortedatum_max = format_date(birth_max)
-            r_person.sterfdatum_min = format_date(death_min)
-            r_person.sterfdatum_max = format_date(death_max)
+            try:
+                birth_min, birth_max, death_min, death_max = merged_biography._get_min_max_dates()
+                r_person.geboortedatum_min = format_date(birth_min)
+                r_person.geboortedatum_max = format_date(birth_max)
+                r_person.sterfdatum_min = format_date(death_min)
+                r_person.sterfdatum_max = format_date(death_max)
+            except ValueError, error:
+                logging.warning('Error updating %s: %s' % (person.bioport_id, error))
 #            if r_person.sterfdatum_min and r_person.sterfdatum_min == r_person.sterfdatum_max:
 #                r_person.sterfjaar = to_ymd(r_person.sterfdatum_min)[0]
 #            if r_person.geboortedatum_min == r_person.geboortedatum_max and r_person.geboortedatum_min:
