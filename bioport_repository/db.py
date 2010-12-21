@@ -468,7 +468,7 @@ class DBRepository:
                     session.add(r)
                     soundex = self._soundex_for_search(token.word())
                     if soundex:
-	                    assert len(soundex) <= 1, soundex
+	                    assert len(soundex) <= 1,  'token %s: soundex %s; bioport_id: %s' % (token, soundex, bioport_id)
 	                    soundex = soundex[0]
 	                    r = PersonSoundex(bioport_id=bioport_id, soundex=soundex, is_from_family_name=is_from_family_name) 
 	                    session.add(r)
