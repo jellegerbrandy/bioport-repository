@@ -19,6 +19,7 @@ from sqlalchemy import create_engine, desc, and_, or_, not_
 
 from names.similarity import soundexes_nl
 from names.common import TUSSENVOEGSELS, words
+from names.name import TYPE_PREPOSITION,  TYPE_FAMILYNAME,  TYPE_GIVENNAME , TYPE_INTRAPOSITON,  TYPE_POSTFIX,  TYPE_TERRITORIAL 
 
 from bioport_repository.db_definitions import PersonRecord, AntiIdentifyRecord
 from bioport_repository.db_definitions import DeferIdentificationRecord
@@ -422,7 +423,7 @@ class DBRepository:
 #            for naam in merged_biography.get_names():
 #                self.add_naam(naam=naam, bioport_id=bioport_id, src=src)
             
-            self.update_soundex(bioport_id=bioport_id, names=names)
+#            self.update_soundex(bioport_id=bioport_id, names=names)
             self.update_name(bioport_id=bioport_id, names=names)
             
             self.update_source(bioport_id, source_ids = [b.source_id for b in person.get_biographies()])
@@ -461,15 +462,11 @@ class DBRepository:
             session.query(PersonName).filter(PersonName.bioport_id == bioport_id).delete()
             session.query(PersonSoundex).filter(PersonSoundex.bioport_id == bioport_id).delete()
             for name in names:
-                full_name = name.guess_normal_form()
-                family_name = name.guess_geslachtsnaam()
-                full_name_parts =  words(full_name)
-                family_name_parts =  words(family_name)
-                for s in full_name_parts:
-                    is_from_family_name = (s in family_name_parts or s in TUSSENVOEGSELS)
-                    r = PersonName(bioport_id=bioport_id, name=s, is_from_family_name=is_from_family_name) 
+                for token in name._guess_constituent_tokens():
+                    is_from_family_name = (token.ctype() in [TYPE_TERRITORIAL , TYPE_FAMILYNAME, TYPE_INTRAPOSITON])
+                    r = PersonName(bioport_id=bioport_id, name=token.word(), is_from_family_name=is_from_family_name) 
                     session.add(r)
-                    soundex = self._soundex_for_search(s)
+                    soundex = self._soundex_for_search(token.word())
                     assert len(soundex) <= 1
                     soundex = soundex[0]
                     r = PersonSoundex(bioport_id=bioport_id, soundex=soundex, is_from_family_name=is_from_family_name) 
