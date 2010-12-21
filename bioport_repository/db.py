@@ -467,10 +467,11 @@ class DBRepository:
                     r = PersonName(bioport_id=bioport_id, name=token.word(), is_from_family_name=is_from_family_name) 
                     session.add(r)
                     soundex = self._soundex_for_search(token.word())
-                    assert len(soundex) <= 1
-                    soundex = soundex[0]
-                    r = PersonSoundex(bioport_id=bioport_id, soundex=soundex, is_from_family_name=is_from_family_name) 
-                    session.add(r)
+                    if soundex:
+	                    assert len(soundex) <= 1
+	                    soundex = soundex[0]
+	                    r = PersonSoundex(bioport_id=bioport_id, soundex=soundex, is_from_family_name=is_from_family_name) 
+	                    session.add(r)
                     
     def update_soundex(self, bioport_id, names):
         """update the table person_soundex
