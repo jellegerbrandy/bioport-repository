@@ -1310,6 +1310,7 @@ class DBRepository:
         status=None,
         search_name=None,
         bioport_id=None,
+        sex=None,
         ):
         """return pairs of persons that are similar but not yet identified or defererred
         
@@ -1384,7 +1385,7 @@ class DBRepository:
                     BiographyRecord2.source_id.in_(source_ids)
                     ))
                 
-        if search_name:
+        if search_name or geslacht:
             qry = qry.join((PersonRecord, 
                PersonRecord.bioport_id==CacheSimilarityPersons.bioport_id1
                 ))
@@ -1392,7 +1393,11 @@ class DBRepository:
             qry = qry.join((PersonRecord2, 
                     PersonRecord2.bioport_id==CacheSimilarityPersons.bioport_id2
                  ))
+        if search_name:
             qry = self._filter_search_name(qry, search_name)         
+        if sex:
+            qry = qry.filter(or_(PersonRecord.sex==sex, PersonRecord2.sex=sex))
+            
         
         qry = qry.distinct()
         qry = qry.order_by(desc(CacheSimilarityPersons.score))
