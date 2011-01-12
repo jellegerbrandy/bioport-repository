@@ -870,10 +870,10 @@ class DBRepository:
             qry = qry.filter(PersonSoundex.soundex.in_(any_soundex))
             
         qry = qry.join(PersonSource)
-        qry = qry.filter(PersonSource.source_id != 'bioport')
+        qry = qry.filter(PersonSource.source_id != u'bioport')
                 
         if source_id:
-            qry = qry.filter(PersonSource.source_id==source_id)
+            qry = qry.filter(PersonSource.source_id==unicode(source_id))
         
         if source_id2:
             PersonSource2 = aliased(PersonSource)
@@ -1385,7 +1385,7 @@ class DBRepository:
                     BiographyRecord2.source_id.in_(source_ids)
                     ))
                 
-        if search_name or geslacht:
+        if search_name or sex:
             qry = qry.join((PersonRecord, 
                PersonRecord.bioport_id==CacheSimilarityPersons.bioport_id1
                 ))
@@ -1395,8 +1395,9 @@ class DBRepository:
                  ))
         if search_name:
             qry = self._filter_search_name(qry, search_name)         
+            
         if sex:
-            qry = qry.filter(or_(PersonRecord.sex==sex, PersonRecord2.sex=sex))
+            qry = qry.filter(or_(PersonRecord.sex==sex, PersonRecord2.sex==sex))
             
         
         qry = qry.distinct()

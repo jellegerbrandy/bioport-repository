@@ -412,9 +412,10 @@ class Repository(object):
             #create a new biography
             return self._create_bioport_biography(person)
         else:
-            if len(ls) != 1: 
-                logging.warning( 'There was more than one Bioport Biography found for the person with bioport_id %s' %
-                          person.get_bioport_id())
+            #disabled warning - this is not so bad after all
+#            if len(ls) != 1: 
+#                logging.warning( 'There was more than one Bioport Biography found for the person with bioport_id %s' %
+#                          person.get_bioport_id())
             ls = [(b.id, b) for b in ls]
             ls.sort(reverse=True) #we sort reverse, because that is also how we sort in "get_biographies"
             ls = [b for (x, b) in ls]
