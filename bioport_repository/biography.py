@@ -25,13 +25,15 @@ def create_biography_id(source_id, local_id):
     
 class Biography(object, BioDesDoc): #, SVNEntry):
 
-    def __init__(self, id=None, 
-                       source_id=None, 
-                       biodes_document=None, 
-                       source_url=None,
-                       repository=None,
-                       record=None,
-                 ): 
+    def __init__(self, 
+		id=None, 
+		source_id=None, 
+		biodes_document=None, 
+		source_url=None,
+		repository=None,
+		record=None,
+        version=None,
+		): 
         """
         arguments:
             id - a 'local id': should be unique with the biographies in the 
@@ -45,9 +47,10 @@ class Biography(object, BioDesDoc): #, SVNEntry):
         self.source_url = source_url        
         if self.biodes_document:
             self.id = self.create_id()
+        self.version = version
 
     def __str__(self):
-        s = '<BioPort Biography %s>' % (self.id)
+        s = '<BioPort Biography %s - version %s>' % (self.id, self.version)
         return s
     __repr__ = __str__
         
@@ -192,11 +195,6 @@ class Biography(object, BioDesDoc): #, SVNEntry):
         """
         pass
    
-    def last_commit(self):
-        pass
-
-    def last_commit_by(self):
-        pass
 
 #    def identify(self, id):
 #        #associate this biography with this identifier
@@ -248,6 +246,7 @@ class Biography(object, BioDesDoc): #, SVNEntry):
 
     def get_category_ids(self):
         return [c.get('idno') for c in self.get_states(type='category')]
+    
     def set_category(self, category_ids=[]):
         """set the categories of the biography to the given set
         

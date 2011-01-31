@@ -36,7 +36,7 @@ class BiographyTestCase(CommonTestCase):
               )
         
         #save it
-        repo.add_biography(bio)
+        self._save_biography(bio)
         
         #the new biography now also has a bioport_id
         assert bio.get_bioport_id()
@@ -74,9 +74,9 @@ class BiographyTestCase(CommonTestCase):
         self.create_filled_repository(sources=1)
         bio = self.repo.get_biographies()[3]
         bio.set_value('geboortedatum', '2000-11-11')
-        self.repo.save_biography(bio)
-        ls = self.repo.get_biographies(local_id=bio.id)
-        self.assertEqual(len(ls), 1)
+        self._save_biography(bio)
+        ls = self.repo.get_biographies(local_id=bio.id, version=None)
+        self.assertEqual(len(ls), 2) #there are two versions of this biography
         bio2 = ls[0]
         self.assertEqual(bio2.get_value('geboortedatum'), '2000-11-11')
 
@@ -97,7 +97,7 @@ class BiographyTestCase(CommonTestCase):
         #make a new biography
         bio = self.repo.get_biographies()[5]
         
-        self.repo.save_biography(bio)
+        self._save_biography(bio)
         snippet_molloy = """I took advantage of being at the seaside to lay in a store of
 sucking-stones. They were pebbles but I call them stones. Yes, on
 this occasion I laid in a considerable store. I distributed them

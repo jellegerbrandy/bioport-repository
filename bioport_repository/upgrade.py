@@ -1,5 +1,25 @@
 #!/usr/bin/env python
 """
+
+ALTER TABLE `bioport`.`biography` ADD COLUMN `user` varchar(50)  AFTER `timestamp`;
+ALTER TABLE `bioport`.`biography` ADD COLUMN `comment` varchar(255)  AFTER `user`;
+drop table `bioport`.`cache_similarity`
+drop table `bioport`.`comment`
+drop table `bioport`.`index_item`
+ALTER TABLE `bioport`.`biography` ADD COLUMN `version` int  NOT NULL AFTER `id`,
+ DROP PRIMARY KEY,
+ ADD PRIMARY KEY (`id`, `version`);
+ALTER TABLE `bioport`.`biography` ADD COLUMN `time` DATETIME  AFTER `hide`;
+
+ALTER TABLE `bioport`.`biography` ADD INDEX `ix_time`(`time`),
+ ADD INDEX `ix_user`(`user`),
+ ADD INDEX `ix_version`(`version`);
+ALTER TABLE `bioport`.`biography` DROP INDEX `ix_biography_id`,
+ ADD INDEX `ix_biography_id` USING BTREE(`id`);
+
+"""
+
+"""
 ALTER TABLE `bioport`.`person` ADD COLUMN `geboortedatum_max` DATETIME DEFAULT NULL,
  ADD COLUMN `sterfdatum_max` DATETIME  DEFAULT NULL,
  ADD COLUMN `geboortedatum_min` DATETIME  AFTER `geboortejaar`,

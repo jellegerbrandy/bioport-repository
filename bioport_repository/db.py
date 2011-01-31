@@ -43,6 +43,7 @@ from bioport_repository.person import Person
 from bioport_repository.biography import Biography 
 from bioport_repository.source import Source 
 from bioport_repository.common import format_date , to_date
+from bioport_repository.versioning import Version
 
 LENGTH = 8  # the length of a bioport id
 ECHO = False
@@ -52,40 +53,17 @@ class DBRepository:
     """Interface with the MySQL database"""
     
 
-    def __init__(self, db_connection, 
-        #ZOPE_SESSIONS=False, 
-        user=None):       
+    def __init__(self, 
+        db_connection, 
+        user,
+        repository=None,
+        ):       
         self.connection = db_connection 
         self.user = user
         self.metadata = Base.metadata
         metadata = self.metadata 
         self._session = None
-#        if ZOPE_SESSIONS: 
-#            #XXX I could not get this to work, yet
-#            
-#            #setup z3c.saconfig
-#            #here for explanations:
-#            #http://svn.zope.org/z3c.saconfig/trunk/src/z3c/saconfig/README.txt?rev=102770&sortby=rev&view=markup
-#            from z3c.saconfig import EngineFactory
-#            engine_factory = EngineFactory(self.connection) #, convert_unicode=True, encoding='utf8')
-#            from zope import component
-#            from z3c.saconfig.interfaces import IEngineFactory
-#            component.provideUtility(engine_factory, provides=IEngineFactory)
-#            engine = engine_factory( )
-#            
-#            #
-#            from z3c.saconfig import GloballyScopedSession
-#            #
-#            
-#            utility = GloballyScopedSession()
-#            
-#            from z3c.saconfig.interfaces import IScopedSession
-#            component.provideUtility(utility, provides=IScopedSession)
-#            
-#            #
-#            from z3c.saconfig import Session 
-#            self.Session = Session
-#        else:
+        
         #get the data from the db
         self.engine = Base.metadata.bind = metadata.bind = create_engine(
                 self.connection, 
@@ -98,7 +76,8 @@ class DBRepository:
         self.Session = sessionmaker(bind=self.engine)
             
         self.db = self 
-            
+        self.repository = repository 
+        
     def get_session(self):
         """Return a session object."""
         if not self._session:
@@ -183,7 +162,7 @@ class DBRepository:
                     qry = qry.order_by(order_by)
             ls = qry.all()
             #session.close()
-            return [Source(r.id, r.url, r.description, quality=r.quality, xml = r.xml, repository=self) for r in ls]
+            return [Source(r.id, r.url, r.description, quality=r.quality, xml = r.xml, repository=self.repository) for r in ls]
 
     def delete_source(self, source):
         session = self.get_session()
@@ -278,29 +257,50 @@ class DBRepository:
         session.execute('delete n   from naam n where bioport_id = "%s"' % bioport_id)
         session.expunge_all()
 
-    def add_biography(self, biography):
-        """add the biography to the database
-        """
-        return self.save_biography( biography)
     
-    def save_biography(self, biography):
+    def save_biography(self, 
+       biography, 
+       user, 
+       comment,
+       ):
+        """save the information of the biography in the database 
+        
+        adds a new version for this biography in the database
+        
+        arguments:
+            biography - is a Biography instance
+            user - a string
+            comment - a string
+        returns: 
+            None
+        """
+        assert user
         with self.get_session_context() as session:
             #register the biography in the bioportid registry
             #(note that this changes the XML in the biography object)
             self._register_biography(biography)
             
-            try:
-                r_biography = session.query(BiographyRecord).filter(BiographyRecord.id==biography.id).one()
-            except sqlalchemy.orm.exc.NoResultFound:
-                #print 'biography %s was not found in the db, creating new record' % biography.id
-                r_biography = BiographyRecord(id=biography.get_id())
-                session.add(r_biography)
+            #get all biographies with this id, and increment their version number with one
+            ls =  self._get_biography_records(local_id=biography.id, order_by=BiographyRecord.version)
+            for r_bio in ls:
+                r_bio.version += 1
+                session.flush()
+            
+#            try:
+#                r_biography = session.query(BiographyRecord).filter(BiographyRecord.id==biography.id).one()
+#            except sqlalchemy.orm.exc.NoResultFound:
+            #print 'biography %s was not found in the db, creating new record' % biography.id
+            r_biography = BiographyRecord(id=biography.get_id())
                 
             r_biography.source_id = biography.source_id
             r_biography.biodes_document = biography.to_string()
             r_biography.source_url = unicode(biography.source_url)
-
-                
+            biography.version = r_biography.version = 0
+            r_biography.user = user
+            r_biography.comment = comment
+            r_biography.time = datetime.today().isoformat()
+            session.add(r_biography)
+#                
         # update the information of the associated person (or add a person 
         # if the biography is new)
         with self.get_session_context() as session:
@@ -352,7 +352,6 @@ class DBRepository:
                 r_person = PersonRecord(bioport_id=bioport_id) 
                 session.add(r_person)
                 r_person.status = default_status
-
             person = Person(bioport_id=bioport_id, record=r_person, repository=self)
            
             merged_biography = person.get_merged_biography()
@@ -388,11 +387,11 @@ class DBRepository:
 #                r_person.geboortejaar = to_ymd(r_person.geboortedatum_min)[0]
             r_person.geboorteplaats = merged_biography.get_value('geboorteplaats')
             r_person.sterfplaats = merged_biography.get_value('sterfplaats')
-            r_person.names = ' '.join([unicode(name) for name in names])
+            r_person.names = u' '.join([unicode(name) for name in names])
             r_person.snippet = person.snippet()
             r_person.has_contradictions = bool(person.get_biography_contradictions())
             illustrations =  merged_biography.get_illustrations()
-            r_person.thumbnail = illustrations and illustrations[0].image_small_url or ''
+            r_person.thumbnail = illustrations and illustrations[0].image_small_url or u''
             #update categories
 #            r_person.categories = [RelPersonCategory(category_id=id) for state in merged_biography.get_states(type='categories')]
             session.query(RelPersonCategory).filter(RelPersonCategory.bioport_id==bioport_id).delete()
@@ -413,21 +412,16 @@ class DBRepository:
             
             #'the' source -- we take the first non-bioport source as 'the' source
             #and we use it only for filterling later
-            #XXX ??? 
+            #XXX what is this used for??? 
             src = [s for s in merged_biography.get_biographies() if s.source_id != 'bioport']
             if src:
                 src = src[0].source_id
             else:
                 src = None
                 
-#            for naam in merged_biography.get_names():
-#                self.add_naam(naam=naam, bioport_id=bioport_id, src=src)
-            
-#            self.update_soundex(bioport_id=bioport_id, names=names)
             self.update_name(bioport_id=bioport_id, names=names)
             
             self.update_source(bioport_id, source_ids = [b.source_id for b in person.get_biographies()])
-            session.flush()
             
     def update_persons(self):
         """Update the information of all the persons in the database.
@@ -468,9 +462,9 @@ class DBRepository:
                     session.add(r)
                     soundex = self._soundex_for_search(token.word())
                     for soundex in soundex:
-#	                    assert len(soundex) <= 1,  'token %s: soundex %s; bioport_id: %s' % (token, soundex, bioport_id)
-	                    r = PersonSoundex(bioport_id=bioport_id, soundex=soundex, is_from_family_name=is_from_family_name) 
-	                    session.add(r)
+#                        assert len(soundex) <= 1,  'token %s: soundex %s; bioport_id: %s' % (token, soundex, bioport_id)
+                        r = PersonSoundex(bioport_id=bioport_id, soundex=soundex, is_from_family_name=is_from_family_name) 
+                        session.add(r)
                     
     def update_soundex(self, bioport_id, names):
         """update the table person_soundex
@@ -509,7 +503,7 @@ class DBRepository:
                 r = PersonSource(bioport_id=bioport_id, source_id=source_id) 
                 session.add(r)
 
-    def tmp_update_soundexes(self):
+    def update_soundexes(self):
         """update the person_soundex table in the database 
         
         use "update_persons" to update the information in the db (including person_soundex)
@@ -607,64 +601,114 @@ class DBRepository:
             qry = qry.filter(BiographyRecord.source_id!='bioport')
         return qry.count()
     
-    def get_biographies(self, source=None,
-                              source_id=None,
-                              person=None,
-                              # biography_id=None,
-                              local_id=None,
-                              order_by=None,
-                              limit=None,
-                              # exclude=None,
-                       ): 
+    def get_biographies(self, 
+        source=None,
+        source_id=None,
+#        person=None,
+        bioport_id=None,
+        local_id=None,
+        order_by=None,
+        version=0,
+        limit=None,
+        user=None,
+        time_from=None,
+        time_to=None,
+        ): 
         """
         arguments:
             source  - an instance of Source
             person - an instance of Person
             order_by - a string - the name of a column to sort by
-            local_id - the 'local id' of the biography - somethign fo the form 'vdaa/w0269' 
-            #biography_id - the id of the biography - constructed from the source and the local_id
-#            exclude - a source id or list of source ids - biographies from these sources are not return
-#                e.g. get_biographies(exclude='bioport')
+            local_id - the 'local id' of the biography - somethign fo the form 'vdaa/w0269', 
+                corresponds to the 'id' field in the database
+        returns:
+            a list of Biography instances
+        
+        XXX:
+            return a generator
         """
-        #XXX implement order_by
-            
-        qry = self.get_session().query(BiographyRecord)
         if source:
             if type(source) in types.StringTypes:
                 source_id = source
             else:
                 source_id = source.id
-                
+    
+        ls = self._get_biography_records(
+            source_id=source_id,
+            bioport_id=bioport_id,
+            local_id=local_id,
+            version=version,
+            limit=limit,
+            order_by = order_by,
+            user=user,
+            time_from=time_from,
+            time_to=time_to,
+        )
+        return [Biography(id=r.id, 
+                      source_id=r.source_id, 
+                      repository=self.repository, 
+                      biodes_document =r.biodes_document, 
+                      source_url=r.source_url, 
+                      record=r, 
+                      version=r.version, 
+                      ) 
+	        for r in ls]
+
+
+    def _get_biography_records(self, 
+        source_id = None,
+        bioport_id = None,
+        local_id = None,
+        limit = None,
+        order_by = None,
+        version=None,
+        user=None,
+        time_from=None,
+        time_to=None,
+        ):
+        qry = self.get_session().query(BiographyRecord)
+               
         if source_id:
             qry = qry.filter_by(source_id=source_id)
             
         if local_id:
             qry = qry.filter_by(id=local_id)
             
-        if person:
+        if bioport_id:
             qry = qry.join((RelBioPortIdBiographyRecord, BiographyRecord.id==RelBioPortIdBiographyRecord.biography_id))
-            qry = qry.filter(RelBioPortIdBiographyRecord.bioport_id==person.get_bioport_id())
-        
+            qry = qry.filter(RelBioPortIdBiographyRecord.bioport_id==bioport_id)
+       
+        if version is not None:
+	        qry = qry.filter(BiographyRecord.version == version)
+        if user:
+            qry = qry.filter(BiographyRecord.user == user)
+        if time_from:
+            qry = qry.filter(BiographyRecord.time >= time_from)
+        if time_to:
+            qry = qry.filter(BiographyRecord.time <= time_to)
         if order_by == 'quality':
             qry = qry.join((SourceRecord,SourceRecord.id==BiographyRecord.source_id))
             qry = qry.order_by(sqlalchemy.desc(order_by))
             qry = qry.order_by(BiographyRecord.id)
+        elif order_by == 'version':
+            #order by time added and version
+            qry = qry.order_by(sqlalchemy.desc(BiographyRecord.time), BiographyRecord.version)
         elif order_by:
             qry = qry.order_by(order_by)
         if limit:
             qry = qry.limit(limit)
             
-        ls = qry.all()
-#        if exclude:
-#            if type(exclude)  in types.StringTypes:
-#               exclude = [exclude]  
-#            ls = [b for b in ls if r.source_id not in exclude]
-        ls = [Biography(id=r.id, source_id=r.source_id, repository=self.repository, 
-                        biodes_document =r.biodes_document, source_url=r.source_url, 
-                        record=r) for r in ls]
-        return ls
-
+        return qry.all()
+    
     def get_biography(self, **args):
+        """get the unique biography that satisfies **args
+        
+        if none, or more than one, are found, then raise an Exception
+        arguments:
+            see get_biographies
+        returns:
+            a Biography instance
+        """
         ls = self.get_biographies(**args)
         assert len(ls) == 1, 'Expected to find exactly one biography with the following arguments (but found %s): %s' % (len(ls), args)
         return ls[0]
@@ -1071,7 +1115,7 @@ class DBRepository:
                         qry = qry.filter(alias.is_from_family_name == True)
         return qry
 
-    def get_person(self, bioport_id):
+    def get_person(self, bioport_id, repository=None):
         session = self.get_session()
         qry = session.query(PersonRecord).filter(PersonRecord.bioport_id ==bioport_id)
         try:
@@ -1082,8 +1126,10 @@ class DBRepository:
                 return self.get_person(id)
             else:
                 return None
+        if not repository:
+            repository = self
         
-        person = Person(bioport_id=bioport_id, record=r, repository=self)
+        person = Person(bioport_id=bioport_id, record=r, repository=repository)
         return person
 
     def delete_person(self, person):
@@ -1097,23 +1143,23 @@ class DBRepository:
             except NoResultFound:
                 pass
 
-    def get_authors(self, biography=None,
-                          beginletter=None,
-                          search_term=None,
-                          order_by='name'):
-        assert 0, 'get_authors is (perhaps temporarily) disabled (because we do not use it and it eats time and memory)'
-        session = self.get_session()
-        qry = session.query(AuthorRecord)
-        if biography:
-            qry = qry.filter(AuthorRecord.biographies.any(biography_id=biography.id))
-  
-        if beginletter:
-            qry = qry.filter(AuthorRecord.name.like('%s%%' % beginletter))
-        if search_term:
-            qry = qry.filter(AuthorRecord.name.like('%%%s%%' % search_term))
-        qry = qry.order_by(order_by)
-        ls = qry.all()
-        return ls
+#    def get_authors(self, biography=None,
+#                          beginletter=None,
+#                          search_term=None,
+#                          order_by='name'):
+#        assert 0, 'get_authors is (perhaps temporarily) disabled (because we do not use it and it eats time and memory)'
+#        session = self.get_session()
+#        qry = session.query(AuthorRecord)
+#        if biography:
+#            qry = qry.filter(AuthorRecord.biographies.any(biography_id=biography.id))
+#  
+#        if beginletter:
+#            qry = qry.filter(AuthorRecord.name.like('%s%%' % beginletter))
+#        if search_term:
+#            qry = qry.filter(AuthorRecord.name.like('%%%s%%' % search_term))
+#        qry = qry.order_by(order_by)
+#        ls = qry.all()
+#        return ls
     
     def get_author(self, author_id):
         session = self.get_session()
@@ -1409,7 +1455,7 @@ class DBRepository:
             start = 1000
             qry = qry.slice(start, start + size)
         logging.info('executing %s'% qry.statement)
-        ls = [(r.score, Person(r.bioport_id1, repository=self, score=r.score), Person(r.bioport_id2, repository=self, score=r.score)) for r in session.execute(qry)]
+        ls = [(r.score, Person(r.bioport_id1, repository=self.repository, score=r.score), Person(r.bioport_id2, repository=self, score=r.score)) for r in session.execute(qry)]
         return ls
      
 #    def XXX_fill_most_similar_persons_cache(self, refresh=False): #, start=0, size=20):
@@ -1536,10 +1582,12 @@ class DBRepository:
         self.redirect_identifier(old_person.get_bioport_id(), new_person.get_bioport_id())
             
         #now attach all biographies to the new bioportid
-        for bio in new_person.get_biographies() + old_person.get_biographies(): 
-            new_person.add_biography(bio)
-            self.save_biography(bio)
-        
+#        for bio in new_person.get_biographies() + old_person.get_biographies(): 
+        for bio in old_person.get_biographies(): 
+            new_person.add_biography(bio,
+                comment='identified %s and %s' % (person1, person2),
+                )
+            
         #mege the bioport biographies in the new person
         #XXX Uncomment when merge_bioport_biographies is well tested
 #        new_person.merge_bioport_biographies()
@@ -1608,45 +1656,49 @@ class DBRepository:
                         r.bioport_id2 = bioport_id2
                     session.flush()
             assert not qry.count(), [(r.bioport_id1, r.bioport_id2) for r in qry.all()]
-               
-    def unidentify(self, person):
-        """Create a new person for each biography associated with person.
-        """
-        bios = person.get_biographies()
-        result = []
-        if len(bios) == 1:
-            return [person]
-        
-        self.delete_person(person)
-        used_ids = []
-        
-        for bio in bios:
-            if bio.get_source().id == 'bioport':
-                #we delete the bioport biographies
-                self.delete_biography(bio)
-            else:
-                original_bioport_id = bio.get_idnos(type='bioport')[0]
-                #print '1:',  original_bioport_id
-                #the next three lines are there only because in a previous version, bioport_ids were not 'remembered 
-                if original_bioport_id in used_ids:
-                    original_bioport_id = self.fresh_identifier()
-                used_ids.append(original_bioport_id)
-                #print used_ids
-                #save the changes to the biography
-                bio.set_value('bioport_id',original_bioport_id)
-                self.save_biography(bio)
-                
-                #remove the 'redirect' instruction from this bioport id (if there was one)
-                self.redirect_identifier(bioport_id=original_bioport_id, redirect_to=None)
-                
-                #create a new person
-                new_person = Person(bioport_id=original_bioport_id, biographies=[bio])
-                new_person.repository = self
-                new_person.add_biography(bio)
-                self.save_person(new_person)
-                result.append(new_person) 
-                
-        return result
+              
+#    def unidentify(self, person):
+#        """Create a new person for each biography associated with person.
+#        
+#        returns:
+#            the new persons
+#        """
+#        bios = person.get_biographies()
+#        result = []
+#        if len(bios) == 1:
+#            return [person]
+#        
+#        used_ids = []
+#        
+#        for bio in bios:
+#            if bio.get_source().id == 'bioport':
+#                #we delete the bioport biographies
+#                self.delete_biography(bio)
+#            else:
+#                original_bioport_id = bio.get_idnos(type='bioport')[0]
+#                #print '1:',  original_bioport_id
+#                #the next three lines are there only because in a previous version, bioport_ids were not 'remembered 
+#                if original_bioport_id in used_ids:
+#                    original_bioport_id = self.fresh_identifier()
+#                used_ids.append(original_bioport_id)
+#                #print used_ids
+#                #save the changes to the biography
+#                bio.set_value('bioport_id',original_bioport_id)
+#                self.save_biography(bio, user=self.user, comment='unidentified %s' % person)
+#                
+#                #remove the 'redirect' instruction from this bioport id (if there was one)
+#                self.redirect_identifier(bioport_id=original_bioport_id, redirect_to=None)
+#                
+#                #create a new person
+#                new_person = Person(bioport_id=original_bioport_id, biographies=[bio])
+#                new_person.repository = self
+#                new_person.add_biography(bio)
+#                self.save_person(new_person)
+#                result.append(new_person) 
+#                
+#        self.delete_person(person)
+#                
+#        return result
         
     def find_biography_contradictions(self):
         """Populate person.has_contradictions column of the db.
@@ -1724,8 +1776,6 @@ class DBRepository:
         qry = session.query(
             BioPortIdRecord
             )
-#       qry = self._get_persons_query(**args)
-#       qry = qry.join(BioPortIdRecord)
         qry = qry.filter(BioPortIdRecord.redirect_to != None)
             
         return qry.all()
@@ -1829,7 +1879,6 @@ class DBRepository:
             return qry.one()
         except NoResultFound:
             msg =  'No category with id "%s" could be found' % id
-#            raise Exception(msg)
             logging.warning(msg) 
     
     def get_log_messages(self, table=None, user=None, order_by='timestamp', order_desc=True):
@@ -1946,60 +1995,64 @@ and b2.redirect_to is null
             if len(set(used_ids)) != len(used_ids):
                 used_ids = list(set(used_ids))
                 bio.set_category(used_ids)
-                self.save_biography(bio)
+                self.save_biography(bio, comment='cleanup up admin')
         print 'DONE tmp_fixup_category_doublures'
 
-#    def tmp_identify_misdaad_recht(self):
-#        """identify the categories "misdaad" en "recht" in the whole database
+    def get_versions(self, 
+        amount=100, 
+        user=None, 
+        time_from=None, 
+        time_to=None, 
+        bioport_id=None,
+        document_id=None,
+        source_id=None,
+        version=None,
+        ):
+        """get the amount of last changes
+        
+        returns:
+            a list of Change objects
+        """
+        biographies = self.get_biographies(
+            source_id=source_id,
+            bioport_id=bioport_id,
+			local_id=document_id,
+			order_by='version',
+			version=version,
+			limit=amount,
+            user=user,
+            time_from=time_from,
+            time_to=time_to,
+            
+            )
+#        qry = self.get_session().query(BiographyRecord)
 #        
-#        this method can be removed when it does not seem useful anymore 
-#        """
-#        #misdaad = 9
-#        #rechts = 13
-#        for person in self.get_persons(category=13):
-#            ls = self.get_biographies(source='bioport', person=person) 
-#            for bio in ls:
-#                print bio
-#                for state in bio.get_states(type='category'):
-#                    if state.get('idno') == '13':
-#                        state.set('idno', '9')
-#                        self.save_biography(bio)
-#        print 'DONE tmp_identify_misdaad_recht'     
-#        
-#    def tmp_fix_weird_categeries(self, bio=None):
-#        """fixing errors in category assignment - this method can be removed when it does not seem necessary anymore"""
-#        if bio:
-#            bios = [bio]
-#        else:
-#            bios =  self.get_biographies(source='bioport')
-#        i = 0
-#        for bio in bios:
-#            i += 1
-#            states =  bio.get_states(type='category')
-#            for state in states:
-#                idno = state.get('idno')
-#                if not idno.isdigit():
-#                    print i
-#                    print idno
-#                    idnos = eval(idno)
-#                    idnos = list(idnos)
-#                    used_ids = [idno for idno in [state.get('idno') for state in states] if idno.isdigit()]
-#                    idnos = used_ids + idnos
-#                    if '13' in idnos:
-#                        idnos.remove('13')
-#                        idnos.append('9')
-#                    idnos = list(set(idnos)) 
-#                    print idnos
-#                    bio.set_category(idnos)
-#                    self.save_biography(bio)
-#                    break
-#                    
-#        print 'DONE!'
-
-#    def tmp_give_blnps_a_category(self):
-#        for p in self.get_persons(source_id='blnp'):
-#            bio = p.get_bioport_biography()
-#            categories =bio.get_states(type='category')
-#            categories = [c.get('idno') for c in categories]
-#            bio.set_category(categories + [4])
-#            self.save_biography(bio)
+        return [Version(biography=bio,) for bio in biographies]
+#        qry = qry.order_by(sqlalchemy.desc(BiographyRecord.time), BiographyRecord.version)
+#        if user:
+#            qry = qry.filter(BiographyRecord.user == user)
+#        if time_from:
+#            qry = qry.filter(BiographyRecord.time >= time_from)
+#        if time_to:
+#            qry = qry.filter(BiographyRecord.time <= time_to)
+#        if bioport_id:
+#            qry = qry.filter(BiographyRecord.bioport_id == bioport_id)
+#        if document_id:
+#            qry = qry.filter(BiographyRecord.id==document_id)
+#        qry = qry.limit(amount)
+#        return [Version(user=r.user, time=r.time, comment=r.comment, document_id=r.id, biodes_document=r.biodes_document, version=r.version) for r in qry.all()]
+   
+    def undo_version(self, document_id, version): 
+        """"Make the version before the one identified by document_id and version the most current version
+        
+        arguments:
+           document_id : a string
+           version  : an integer
+               document_id and version togehter uniquely identify a record in BiographyRecord table
+               raises an error if such a version is not found
+                    
+        """
+        versions = self.get_versions(document_id=document_id, version=version+1)
+        assert versions
+        self.repository.save_biography(versions[0].biography, comment='restored version of  %s' % versions[0].time)
+                

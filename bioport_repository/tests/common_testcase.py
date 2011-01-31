@@ -42,6 +42,7 @@ class CommonTestCase(unittest.TestCase):
               images_cache_local=IMAGES_CACHE_LOCAL,
               )
               
+        
         self.repo.db.metadata.drop_all()
         if self._fill_repository:
             if not os.path.isfile(SQLDUMP_FILENAME):
@@ -145,7 +146,7 @@ class CommonTestCase(unittest.TestCase):
                  )
         
         #save it
-        self.repo.add_biography(bio)
+        self._save_biography(bio, comment='added by test')
         return bio.get_person()
     
     def _create_biography(self, **args):
@@ -164,6 +165,9 @@ class CommonTestCase(unittest.TestCase):
         else:
             return Biography(repository=self.repo, source_id=source_id, id=id).from_args(**defaults)
     
+    def _save_biography(self,biography, comment=u'saved by test'): 
+        self.repo.save_biography(biography, comment)
+        
 class CommonTestCaseTest(CommonTestCase):
     
     def test_sanity(self):

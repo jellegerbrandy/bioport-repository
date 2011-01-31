@@ -28,20 +28,22 @@ class Repository(object):
     ENABLE_DB = True
 
     def __init__(self, 
-                 svn_repository=None,
-                 svn_repository_local_copy=None,
-                 db_connection=None,
-#                 ZOPE_SESSIONS = False,
-                 user='Uknown User',
-                 images_cache_local=None,
-                 images_cache_url=None,
-                ):
-        
+		svn_repository=None,
+		svn_repository_local_copy=None,
+		db_connection=None,
+		user='Unknown User',
+		images_cache_local=None,
+		images_cache_url=None,
+		):
+    
+        assert user
         #define the database connection
         self.svn_repository = SVNRepository(svn_repository=svn_repository, svn_repository_local_copy=svn_repository_local_copy)
         self.db = DBRepository(db_connection=db_connection, 
 #                ZOPE_SESSIONS=ZOPE_SESSIONS, 
-                user=user)
+                user=user, 
+                repository=self,
+                )
         self.db.repository = self
         if images_cache_local:
             try:
@@ -69,7 +71,7 @@ class Repository(object):
         return self.db.get_bioport_ids()
             
     def get_person(self, bioport_id):
-        return self.db.get_person(bioport_id=bioport_id)
+        return self.db.get_person(bioport_id=bioport_id, repository=self)
         
     def count_persons(self, **args):
         return self.db.count_persons(**args)
@@ -160,18 +162,18 @@ class Repository(object):
     def get_status_values(self):
         return STATUS_VALUES
     
-    def get_authors(self, **args):
-        if self.ENABLE_DB:
-            return self.db.get_authors(**args)
-        raise NotImplementedError 
+#    def get_authors(self, **args):
+#        if self.ENABLE_DB:
+#            return self.db.get_authors(**args)
+#        raise NotImplementedError 
 
     def get_author(self, author_id):
         if self.ENABLE_DB:
             return self.db.get_author(author_id)
         raise NotImplementedError 
 
-    def get_beroepen(self, **args):
-        pass
+#    def get_beroepen(self, **args):
+#        pass
 
     def save(self, x):
         if x.__class__ == Biography:
@@ -181,16 +183,7 @@ class Repository(object):
         else:
             raise TypeError('Cannot save a object %s in the repository: unknown type' % x)
 
-    @instance.clearafter
-    def save_biography(self, biography):
-        biography.repository = self
-        if self.ENABLE_DB:
-            self.db.save_biography(biography)
-        if self.ENABLE_SVN:
-            raise NotImplementedError()
-
-        biography.get_person().invalidate_cache('_biographies')
-    
+   
     @instance.clearafter 
     def save_source(self, source):
         source.repository = self
@@ -200,12 +193,30 @@ class Repository(object):
         if self.ENABLE_SVN:
             raise NotImplementedError()
     
+    @instance.clearafter
     def save_person(self, person):
         if self.ENABLE_DB:
             self.db.save_person(person)
         if self.ENABLE_SVN:
             raise NotImplementedError()
+        
+    @instance.clearafter
+    def save_biography(self, biography, comment):
+        biography.repository = self
+        if self.ENABLE_DB:
+            self.db.save_biography(biography, user=self.user, comment=comment)
+        if self.ENABLE_SVN:
+            raise NotImplementedError()
+
+        return
+#        biography.get_person().invalidate_cache('_biographies')
     
+                
+#    def add_biography(self, bio):
+#        """add the biography - or update it if an biography with the same id already is present in the system
+#        """
+#        self.save_biography(biography=bio)
+
     def delete_biographies(self, source):
         sources_ids = [src.id for src in self.get_sources()]
         if source.id not in sources_ids:
@@ -270,7 +281,7 @@ class Repository(object):
             #create a Biography object 
             bio = Biography(source_id=source.id, repository=source.repository)
             bio.from_url(biourl)
-            self.add_biography(bio)
+            self.save_biography(bio, comment='downloaded biography from source %s' % source)
 
         # remove the temp directory which has been used to extract
         # the xml files
@@ -326,16 +337,7 @@ class Repository(object):
                 shutil.rmtree(directory)
 
         return total, skipped
-                
-    def add_biography(self, bio):
-        """add the biography - or update it if an biography with the same id already is present in the system
-        """
-        bio.repository = self
-        if self.ENABLE_SVN:
-            raise NotImplementedError()
-        if self.ENABLE_DB:
-            self.db.add_biography(bio)
-
+    
     def get_most_similar_persons(self, **args):
         """get the most similar pairs of person, name we can find
            
@@ -359,8 +361,9 @@ class Repository(object):
     def antiidentify(self, person1, person2):
         self.db.antiidentify(person1,person2)
     
-    def unidentify(self, person):       
-        return self.db.unidentify(person)
+#    OBSOLETE - or better, this should be handled undoing separate identify transactions
+#    def unidentify(self, person):       
+#        return self.db.unidentify(person)
 
     def get_antiidentified(self):
         """return a list of anti-identified perons"""
@@ -407,7 +410,7 @@ class Repository(object):
             self.add_source(src)
             src.set_quality(10000)
 
-        ls = self.get_biographies(source=source, person=person)
+        ls = self.get_biographies(source=source, bioport_id=person.get_bioport_id())
         if not ls:
             #create a new biography
             return self._create_bioport_biography(person)
@@ -428,7 +431,8 @@ class Repository(object):
         bio._set_up_basic_structure()
         bio.set_value(local_id=person.get_bioport_id())
         bio.set_value(bioport_id=person.get_bioport_id())
-        person.add_biography(bio)
+        self.save_biography(bio, 'created Bioport biography')
+        person._instance_clearafter()
         return bio
  
     def get_identifier(self, bioport_id):
@@ -464,6 +468,18 @@ class Repository(object):
     def get_log_messages(self, **args):
         return self.db.get_log_messages(**args)
 
+
+    def get_versions(self, **args):
+        """get the amount of last changes
+        
+        returns:
+            a list of versioning.Version objects
+        """
+        return self.db.get_versions(**args)
+    
+    def undo_version(self, document_id, version):
+        """undo all changes to the document with document_id, from version onwards"""
+        return self.db.undo_version(document_id, version)
 
 class PersonList(object):
     "This object provides a (possibly long) list of lazy-loaded Person objects"

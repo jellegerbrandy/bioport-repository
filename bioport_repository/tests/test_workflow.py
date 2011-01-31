@@ -118,11 +118,7 @@ class WorkflowTestCase(CommonTestCase):
         bio.set_category([1,2,3])
         person.status = 3 
         #save your edited bioportsource
-        repository.save_biography(bio)
-        repository.save_person(person)
-        #show show metedata to the editor
-        bio.last_commit()         
-        bio.last_commit_by()
+        self._save_biography(bio)
        
         
         

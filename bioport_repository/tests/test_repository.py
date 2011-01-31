@@ -52,7 +52,7 @@ class RepositoryTestCase(CommonTestCase):
               )
         
         #save it
-        self.repo.add_biography(bio)
+        self._save_biography(bio)
         assert bio.get_bioport_id()
         self.assertEqual(bio.repository, self.repo)
         
@@ -63,9 +63,9 @@ class RepositoryTestCase(CommonTestCase):
         assert id, bio.to_string()
         p = Person(id)
         source = bio.get_source()
-        self.assertEqual([b.id for b in self.repo.get_biographies(person=p)], [bio.id])
+        self.assertEqual([b.id for b in self.repo.get_biographies(bioport_id=id)], [bio.id])
         self.assertEqual(len(self.repo.get_biographies(source=source)), 5)
-        self.assertEqual(self.repo.get_biographies(person=p, source=bio.get_source()), [bio])
+        self.assertEqual(self.repo.get_biographies(bioport_id=id, source=bio.get_source()), [bio])
     
         self.assertEqual(self.repo.count_biographies(), len(self.repo.get_biographies()))
         self.assertEqual(self.repo.count_biographies(source=source), 5)
@@ -133,7 +133,7 @@ class RepositoryTestCase(CommonTestCase):
         self.assertEqual(self.repo.db.get_sources()[0], bio.get_source())
         #set a value
         bio.set_value('geboortedatum', '1999-01-01')
-        repo.save_biography(bio)
+        self._save_biography(bio)
         
         self.assertEqual(bio.get_value('geboortedatum'), '1999-01-01')
         
@@ -143,13 +143,13 @@ class RepositoryTestCase(CommonTestCase):
         bio.set_value('geboortedatum', '1999-01-02')
         
         self.assertEqual(bio.get_value('geboortedatum'), '1999-01-02')
-        repo.save_biography(bio)
+        self._save_biography(bio)
         self.assertEqual(self.repo.get_person(person.bioport_id).get_merged_biography().get_value('geboortedatum'), '1999-01-02')
     
     def test_save_biography(self):
         source = Source(id='bioport_test')
         self.repo.add_source(source)
-        bio = Biography( id = 'test_bio.xml', source_id=source.id)
+        bio = Biography(id='test_bio.xml', source_id=source.id)
         
         name = 'Name1'
         #XXX Do we need this?
@@ -161,7 +161,7 @@ class RepositoryTestCase(CommonTestCase):
               local_id='123',
               )
         self.assertEqual(len(bio.get_idnos()), 1, bio.to_string())
-        self.repo.save_biography(bio)
+        self._save_biography(bio)
         #we now have two idnos: the local "id", and the "bioport_id"
 #        assert 0, bio.xpath('person/idno')
         self.assertEqual(len(bio.get_idnos(type=None)), 2, bio.to_string())
@@ -169,10 +169,30 @@ class RepositoryTestCase(CommonTestCase):
         self.assertEqual(self.repo.get_biography(bio.id).naam().volledige_naam(), name)
         name = 'Name2'
         bio.set_value('namen', [name])
-        self.repo.save_biography(bio)
+        self._save_biography(bio)
         
-        self.assertEqual(self.repo.get_biography(bio.id).naam().volledige_naam(), name, bio.to_string())
+        self.assertEqual(self.repo.get_biographies(local_id=bio.id)[0].naam().volledige_naam(), name, bio.to_string())
         self.assertEqual(len(bio.get_idnos(type=None)), 2, bio.to_string())
+    
+    def test_number_of_biographies_in_database(self): 
+        source = Source(id='bioport_test')
+        bio_id = 'test_bio.xml'
+        self.repo.add_source(source)
+        bio = Biography( id = bio_id , source_id=source.id)
+        
+        self._save_biography(bio)
+        
+        def get_versions():
+            return self.repo.db._get_biography_records(local_id=bio_id)
+        
+        
+        self.assertEqual(len(get_versions()), 1)
+        self._save_biography(bio)
+        self.assertEqual(len(get_versions()), 2)
+        self.assertEqual([r.version for r in get_versions()], [0,1])
+        self._save_biography(bio)
+        self.assertEqual(len(get_versions()), 3)
+        self.assertEqual([r.version for r in get_versions()], [0,1, 2])
         
     def test_antiidentify(self):
         repo = self.create_filled_repository()
@@ -196,59 +216,67 @@ class RepositoryTestCase(CommonTestCase):
         self.assertEqual(len(list(repo.get_antiidentified())), 1)    
 
 
-        
-    def test_unidentify(self):
+    def test_get_bioport_biography(self):
         repo = self.create_filled_repository(sources=1)
         persons = repo.get_persons()
-        p1 = persons[1]
-        p2 = persons[2]
-        id1 = p1.bioport_id
-        id2 = p2.bioport_id
-        
-        #identify two persons
-        p = repo.identify(p1, p2)
-        #the new person has one of the original bioport ids
-        id = p.bioport_id
-        self.assertTrue(id in [id1, id2])  
-        self.assertEqual(len(repo.get_identified()), 1)
-        
-        #add some bioport-edited info to our new person
+        p = persons[1]
         bioport_bio = repo.get_bioport_biography(p)
-        #sanity check
-        assert bioport_bio in p.get_biographies(), p.get_biographies()
+        self.assertTrue(bioport_bio in p.get_biographies())
+        bioport_bio = repo.get_bioport_biography(p)
+        self.assertTrue(bioport_bio in p.get_biographies())
         
-        #now unidentify them again
-        ls = repo.unidentify(p)
-        
-        #we should get two persons back
-        self.assertEqual(len(ls), 2)
-        p3, p4 = ls
-        id3 = p3.bioport_id
-        id4 = p4.bioport_id
-        
-        #each of the new persons is associated with a single biogrpahy
-        self.assertEqual(len(p3.get_biographies()),1)
-        self.assertEqual(len(p4.get_biographies()),1)
-        
-        #these new persons have been saved in the repository
-        p3 = repo.get_person(id3)
-        p4 = repo.get_person(id4)
-        
-        #they use the same old ids
-        self.assertTrue(id1 in [id3, id4], [id1, id2, id3, id4, id])
-        self.assertTrue(id2 in [id3, id4])
-        self.assertEqual(len(p3.get_biographies()),1)
-        self.assertEqual(len(p4.get_biographies()),1)
-       
-        #sanity? the biography should refer to the old id
-        self.assertEqual(p3.get_biographies()[0].get_idno('bioport'), id3)
-        self.assertEqual(p4.get_biographies()[0].get_idno('bioport'), id4)
-        
-        self.assertEqual(len(repo.get_identified()), 0)
-        
-        #the status of the two people should be back to new
-        self.assertEqual(p3.status, STATUS_NEW)
-        self.assertEqual(p4.status, STATUS_NEW)
+#    def test_unidentify(self):
+#        repo = self.create_filled_repository(sources=1)
+#        persons = repo.get_persons()
+#        p1 = persons[1]
+#        p2 = persons[2]
+#        id1 = p1.bioport_id
+#        id2 = p2.bioport_id
+#        
+#        import ipdb;ipdb.set_trace()
+#        #identify two persons
+#        p = repo.identify(p1, p2)
+#        #the new person has one of the original bioport ids
+#        id = p.bioport_id
+#        self.assertTrue(id in [id1, id2])  
+#        self.assertEqual(len(repo.get_identified()), 1)
+#        
+#        #add some bioport-edited info to our new person
+#        bioport_bio = repo.get_bioport_biography(p)
+#        self.assertTrue(bioport_bio in p.get_biographies())
+#        
+#        #now unidentify them again
+#        ls = repo.unidentify(p)
+#        
+#        #we should get two persons back
+#        self.assertEqual(len(ls), 2)
+#        p3, p4 = ls
+#        id3 = p3.bioport_id
+#        id4 = p4.bioport_id
+#        
+#        #each of the new persons is associated with a single biogrpahy
+#        self.assertEqual(len(p3.get_biographies()),1)
+#        self.assertEqual(len(p4.get_biographies()),1)
+#        
+#        #these new persons have been saved in the repository
+#        p3 = repo.get_person(id3)
+#        p4 = repo.get_person(id4)
+#        
+#        #they use the same old ids
+#        self.assertTrue(id1 in [id3, id4], [id1, id2, id3, id4, id])
+#        self.assertTrue(id2 in [id3, id4])
+#        self.assertEqual(len(p3.get_biographies()),1)
+#        self.assertEqual(len(p4.get_biographies()),1)
+#       
+#        #sanity? the biography should refer to the old id
+#        self.assertEqual(p3.get_biographies()[0].get_idno('bioport'), id3)
+#        self.assertEqual(p4.get_biographies()[0].get_idno('bioport'), id4)
+#        
+#        self.assertEqual(len(repo.get_identified()), 0)
+#        
+#        #the status of the two people should be back to new
+#        self.assertEqual(p3.status, STATUS_NEW)
+#        self.assertEqual(p4.status, STATUS_NEW)
         
 
     def test_fill_similarity_cache(self):
@@ -303,8 +331,6 @@ class RepositoryTestCase(CommonTestCase):
         qry = repo.db.get_session().query(CacheSimilarityPersons)
         
         #(p1,p2) were deferred, but now we identify them after all
-        
-        
         repo.identify(p1, p2)
         
         #the deferred list contains now only 1 pair

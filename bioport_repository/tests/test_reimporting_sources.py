@@ -117,7 +117,7 @@ class RepositoryTestCase(CommonTestCase):
             i += 1
             bio = repo.get_bioport_biography(person)
             bio.set_value('geboortedatum_tekst',  '000%s'% i)
-            repo.save_biography(bio)            
+            self._save_biography(bio)            
 
         persons = {} 
         j = 0
@@ -149,7 +149,7 @@ class RepositoryTestCase(CommonTestCase):
             i += 1
             bio = repo.get_bioport_biography(person)
             bio.set_value('geboortedatum_tekst',  '000%s'% i)
-            repo.save_biography(bio)        
+            self._save_biography(bio)        
         
         #if we download the biographies again, nothing should have changed 
         repo.download_biographies(src1)

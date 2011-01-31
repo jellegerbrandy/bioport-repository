@@ -54,19 +54,19 @@ class PersonTestCase(CommonTestCase):
         date_burial = '1903'
         
         bio._add_event(type='baptism', when=date_baptism)
-        self.repo.save_biography(bio)
+        self._save_biography(bio)
         self.assertEqual(self.repo.get_person(bioport_id).get_dates_for_overview(), (date_baptism,None))
         
         bio.set_value('birth_date', date_birth)
-        self.repo.save_biography(bio)
+        self._save_biography(bio)
         self.assertEqual(self.repo.get_person(bioport_id).get_dates_for_overview(), (date_birth, None))
 
         bio._add_event(type='burial', when=date_burial)
-        self.repo.save_biography(bio)
+        self._save_biography(bio)
         self.assertEqual(self.repo.get_person(bioport_id).get_dates_for_overview(), (date_birth,date_burial))
         
         bio.set_value('death_date', date_death)
-        self.repo.save_biography(bio)
+        self._save_biography(bio)
         self.assertEqual(self.repo.get_person(bioport_id).get_dates_for_overview(), (date_birth,date_death))
         
         
@@ -90,7 +90,7 @@ class InconsistentPersonsTestCase(CommonTestCase):
             bio.set_value('birth_place', bplace)
         if dplace is not None:
             bio.set_value('death_place', dplace)
-        self.repo.save_biography(bio)
+        self._save_biography(bio)
         return bio
         
     def test_no_contradictions_1(self):

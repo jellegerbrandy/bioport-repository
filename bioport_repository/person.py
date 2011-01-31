@@ -64,18 +64,33 @@ class Person(object):
 
     __repr__ = __str__
 
-    @instance.clearafter
-    def add_biography(self, biography):
-        biography.set_value('bioport_id',self.get_bioport_id())
-        self.repository.save_biography(biography)
 
+    @instance.clearafter
+    def add_biography(self, biography, comment=None):
+        biography.set_value('bioport_id',self.get_bioport_id())
+        if not comment:
+           comment='added biography to %s' % self
+            
+        self.repository.save_biography(
+           biography=biography, 
+           comment = comment,
+           )
+
+    @instance.clearafter
+    def _instance_clearafter(self):
+        pass
+    
     @instance.memoize
     def get_biographies(self, source_id=None):
         """Return all Biographies instances that are known to be
         of this person.
         """
-        ls = self.repository.get_biographies(person=self, order_by='quality',
-                                             source_id=source_id)
+        ls = self.repository.get_biographies(
+	        bioport_id=self.get_bioport_id(), 
+            order_by='quality', 
+            source_id=source_id,
+            version=0,
+            )
         return ls
 
     def get_bioport_id(self):

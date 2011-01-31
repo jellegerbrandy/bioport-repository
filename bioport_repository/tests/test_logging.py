@@ -49,7 +49,7 @@ class LoggingTestCase(CommonTestCase):
         repo.save_person(person)
         self.assertEqual(self.last_log_message().table, 'person')
         
-        repo.add_biography(person.get_bioport_biography())
+        self._save_biography(person.get_bioport_biography())
         self.assertEqual(self.last_log_message().table, 'biography')
         
     def test_get_log(self):

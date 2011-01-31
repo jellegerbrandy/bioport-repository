@@ -22,7 +22,8 @@ class DBRepositoryTestCase(CommonTestCase):
     
     def test_manipulate_biographies(self): 
         """tests for adding and deleting biographies"""
-        n_base = len(self.db.get_biographies())
+        n_bios = n_base = len(self.db.get_biographies())
+        
 #        n_base_naam = self.db.get_session().query(NaamRecord).count()
 #        n_base_soundex = self.db.get_session().query(SoundexRecord).count()
         n_base_soundex = self.db.get_session().query(PersonSoundex).count()
@@ -33,24 +34,30 @@ class DBRepositoryTestCase(CommonTestCase):
         bio1 = Biography(id='ladida', source_id=src.id)
         bio1.from_args(naam_publisher="1", url_biografie="http://www.url.com/1", url_publisher="http:///url2.com", naam="jantje")
         
-        self.db.add_biography(bio1)
+        self.db.save_biography(bio1, user=self.db.user, comment='test')
     
         #we have added one new biography, with one name that corresponds to one single soundex
-        self.assertEqual(len(self.db.get_biographies()), n_base + 1)
-        self.assertEqual(len(self.db.get_session().query(BiographyRecord).all()), n_base + 1)
-#        self.assertEqual(len(self.db.get_session().query(NaamRecord).all()), n_base_naam + 1)
-#        self.assertEqual(len(self.db.get_session().query(SoundexRecord).all()), n_base_soundex + 1)
+        n_bios += 1
+        self.assertEqual(len(self.db.get_biographies()), n_bios)
+        self.assertEqual(len(self.db.get_session().query(BiographyRecord).all()), n_bios)
         self.assertEqual(len(self.db.get_session().query(PersonSoundex).all()), n_base_soundex + 1)
         
         #this biography has one oauthor
         bio1.set_value('auteur', ['Johan'])
-        self.db.save_biography(bio1)
+        self.db.save_biography(bio1, user=self.db.user, comment='test')
+        #now we have a new version of this biography
+        self.assertEqual(len(self.db.get_session().query(BiographyRecord).all()), n_bios + 1)
+        #but the number of biographies (with version 0) is still the ssame
+        self.assertEqual(len(self.db.get_biographies()), n_bios)
+        
         self.assertEqual(len(bio1.get_value('auteur', [])), 1, bio1.to_string())
         
         bio2 = Biography(id='ladida2', source_id=src.id)
         bio2.from_args(naam_publisher="1", url_biografie="http://www.url.com/1", url_publisher="http:///url2.com", naam="jantje")
-        self.db.add_biography(bio2)
-        self.assertEqual(len(self.db.get_biographies()), n_base + 2)
+        self.db.save_biography(bio2, user=self.db.user, comment='test')
+        #we added one more biography
+        n_bios += 1
+        self.assertEqual(len(self.db.get_biographies()), n_bios)
     
     def test_update_biographies(self):
         #set up a source
@@ -58,9 +65,9 @@ class DBRepositoryTestCase(CommonTestCase):
         self.repo.save_source(src)
         bio1 = Biography(id='id1', source_id=src.id)
         bio1.from_args(naam_publisher="1", url_biografie="http://www.url.com/1", url_publisher="http:///url1.com", naam="name1", text='text1')
-        self.db.add_biography(bio1)
+        self.db.save_biography(bio1, user=self.db.user, comment='test')
         bio1.from_args(naam_publisher="1", url_biografie="http://www.url.com/1", url_publisher="http:///url1.com", naam="name1", text='text2')
-        self.db.add_biography(bio1)
+        self.db.save_biography(bio1, user=self.db.user, comment='test')
         person = self.db.get_person(bio1.get_bioport_id())
         self.assertEqual(person.snippet(), 'text2')
         
@@ -88,7 +95,7 @@ class DBRepositoryTestCase(CommonTestCase):
         bio.set_category(categories)
         
         #save the changes in the repository
-        self.repo.save_biography(bio)
+        self._save_biography(bio)
         
         #sanity checks: see if the person knows about this
         self.assertEqual(len(bio.get_states(type='category')), len(categories))
@@ -291,10 +298,7 @@ class DBRepositoryTestCase(CommonTestCase):
         #and also the bioport_ids we used
         self.assertEqual(len(self.repo.get_bioport_ids()), 10)
         
-        #but the biographies are now only 5 
-        self.assertEqual(len(self.repo.get_biographies()), 5)
-        self.assertEqual(session.query(BiographyRecord).count(), 5)
-        #there are also only 5 persons left
+        #there are now only 5 persons left
         self.assertEqual(session.query(PersonRecord).count(), 5)
         self.assertEqual(len(self.repo.get_persons()), 5)
         

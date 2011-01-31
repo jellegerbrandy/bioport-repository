@@ -14,23 +14,28 @@ Base = declarative_base()
 
 
 class BiographyRecord(Base):
+    """represents a version of  biodes document"""
     __tablename__ = 'biography'
 
     #db_id = Column(Integer, primary_key=True, autoincrement=True)
-    id = Column(MSString(50, binary=True, collation='utf8_bin'), primary_key=True, index=True, unique=True,) #the id consist of source_id/local_id
+    id = Column(MSString(50, binary=True, collation='utf8_bin'), primary_key=True, index=True, ) #the id consist of source_id/local_id
+    version = Column(Integer, primary_key=True, default=0, autoincrement=False)
     source_id = Column(MSString(50, collation='utf8_bin'), ForeignKey("source.id"),index=True)
-#    local_id = Column(MSString(50), index=True,  nullable=False)
-    biodes_document = Column(Text(64000))
     source_url = Column(Unicode(255)) #the url where the biodes_document came from
-    timestamp = Column(TIMESTAMP)
+    biodes_document = Column(Text(64000))
     
-#    sqlalchemy.schema.ForeignKeyConstraint(['id'], ['naam.biography_id'], ondelete="CASCADE") 
-    authors = relation( 'RelBiographyAuthorRecord') #, cascade="all, delete, delete-orphan", backref='biography')
+    user = Column(MSString(50))
+    time = Column(DateTime)
+    comment = Column(Unicode(255))
     bioportid = relation('RelBioPortIdBiographyRecord')
     hide = Column(Boolean)
-
-#    bioport_id_records = relation('BioPortIdRecord')
+    timestamp = Column(TIMESTAMP)
     
+#    local_id = Column(MSString(50), index=True,  nullable=False)
+#    sqlalchemy.schema.ForeignKeyConstraint(['id'], ['naam.biography_id'], ondelete="CASCADE") 
+#    authors = relation( 'RelBiographyAuthorRecord') #, cascade="all, delete, delete-orphan", backref='biography')
+#    bioport_id_records = relation('BioPortIdRecord')
+
     def get_bioport_id(self):
         return self.bioportid[0].bioport_id
     
