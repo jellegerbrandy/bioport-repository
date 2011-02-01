@@ -52,7 +52,7 @@ ECHO = False
 class DBRepository:
     """Interface with the MySQL database"""
     
-
+    SIMILARITY_TRESHOLD = 0.70 #
     def __init__(self, 
         db_connection, 
         user,
@@ -187,29 +187,29 @@ class DBRepository:
         with self.get_session_context() as session:
             # delete also all biographies associated with this source
             session.query(BiographyRecord).filter_by(source_id = source.id).delete()
-        session.execute('delete rel from relbiographyauthor rel left outer join biography b on rel.biography_id = b.id where b.id is null')
-        session.execute('delete a   from author a               left outer join relbiographyauthor rel on rel.author_id = a.id where rel.author_id is null')
-        #delete also all records in person_record table
-        sql = """DELETE  s from person_source s
-            where s.source_id = '%s'""" % source.id 
-        session.execute(sql)
-        #delete all persons  that have become 'orphans' (i.e. that have no source anymore) 
-        sql = """DELETE  p from person p 
-            left outer join person_source s
-            on s.bioport_id = p.bioport_id
-            where s.bioport_id is Null"""  
-        session.execute(sql)
-        #delete all orphaned names and soundexes
-        sql = """DELETE  n from person_name n 
-            left outer join person p
-            on n.bioport_id = p.bioport_id
-            where n.bioport_id is Null"""  
-        session.execute(sql)
-        sql = "delete n   from naam n   where src = '%s'" % source.id          
-        session.execute(sql)
-        session.execute('delete s   from soundex s            left outer join naam n  on s.naam_id = n.id where n.id is null')
-        session.expunge_all()
-        #delete orphans inthe similarity cache
+            session.execute('delete rel from relbiographyauthor rel left outer join biography b on rel.biography_id = b.id where b.id is null')
+            session.execute('delete a   from author a               left outer join relbiographyauthor rel on rel.author_id = a.id where rel.author_id is null')
+            #delete also all records in person_record table
+            sql = """DELETE  s from person_source s
+                where s.source_id = '%s'""" % source.id 
+            session.execute(sql)
+            #delete all persons  that have become 'orphans' (i.e. that have no source anymore) 
+            sql = """DELETE  p from person p 
+                left outer join person_source s
+                on s.bioport_id = p.bioport_id
+                where s.bioport_id is Null"""  
+            session.execute(sql)
+            #delete all orphaned names and soundexes
+            sql = """DELETE  n from person_name n 
+                left outer join person p
+                on n.bioport_id = p.bioport_id
+                where n.bioport_id is Null"""  
+            session.execute(sql)
+            sql = "delete n   from naam n   where src = '%s'" % source.id          
+            session.execute(sql)
+            session.execute('delete s   from soundex s            left outer join naam n  on s.naam_id = n.id where n.id is null')
+            
+#            session.expunge_all()
 
     def delete_biography(self, biography):
         with self.get_session_context() as session:
@@ -286,10 +286,6 @@ class DBRepository:
                 r_bio.version += 1
                 session.flush()
             
-#            try:
-#                r_biography = session.query(BiographyRecord).filter(BiographyRecord.id==biography.id).one()
-#            except sqlalchemy.orm.exc.NoResultFound:
-            #print 'biography %s was not found in the db, creating new record' % biography.id
             r_biography = BiographyRecord(id=biography.get_id())
                 
             r_biography.source_id = biography.source_id
@@ -303,13 +299,13 @@ class DBRepository:
 #                
         # update the information of the associated person (or add a person 
         # if the biography is new)
-        with self.get_session_context() as session:
-            default_status = self.get_source(biography.source_id).default_status
-            self.update_person(biography.get_bioport_id(), default_status=default_status)
+        default_status = self.get_source(biography.source_id).default_status
+        self.update_person(biography.get_bioport_id(), default_status=default_status)
             
-            msg  = 'saved biography with id %s' % (biography.id)
-            self.log(msg=msg, record = r_biography)
+        msg  = 'saved biography with id %s' % (biography.id)
+        self.log(msg=msg, record = r_biography)
 
+        
     def _add_author(self, author, biography_record):   
         """
         author - a string
@@ -329,6 +325,7 @@ class DBRepository:
                 r = PersonRecord(bioport_id=person.get_bioport_id())
                 session.add(r)
             person.record = r
+            #XXX: is this obsolete?
             if getattr(person, 'remarks', None) is not None:
                 r.remarks = person.remarks
             if getattr(person, 'status', None):
@@ -352,8 +349,9 @@ class DBRepository:
                 r_person = PersonRecord(bioport_id=bioport_id) 
                 session.add(r_person)
                 r_person.status = default_status
-            person = Person(bioport_id=bioport_id, record=r_person, repository=self)
-           
+                
+        person = Person(bioport_id=bioport_id, record=r_person, repository=self)
+        with self.get_session_context() as session:
             merged_biography = person.get_merged_biography()
             if not merged_biography.get_biographies():
                 logging.warning('NO biographies found for person with bioport id %s' % person.bioport_id)
@@ -423,6 +421,14 @@ class DBRepository:
             
             self.update_source(bioport_id, source_ids = [b.source_id for b in person.get_biographies()])
             
+            if person.get_biography_contradictions():
+                r_person.has_contradictions = True
+            else:
+                r_person.has_contradictions = False
+    
+        #update the different caches to reflect any changes
+        self.fill_similarity_cache(person=person, refresh=True)
+         
     def update_persons(self):
         """Update the information of all the persons in the database.
         Return the number of processed persons.
@@ -555,11 +561,14 @@ class DBRepository:
             if biography.get_bioport_id() :
                 #if it has a bioport_id defined, it should already have been registered
                 bioport_id = biography.get_bioport_id()
-                must_be_true = session.query(BioPortIdRecord
+                r_bioportidrecord = session.query(BioPortIdRecord
                              ).filter(BioPortIdRecord.bioport_id==bioport_id).one()
-                if not must_be_true:
+                        
+                if not r_bioportidrecord:
                     msg = 'This biography seems to have a bioport_id defined that is not present in the database'
                     raise Exception(msg)
+                #if this bioport_id redirects to another one, we remove that redirection (as we now attach biography to this id)
+                r_bioportidrecord.redirect_to = None
             else:
                 #try to find a bioport id in the reistry for this biography
                 qry = session.query(RelBioPortIdBiographyRecord).filter_by(biography_id=biography.id)
@@ -652,7 +661,7 @@ class DBRepository:
                       record=r, 
                       version=r.version, 
                       ) 
-	        for r in ls]
+            for r in ls]
 
 
     def _get_biography_records(self, 
@@ -679,7 +688,7 @@ class DBRepository:
             qry = qry.filter(RelBioPortIdBiographyRecord.bioport_id==bioport_id)
        
         if version is not None:
-	        qry = qry.filter(BiographyRecord.version == version)
+            qry = qry.filter(BiographyRecord.version == version)
         if user:
             qry = qry.filter(BiographyRecord.user == user)
         if time_from:
@@ -951,7 +960,6 @@ class DBRepository:
         if size:
             qry = qry.limit(size)
         qry = qry.distinct() #XXX: why to we need this?
-        #print qry.statement
         return qry
     
 
@@ -1142,7 +1150,16 @@ class DBRepository:
                 self.log(msg, r)
             except NoResultFound:
                 pass
-
+        
+        #remove from cache similarity
+        with self.get_session_context() as session:
+            qry = session.query(CacheSimilarityPersons)
+            qry = qry.filter(or_(
+                         CacheSimilarityPersons.bioport_id1==person.get_bioport_id(),  
+                         CacheSimilarityPersons.bioport_id2==person.get_bioport_id()
+                         ))
+            qry.delete()   
+                    
 #    def get_authors(self, biography=None,
 #                          beginletter=None,
 #                          search_term=None,
@@ -1207,12 +1224,14 @@ class DBRepository:
                 break
         return chain[-1]
     
-    def fill_similarity_cache(self, person=None, 
-                                    k=20, 
-                                    refresh=False, 
-                                    limit=None,
-                                    source_id=None,
-                                    minimal_score=0.70):
+    def fill_similarity_cache(self, 
+        person=None, 
+        k=20, 
+        refresh=False, 
+        limit=None,
+        source_id=None,
+        minimal_score=None,
+        ):
         """fill a table CacheSimilarityPersons with, for each name in the index, a record with the 20 most similar other names in the index
        
            arguments:
@@ -1221,9 +1240,11 @@ class DBRepository:
                refresh - throw away existing data and calculate from 0 (should only be used if function has changed)
                limit - an integer - compute only for that amount of persons
         """     
+        if not minimal_score:
+            minimal_score = self.SIMILARITY_TRESHOLD
         if source_id:
             source_id = unicode(source_id)
-        
+            
         logging.info('Refreshing similarity table for %s, refresh=%s' % (source_id, refresh))
         if refresh:
             with self.get_session_context() as session:
@@ -1454,7 +1475,7 @@ class DBRepository:
         else:
             start = 1000
             qry = qry.slice(start, start + size)
-        logging.info('executing %s'% qry.statement)
+#        logging.info('executing %s'% qry.statement)
         ls = [(r.score, Person(r.bioport_id1, repository=self.repository, score=r.score), Person(r.bioport_id2, repository=self, score=r.score)) for r in session.execute(qry)]
         return ls
      
@@ -1574,132 +1595,41 @@ class DBRepository:
             new_person = person1
             old_person = person2
 
+        new_id = new_person.bioport_id
+        old_id = old_person.bioport_id
+        
         if new_person.bioport_id == old_person.bioport_id:
             #these two persons are already identified
             return new_person
         
-        #changhe de bioportid table
-        self.redirect_identifier(old_person.get_bioport_id(), new_person.get_bioport_id())
             
         #now attach all biographies to the new bioportid
 #        for bio in new_person.get_biographies() + old_person.get_biographies(): 
         for bio in old_person.get_biographies(): 
             new_person.add_biography(bio,
-                comment='identified %s and %s' % (person1, person2),
+                comment='Identified %s and %s: added biography %s to %s' % (person1.name(), person2.name(), bio, new_person),
                 )
             
         #mege the bioport biographies in the new person
         #XXX Uncomment when merge_bioport_biographies is well tested
 #        new_person.merge_bioport_biographies()
-        
-        with self.get_session_context() as session:
-            query = session.query(PersonRecord)
-            query = query.filter(PersonRecord.bioport_id==new_person.get_bioport_id())
-            obj = query.one()
-            if new_person.get_biography_contradictions():
-                obj.has_contradictions = True
-            else:
-                obj.has_contradictions = False
-
         #if we have different bioport biographies, we need to choose one
-        new_id = new_person.bioport_id
-        old_id = old_person.bioport_id
         #adapt the caches
+        
+        #changhe de bioportid table
+        self.redirect_identifier(old_person.get_bioport_id(), new_person.get_bioport_id())
+        
         #we identified so we can remove this pair from the deferred list
         self._remove_from_cache_deferidentification(new_person, old_person)
-        self._update_similarity_cache_with_identification(new_id, old_id )
-       
-
+        
         #now delete the old person from the Person table
         self.delete_person(old_person)
         
+        self.update_person(new_person.get_bioport_id() )
+       
         return new_person 
 
-    def _update_similarity_cache_with_identification(self, new_id, old_id ):
-        #update the similarity cache replaceing the old bioport_id with the new one
-        with self.get_session_context() as session:
-            qry = session.query(CacheSimilarityPersons)
-            qry = qry.filter(or_(CacheSimilarityPersons.bioport_id1 == old_id, CacheSimilarityPersons.bioport_id2 == old_id))
-            #we have to do it record by record, because we may be creating duplicates
-            ls = list(qry.all())
-            for r in ls:
-                session.flush()
-                if r.bioport_id1 == old_id and r.bioport_id2 == old_id:
-                    session.delete(r)
-                    session.flush()
-                    continue
-                
-                if r.bioport_id1 == old_id:
-                    bioport_id1 = new_id
-                    bioport_id2 = r.bioport_id2
-                else:
-                    bioport_id1 = r.bioport_id1 
-                    bioport_id2 = new_id
-                if bioport_id1 > bioport_id2: 
-                    bioport_id1, bioport_id2 = bioport_id2, bioport_id1
-                    
-                try:
-                    r.bioport_id1 = bioport_id1
-                    r.bioport_id2 = bioport_id2
-                    session.flush()
-                except (IntegrityError, InvalidRequestError), e:
-                    session.rollback()
-                    session.expire_all()
-                    #this thing was already in the database; we keep the one with the highest score
-                    other_r = self.get_session().query(CacheSimilarityPersons).filter_by(bioport_id1=bioport_id1, bioport_id2=bioport_id2).one()
-                    if other_r.score > r.score:
-                        session.delete(r)
-                    else:
-                        session.delete(other_r)
-                        session.flush()
-                        r.bioport_id1 = bioport_id1
-                        r.bioport_id2 = bioport_id2
-                    session.flush()
-            assert not qry.count(), [(r.bioport_id1, r.bioport_id2) for r in qry.all()]
               
-#    def unidentify(self, person):
-#        """Create a new person for each biography associated with person.
-#        
-#        returns:
-#            the new persons
-#        """
-#        bios = person.get_biographies()
-#        result = []
-#        if len(bios) == 1:
-#            return [person]
-#        
-#        used_ids = []
-#        
-#        for bio in bios:
-#            if bio.get_source().id == 'bioport':
-#                #we delete the bioport biographies
-#                self.delete_biography(bio)
-#            else:
-#                original_bioport_id = bio.get_idnos(type='bioport')[0]
-#                #print '1:',  original_bioport_id
-#                #the next three lines are there only because in a previous version, bioport_ids were not 'remembered 
-#                if original_bioport_id in used_ids:
-#                    original_bioport_id = self.fresh_identifier()
-#                used_ids.append(original_bioport_id)
-#                #print used_ids
-#                #save the changes to the biography
-#                bio.set_value('bioport_id',original_bioport_id)
-#                self.save_biography(bio, user=self.user, comment='unidentified %s' % person)
-#                
-#                #remove the 'redirect' instruction from this bioport id (if there was one)
-#                self.redirect_identifier(bioport_id=original_bioport_id, redirect_to=None)
-#                
-#                #create a new person
-#                new_person = Person(bioport_id=original_bioport_id, biographies=[bio])
-#                new_person.repository = self
-#                new_person.add_biography(bio)
-#                self.save_person(new_person)
-#                result.append(new_person) 
-#                
-#        self.delete_person(person)
-#                
-#        return result
-        
     def find_biography_contradictions(self):
         """Populate person.has_contradictions column of the db.
         Return the number of persons which have contradictory biographies.
@@ -1725,7 +1655,6 @@ class DBRepository:
         id1, id2 = person1.get_bioport_id(), person2.get_bioport_id()       
         # add a witness record to the antiidentify table
         r_anti = AntiIdentifyRecord(bioport_id1 = min(id1, id2),bioport_id2= max(id1, id2)) 
-        
         
         # XXX - this should be adjusted by checking if the record
         # exists first, in which case this is not executed.
@@ -1767,18 +1696,12 @@ class DBRepository:
         return query.all()
     
     def get_identified(self, **args):
-        """what we really want is the "canonical" ids of the persons that have been identified
+        """get all persons that have been identified (with other persons)
+        
+        what we really want is the "canonical" ids of the persons that have been identified
         (not the ones that are redirecting to others, as we have now)
         """
         return self.get_persons(is_identified=True, **args)
-        
-        session = self.get_session()
-        qry = session.query(
-            BioPortIdRecord
-            )
-        qry = qry.filter(BioPortIdRecord.redirect_to != None)
-            
-        return qry.all()
         
     def defer_identification(self, person1, person2): 
         """register the fact that the user puts this pair at the "deferred  list """
@@ -2016,31 +1939,16 @@ and b2.redirect_to is null
         biographies = self.get_biographies(
             source_id=source_id,
             bioport_id=bioport_id,
-			local_id=document_id,
-			order_by='version',
-			version=version,
-			limit=amount,
+            local_id=document_id,
+            order_by='version',
+            version=version,
+            limit=amount,
             user=user,
             time_from=time_from,
             time_to=time_to,
             
             )
-#        qry = self.get_session().query(BiographyRecord)
-#        
         return [Version(biography=bio,) for bio in biographies]
-#        qry = qry.order_by(sqlalchemy.desc(BiographyRecord.time), BiographyRecord.version)
-#        if user:
-#            qry = qry.filter(BiographyRecord.user == user)
-#        if time_from:
-#            qry = qry.filter(BiographyRecord.time >= time_from)
-#        if time_to:
-#            qry = qry.filter(BiographyRecord.time <= time_to)
-#        if bioport_id:
-#            qry = qry.filter(BiographyRecord.bioport_id == bioport_id)
-#        if document_id:
-#            qry = qry.filter(BiographyRecord.id==document_id)
-#        qry = qry.limit(amount)
-#        return [Version(user=r.user, time=r.time, comment=r.comment, document_id=r.id, biodes_document=r.biodes_document, version=r.version) for r in qry.all()]
    
     def undo_version(self, document_id, version): 
         """"Make the version before the one identified by document_id and version the most current version
@@ -2054,5 +1962,5 @@ and b2.redirect_to is null
         """
         versions = self.get_versions(document_id=document_id, version=version+1)
         assert versions
-        self.repository.save_biography(versions[0].biography, comment='restored version of  %s' % versions[0].time)
+        self.repository.save_biography(versions[0].biography, comment='restored version of  %s' % versions[0].time or '[before versioning]')
                 

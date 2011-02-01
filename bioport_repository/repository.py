@@ -263,7 +263,6 @@ class Repository(object):
         #first we remove all previously imported biographies at this source
         logging.info('deleting existing biographies from %s' % source)
         self.delete_biographies(source=source)
-        
         logging.info('downloading biodes files')
         total = len(ls)
         skipped = 0

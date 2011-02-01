@@ -157,7 +157,7 @@ class SimilarityTestCase(CommonTestCase):
     def test_most_similar_persons(self):
         repo= self.repo
         self.assertEqual(len(self.repo.get_persons()) ,10)
-        self.repo.db.fill_similarity_cache(minimal_score=0.0)
+        self.repo.db.fill_similarity_cache(minimal_score=0.0, refresh=True)
         for r in self.repo.db.get_session().query(CacheSimilarityPersons).all():
             assert r.bioport_id1 <= r.bioport_id2, (r.bioport_id1, r.bioport_id2)
         

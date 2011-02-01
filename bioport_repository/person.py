@@ -75,7 +75,7 @@ class Person(object):
            biography=biography, 
            comment = comment,
            )
-
+        
     @instance.clearafter
     def _instance_clearafter(self):
         pass
@@ -126,11 +126,7 @@ class Person(object):
 
     @instance.memoize
     def name(self):
-        try:
-            return self._name
-        except AttributeError:
-            self._name = self.get_merged_biography().naam()
-            return self._name
+        return self.get_merged_biography().naam()
 
     naam = name
 
