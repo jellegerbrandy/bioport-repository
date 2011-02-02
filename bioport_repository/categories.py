@@ -5,25 +5,6 @@ from bioport_repository.db_definitions import Category
 
 
 def fill_table(session):    
-    categories = """ 
-       1. Adel en vorstenhuizen
-       2. Bedrijfsleven (incl. bankwezen, industrie, handel, landbouw, techniek, transport)
-       3. Beeldende kunsten & vormgeving (incl. architectuur)
-       4. Kerk en godsdienst
-       5. Koloniale en overzeese betrekkingen en handel
-       6. Krijgsmacht
-       7. Letterkunde (incl. dichtkunst, journalistiek)
-       8. Maatschappelijke bewegingen (incl. protest, oproer, vakbeweging)
-       9. Misdaad
-      10. Onderwijs & wetenschappen
-      11. Politiek (incl. diplomatie, landsbestuur)
-      12. Radio en TV
-      13. Rechtspraak
-      14. Sport en vrije tijd
-      15. Uitvoerende kunsten (muziek, toneel, dans, cabaret etc.)
-      16. Zorg (incl. liefdadigheid, gezondheidszorg, sociale zorg)
-      17. Overig
-    """
 
     categories = """ 
        1. Adel en vorstenhuizen
@@ -37,7 +18,7 @@ def fill_table(session):
        9. Rechtspraak
       10. Onderwijs & wetenschappen
       11. Politiek en bestuur
-      12. Radio en TV
+      12. Radio, TV en film
       14. Sport en vrije tijd
       15. Uitvoerende kunsten
       16. Zorg

@@ -1614,7 +1614,6 @@ class DBRepository:
         #XXX Uncomment when merge_bioport_biographies is well tested
 #        new_person.merge_bioport_biographies()
         #if we have different bioport biographies, we need to choose one
-        #adapt the caches
         
         #changhe de bioportid table
         self.redirect_identifier(old_person.get_bioport_id(), new_person.get_bioport_id())
