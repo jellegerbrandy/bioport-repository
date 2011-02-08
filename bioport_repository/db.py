@@ -1246,7 +1246,6 @@ class DBRepository:
                refresh - throw away existing data and calculate from 0 (should only be used if function has changed)
                limit - an integer - compute only for that amount of persons
         """     
-        import ipdb;ipdb.set_trace()
         if minimal_score is None:
             minimal_score = self.SIMILARITY_TRESHOLD
         if source_id:
@@ -1315,7 +1314,7 @@ class DBRepository:
 #                    logging.info('skipped computing similarities for %s out of %s: %s - already in database' % (i, len(persons), person))
                     continue
                 else:
-#                    logging.info('computing similarities for %s out of %s: %s' % (i, len(persons), person))
+                    logging.info('computing similarities for %s out of %s: %s' % (i, len(persons), person))
                     #we add the identity score so that we can check later that we have 'done' this record, 
                     self.add_to_similarity_cache(bioport_id, bioport_id, score=1.0)
                 
