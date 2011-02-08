@@ -205,6 +205,7 @@ class Repository(object):
         biography.repository = self
         if self.ENABLE_DB:
             self.db.save_biography(biography, user=self.user, comment=comment)
+            
         if self.ENABLE_SVN:
             raise NotImplementedError()
 
