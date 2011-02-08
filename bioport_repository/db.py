@@ -1246,6 +1246,7 @@ class DBRepository:
                refresh - throw away existing data and calculate from 0 (should only be used if function has changed)
                limit - an integer - compute only for that amount of persons
         """     
+        import ipdb;ipdb.set_trace()
         if minimal_score is None:
             minimal_score = self.SIMILARITY_TRESHOLD
         if source_id:
