@@ -334,11 +334,16 @@ class DBRepository:
             msg = 'Changed person'
             self.log(msg, r)
 
-    def update_person(self,bioport_id, default_status=STATUS_NEW):
+    def update_person(self,
+          bioport_id, 
+          default_status=STATUS_NEW,
+          compute_similarities=False,
+          ):
         """add or update a person table with the information contained in its biographies
         
         - bioport_id:  the id that identifies the person
         - default_status: the status given to the Person if it is a newly added person
+        - compute_similarities: computes similarites (very expensive)
         """
         with self.get_session_context() as session:
             #check if a person with this bioportid alreay exists
@@ -427,7 +432,8 @@ class DBRepository:
                 r_person.has_contradictions = False
     
         #update the different caches to reflect any changes
-        self.fill_similarity_cache(person=person, refresh=True)
+        if compute_similarities:
+	        self.fill_similarity_cache(person=person, refresh=True)
          
     def update_persons(self):
         """Update the information of all the persons in the database.
@@ -1240,7 +1246,7 @@ class DBRepository:
                refresh - throw away existing data and calculate from 0 (should only be used if function has changed)
                limit - an integer - compute only for that amount of persons
         """     
-        if not minimal_score:
+        if minimal_score is None:
             minimal_score = self.SIMILARITY_TRESHOLD
         if source_id:
             source_id = unicode(source_id)
@@ -1252,14 +1258,14 @@ class DBRepository:
                 qry = session.query(CacheSimilarityPersons)
                 if person:
                     #just remove the records of this person
-                    logging.info('Deleting all records from cachesimilaritypersons related to %s' % person)
+#                    logging.info('Deleting all records from cachesimilaritypersons related to %s' % person)
                     qry = qry.filter(CacheSimilarityPersons.bioport_id1==person.get_bioport_id())  
                     qry.delete()   
                     qry = qry.filter(CacheSimilarityPersons.bioport_id2==person.get_bioport_id())  
                     qry.delete()   
                     
                 elif source_id:
-                    logging.info('Deleting all records from cachesimilaritypersons related to %s' % source_id)
+#                    logging.info('Deleting all records from cachesimilaritypersons related to %s' % source_id)
                     qry = qry.outerjoin((
                         RelBioPortIdBiographyRecord, 
                         or_( RelBioPortIdBiographyRecord.bioport_id==CacheSimilarityPersons.bioport_id1,
@@ -1282,7 +1288,7 @@ class DBRepository:
                     session.execute(s)
                     session.expunge_all()
                 else:
-                    logging.info('Deleting all records from cachesimilaritypersons related')
+#                    logging.info('Deleting all records from cachesimilaritypersons related')
                     qry.delete()
                                    
         #if the person argument is not given, we update for all persons
@@ -1305,10 +1311,10 @@ class DBRepository:
                 if qry.all():
                     #we have already done this person , and we did not explicitly call for a refresh
     #                print 'already done'
-                    logging.info('skipped computing similarities for %s out of %s: %s - already in database' % (i, len(persons), person))
+#                    logging.info('skipped computing similarities for %s out of %s: %s - already in database' % (i, len(persons), person))
                     continue
                 else:
-                    logging.info('computing similarities for %s out of %s: %s' % (i, len(persons), person))
+#                    logging.info('computing similarities for %s out of %s: %s' % (i, len(persons), person))
                     #we add the identity score so that we can check later that we have 'done' this record, 
                     self.add_to_similarity_cache(bioport_id, bioport_id, score=1.0)
                 
@@ -1324,7 +1330,7 @@ class DBRepository:
                                          filter_custom=TUSSENVOEGSELS + [w.capitalize() for w in TUSSENVOEGSELS], wildcards=False,
                                          )
                 
-                logging.info('searching for persons matching any of %s' % soundexes)
+#                logging.info('searching for persons matching any of %s' % soundexes)
                 if not soundexes:
                     persons_to_compare = []
                 else:
@@ -1337,17 +1343,18 @@ class DBRepository:
                 similar_persons =  similarity_computer._persons
                 if len(similar_persons) > 1:
                     most_sim = similar_persons[1]
-                    logging.info('highest similarity score: %s (%s)' % (most_sim.score, most_sim))
+#                    logging.info('highest similarity score: %s (%s)' % (most_sim.score, most_sim))
                 else:
-                    logging.info('no similar persons found')
+#                    logging.info('no similar persons found')
+					pass
                 for p in similarity_computer._persons[:k]:
                     if p.score > minimal_score:
                         self.add_to_similarity_cache(person.bioport_id, p.bioport_id, p.score)
-                        try:
-                            msg =  '%s|%s|%s|%s|%s|' % (person.bioport_id, p.bioport_id, p.score, person.naam(), p.naam())
-                            logging.info(msg)
-                        except UnicodeEncodeError:
-                            logging.info('scores could not be printed due to UnicodeEncodeError')
+#                        try:
+#                            msg =  '%s|%s|%s|%s|%s|' % (person.bioport_id, p.bioport_id, p.score, person.naam(), p.naam())
+#                            logging.info(msg)
+#                        except UnicodeEncodeError:
+#                            logging.info('scores could not be printed due to UnicodeEncodeError')
 
     def add_to_similarity_cache(self,bioport_id1, bioport_id2,score):
         with self.get_session_context() as session:
