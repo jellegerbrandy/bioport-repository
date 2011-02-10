@@ -567,10 +567,11 @@ class DBRepository:
             if biography.get_bioport_id() :
                 #if it has a bioport_id defined, it should already have been registered
                 bioport_id = biography.get_bioport_id()
-                r_bioportidrecord = session.query(BioPortIdRecord
+                try:
+	                r_bioportidrecord = session.query(BioPortIdRecord
                              ).filter(BioPortIdRecord.bioport_id==bioport_id).one()
                         
-                if not r_bioportidrecord:
+                except NoResultFound:
                     msg = 'This biography seems to have a bioport_id defined that is not present in the database'
                     raise Exception(msg)
                 #if this bioport_id redirects to another one, we remove that redirection (as we now attach biography to this id)
