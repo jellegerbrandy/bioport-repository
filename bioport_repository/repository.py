@@ -210,13 +210,6 @@ class Repository(object):
             raise NotImplementedError()
 
         return
-#        biography.get_person().invalidate_cache('_biographies')
-    
-                
-#    def add_biography(self, bio):
-#        """add the biography - or update it if an biography with the same id already is present in the system
-#        """
-#        self.save_biography(biography=bio)
 
     def delete_biographies(self, source):
         sources_ids = [src.id for src in self.get_sources()]

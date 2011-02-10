@@ -219,6 +219,7 @@ class MergedBiography:
                 
         return default
     
+    @instance.memoize   
     def title(self):
         for b in self.get_biographies():
             if b.title():
@@ -242,6 +243,7 @@ class MergedBiography:
             ls += bio.get_illustrations() 
         return ls or default
     
+    @instance.memoize   
     def naam(self):
         """return the first name that you can find in the associated biographies"""
         for b in self.get_biographies():

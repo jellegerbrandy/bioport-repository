@@ -395,10 +395,13 @@ class DBRepository:
             r_person.has_contradictions = bool(person.get_biography_contradictions())
             illustrations =  merged_biography.get_illustrations()
             r_person.thumbnail = illustrations and illustrations[0].image_small_url or u''
+            
             #update categories
 #            r_person.categories = [RelPersonCategory(category_id=id) for state in merged_biography.get_states(type='categories')]
+
             session.query(RelPersonCategory).filter(RelPersonCategory.bioport_id==bioport_id).delete()
-            for category in person.get_merged_biography().get_states(type='category'):
+            
+            for category in merged_biography.get_states(type='category'):
                 category_id = category.get('idno')
                 assert type(category_id) in [type(u''), type('')], category_id
                 try:
@@ -410,8 +413,6 @@ class DBRepository:
                 session.add(r)
                 session.flush()
                 
-            #refresh the names 
-            self.delete_names(bioport_id=bioport_id)
             
             #'the' source -- we take the first non-bioport source as 'the' source
             #and we use it only for filterling later
@@ -422,6 +423,8 @@ class DBRepository:
             else:
                 src = None
                 
+            #refresh the names 
+            self.delete_names(bioport_id=bioport_id)
             self.update_name(bioport_id=bioport_id, names=names)
             
             self.update_source(bioport_id, source_ids = [b.source_id for b in person.get_biographies()])
@@ -507,7 +510,7 @@ class DBRepository:
 #                    session.add(r)   
  
     def update_source(self, bioport_id, source_ids):   
-        """update th table person_source"""
+        """update the table person_source"""
         with self.get_session_context() as session:
             #delete existing references
             session.query(PersonSource).filter(PersonSource.bioport_id == bioport_id).delete()
@@ -1589,10 +1592,8 @@ class DBRepository:
         returns:
             a Person instance - representing the identified person
         """
-        
         #we need to merge the two persons, and choose one as the one to "point to"
         #we take the one that uses a biography with the highest trusworthiness
-        
         trust1 = max([bio.get_source().quality for bio in person1.get_biographies() if bio.get_source().id != 'bioport']  + [0])
         trust2 = max([bio.get_source().quality for bio in person2.get_biographies() if bio.get_source().id != 'bioport']  + [0])
        
@@ -1611,6 +1612,7 @@ class DBRepository:
             return new_person
         
             
+
         #now attach all biographies to the new bioportid
 #        for bio in new_person.get_biographies() + old_person.get_biographies(): 
         for bio in old_person.get_biographies(): 

@@ -96,6 +96,7 @@ class Person(object):
     def get_bioport_id(self):
         return self.id
 
+    @instance.memoize
     def get_sources(self):
         return [bio.get_source() for bio in self.get_biographies()]
 
