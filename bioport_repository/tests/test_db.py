@@ -72,7 +72,6 @@ class DBRepositoryTestCase(CommonTestCase):
         self.assertEqual(person.snippet(), 'text2')
         
     def test_source_updating(self):
-        self.create_filled_repository()    
         src = self.repo.get_source(id=u'knaw')
         self.db.delete_biographies(src)
         self.assertEqual(len(self.db.get_biographies(source=src)), 0)
@@ -81,8 +80,10 @@ class DBRepositoryTestCase(CommonTestCase):
         self.assertEqual(len(self.db.get_biographies(source=src)), 5) 
         
     def test_update_persons(self):
-        self.create_filled_repository(sources=1)
         self.repo.db.update_persons()
+        
+    def test_update_soundexes(self):
+        self.repo.db.update_soundexes()
         
     def test_saving_of_categories(self): 
         repo = self.repo

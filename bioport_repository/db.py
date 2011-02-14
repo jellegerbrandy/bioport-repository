@@ -532,7 +532,7 @@ class DBRepository:
             i += 1
             if not i % 10:
                 logging.info('%s of %s' % (i, len(persons)))
-            names = person.record.names 
+            names = person.get_names() 
             self.update_soundex(person.bioport_id, names)
         logging.info('done')
         
