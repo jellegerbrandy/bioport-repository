@@ -69,7 +69,7 @@ class Person(object):
     def add_biography(self, biography, comment=None):
         biography.set_value('bioport_id',self.get_bioport_id())
         if not comment:
-           comment='added biography to %s' % self
+            comment='added biography to %s' % self
             
         self.repository.save_biography(
            biography=biography, 
@@ -86,7 +86,7 @@ class Person(object):
         of this person.
         """
         ls = self.repository.get_biographies(
-	        bioport_id=self.get_bioport_id(), 
+            bioport_id=self.get_bioport_id(), 
             order_by='quality', 
             source_id=source_id,
             version=0,

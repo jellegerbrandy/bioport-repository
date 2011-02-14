@@ -163,15 +163,17 @@ any more""",
         self.assertEqual(len(bio.get_states(type='category')), 1)
         bio.set_category([1])
         self.assertEqual(len(bio.get_states(type='category')), 1)
+        self.assertEqual(bio.get_states(type='category')[0].get('idno'), '1')
         bio.set_category([1,2])
         self.assertEqual(len(bio.get_states(type='category')), 2)
         bio.set_category([2])
         self.assertEqual(len(bio.get_states(type='category')), 1)
         bio.set_category([2,0])
         self.assertEqual(len(bio.get_states(type='category')), 1)
+        self.assertEqual(bio.get_states(type='category')[0].get('idno'), '2')
         bio.set_category([2,2, 2, '2'])
         self.assertEqual(len(bio.get_states(type='category')), 1)
-
+        self.assertEqual(bio.get_states(type='category')[0].get('idno'), '2')
 
  
 def test_suite():

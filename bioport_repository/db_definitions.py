@@ -363,6 +363,54 @@ STATUS_VALUES =  [
     (9999, 'no external biographies')
 ]
 
+
+RELIGION_VALUES = [
+#'Christelijke hoofdstromingen in Ndl.:
+	(1, 'anglicaans',),
+	(2, 'doopsgezind',),
+	(3, 'gereformeerd',),
+	(4, 'luthers',),
+	(5, 'Nederlands hervormd',),
+	(6, 'oud-katholiek',),
+	(7, 'remonstrants',),
+	(8, 'rooms katholiek',),
+	(9, 'vrijzinnig hervormd',),
+	(10, 'Waals',),
+#	'Anders, nl.:',
+
+#   'Heterodoxe stromingen:
+	(11, 'baptist',),
+	(12, 'collegianten',),
+	(13, 'herrnhutter',),
+	(14, 'Jehova\'s getuige',),
+	(15, 'joods',),
+	(16, 'labadist',),
+	(17, 'leger des heils',),
+	(18, 'mormoon',),
+	(19, 'pietistisch',),
+	(20, 'pinksterbeweging',),
+	(21, 'rozenkruiser',),
+	
+#	'Niet-westerse stromingen:
+	
+	(22, 'boeddhist',),
+	(23, 'confuciaans',),
+	(24, 'hindoestaans',),
+	(25, 'islamitisch',),
+	(26, 'theosofisch',),
+	(27, 'winti',),
+    
+	
+#	Niet-religieuze overtuigingen:
+	
+	(28, 'Agnost',),
+	(29, 'Antroposoof',),
+	(30, 'holistisch',),
+	(31, 'vrijmetselaar',),
+    
+	(99, 'Anders...',),
+]
+
 def strstatus(code):
     """Return the status string corresponding to the status code in
     STATUS_VALUES.

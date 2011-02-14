@@ -1704,6 +1704,19 @@ class DBRepository:
         query = self.get_session().query(AntiIdentifyRecord)
         return query.all()
     
+    def is_antiidentified(self, person1, person2):
+        """return True if these two persons are on the 'anti-identified' list"""
+        qry = self.get_session().query(AntiIdentifyRecord)
+        id1 = person1.get_bioport_id()
+        id2 = person2.get_bioport_id()
+        qry = qry.filter(AntiIdentifyRecord.bioport_id1 == min(id1, id2))
+        qry = qry.filter(AntiIdentifyRecord.bioport_id2 == max(id1, id2))
+        
+        if qry.count():
+            return True
+        else:
+            return False
+        
     def get_identified(self, **args):
         """get all persons that have been identified (with other persons)
         

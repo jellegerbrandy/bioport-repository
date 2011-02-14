@@ -209,6 +209,7 @@ class RepositoryTestCase(CommonTestCase):
         repo.antiidentify(p1, p2)
         #check if we really anti-identified only one pair
         self.assertEqual(self.repo.db.get_session().query(AntiIdentifyRecord).count(), 1)
+        self.assertTrue(repo.is_antiidentified(p1, p2))
         
         #so, now we must have 1 less person left
         ls = self.repo.get_most_similar_persons()

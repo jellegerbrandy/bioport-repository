@@ -302,3 +302,25 @@ class Biography(object, BioDesDoc): #, SVNEntry):
                  link_url=self.get_value('url_biografie'),
                  ))
         return result
+
+    def get_source_description(self):
+        source = self.get_source()
+        if source.id in ['dbnl']:
+            return self.get_value('naam_publisher')
+        else:
+            return source.description
+        
+ 
+    def set_religion(self, idno):
+        els = self.get_states(type='religion')
+        #we expect only one 'religion' state
+        assert len(els) < 2
+        self.add_or_update_state(type='religion', idno=str(idno))
+      
+    def get_religion(self): 
+        els = self.get_states(type='religion')
+        if els:
+            assert len(els) == 1
+            return els[0]
+        
+        

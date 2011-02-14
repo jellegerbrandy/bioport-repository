@@ -12,7 +12,7 @@ from lxml import etree
 from sqlalchemy.exceptions import InvalidRequestError
 import biodes
 
-from bioport_repository.db_definitions import STATUS_VALUES
+from bioport_repository.db_definitions import STATUS_VALUES, RELIGION_VALUES
 from bioport_repository.biography import Biography
 from bioport_repository.db import DBRepository
 from bioport_repository.person import Person
@@ -161,7 +161,9 @@ class Repository(object):
         
     def get_status_values(self):
         return STATUS_VALUES
-    
+
+    def get_religion_values(self):
+        return RELIGION_VALUES
 #    def get_authors(self, **args):
 #        if self.ENABLE_DB:
 #            return self.db.get_authors(**args)
@@ -355,12 +357,16 @@ class Repository(object):
         self.db.antiidentify(person1,person2)
     
 #    OBSOLETE - or better, this should be handled undoing separate identify transactions
-#    def unidentify(self, person):       
-#        return self.db.unidentify(person)
+    def unidentify(self, person):       
+        return self.db.unidentify(person)
 
     def get_antiidentified(self):
         """return a list of anti-identified perons"""
         return self.db.get_antiidentified()
+    
+    def is_antiidentified(self, person1, person2):
+        """return True if these two persons are on the 'anti-identified' list"""
+        return self.db.is_antiidentified(person1, person2)
     
     def defer_identification(self, person1, person2):
         self.db.defer_identification(person1,person2)
@@ -424,7 +430,7 @@ class Repository(object):
         bio._set_up_basic_structure()
         bio.set_value(local_id=person.get_bioport_id())
         bio.set_value(bioport_id=person.get_bioport_id())
-        self.save_biography(bio, 'created Bioport biography')
+        self.save_biography(bio, u'created Bioport biography')
         person._instance_clearafter()
         return bio
  
