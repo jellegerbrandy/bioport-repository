@@ -366,48 +366,52 @@ STATUS_VALUES =  [
 
 RELIGION_VALUES = [
 #'Christelijke hoofdstromingen in Ndl.:
-	(1, 'anglicaans',),
-	(2, 'doopsgezind',),
-	(3, 'gereformeerd',),
-	(4, 'luthers',),
+	(1, 'Anglicaans',),
+	(2, 'Doopsgezind',),
+	(3, 'Gereformeerd',),
+	(4, 'Luthers',),
 	(5, 'Nederlands hervormd',),
-	(6, 'oud-katholiek',),
-	(7, 'remonstrants',),
-	(8, 'rooms katholiek',),
-	(9, 'vrijzinnig hervormd',),
+	(6, 'Oud-katholiek',),
+	(7, 'Remonstrants',),
+	(8, 'Rooms katholiek',),
+	(9, 'Vrijzinnig hervormd',),
 	(10, 'Waals',),
 #	'Anders, nl.:',
+    (None, '-----------'),
 
 #   'Heterodoxe stromingen:
-	(11, 'baptist',),
-	(12, 'collegianten',),
-	(13, 'herrnhutter',),
+	(11, 'Baptist',),
+	(12, 'Collegianten',),
+	(13, 'Herrnhutter',),
 	(14, 'Jehova\'s getuige',),
-	(15, 'joods',),
-	(16, 'labadist',),
-	(17, 'leger des heils',),
-	(18, 'mormoon',),
-	(19, 'pietistisch',),
-	(20, 'pinksterbeweging',),
-	(21, 'rozenkruiser',),
+	(15, 'Joods',),
+	(16, 'Labadist',),
+	(17, 'Leger des heils',),
+	(18, 'Mormoon',),
+	(19, 'Pietistisch',),
+	(20, 'Pinksterbeweging',),
+	(21, 'Rozenkruiser',),
 	
 #	'Niet-westerse stromingen:
+    (None, '-----------'),
 	
-	(22, 'boeddhist',),
-	(23, 'confuciaans',),
-	(24, 'hindoestaans',),
-	(25, 'islamitisch',),
-	(26, 'theosofisch',),
-	(27, 'winti',),
+	(22, 'Boeddhist',),
+	(23, 'Confuciaans',),
+	(24, 'Hindoestaans',),
+	(25, 'Islamitisch',),
+	(26, 'Theosofisch',),
+	(27, 'Winti',),
     
+    (None, '-----------'),
 	
 #	Niet-religieuze overtuigingen:
 	
 	(28, 'Agnost',),
 	(29, 'Antroposoof',),
-	(30, 'holistisch',),
-	(31, 'vrijmetselaar',),
+	(30, 'Holistisch',),
+	(31, 'Vrijmetselaar',),
     
+    (None, '-----------'),
 	(99, 'Anders...',),
 ]
 
