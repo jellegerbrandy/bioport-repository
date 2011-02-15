@@ -134,7 +134,7 @@ class Illustration:
     def thumbnails_directory(self):
         """The physical path on disk where the thumbnails are held/saved"""
         return self._thumbnails_directory
-
+    
     @property
     def cached_url(self):
         """Public url of the local copy of the image"""
@@ -246,9 +246,6 @@ class Illustration:
 
     # --- deprecated attrs
 
-    @property
-    def cached_url(self):
-        raise ValueError("deprecated; use image_url instead")
         
     def create_id(self):
         raise ValueError("deprecated; use _create_id instead")

@@ -279,7 +279,7 @@ class RepositoryTestCase(CommonTestCase):
         self.assertEqual(p3.status, STATUS_NEW)
         self.assertEqual(p4.status, STATUS_NEW)
         
-
+    
     def test_fill_similarity_cache(self):
         repo = self.create_filled_repository()
         self.repo.db.fill_similarity_cache(refresh=True)
