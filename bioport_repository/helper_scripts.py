@@ -6,9 +6,9 @@ LIMIT = 0
 """
 
 USAGE:
->>> from bioport_repository.helper_scripts import _remove_irrelevent_items_from_similarity_table
->>> dsn = 'mysql://localhost/bioport'
->>> _remove_irrelevent_items_from_similarity_table(dsn)
+from bioport_repository.helper_scripts import _remove_irrelevent_items_from_similarity_table
+dsn = 'mysql://localhost/bioport'
+_remove_irrelevent_items_from_similarity_table(dsn)
 """
 
 def _remove_irrelevent_items_from_similarity_table(dsn):
@@ -28,9 +28,10 @@ def _remove_irrelevent_items_from_similarity_table(dsn):
             j += 1
             k += 1
             session.delete(r)
-        if k > 10:
-            k = 0
-            session.commit()
+            try:
+	            session.commit()
+            except:
+                session.rollback()
     session.commit()
     print 'deleted %s items' % j 
     print 'committing...'
