@@ -227,57 +227,57 @@ class RepositoryTestCase(CommonTestCase):
         bioport_bio = repo.get_bioport_biography(p)
         self.assertTrue(bioport_bio in p.get_biographies())
         
-#    def test_unidentify(self):
-#        repo = self.create_filled_repository(sources=1)
-#        persons = repo.get_persons()
-#        p1 = persons[1]
-#        p2 = persons[2]
-#        id1 = p1.bioport_id
-#        id2 = p2.bioport_id
-#        
-#        #identify two persons
-#        p = repo.identify(p1, p2)
-#        #the new person has one of the original bioport ids
-#        id = p.bioport_id
-#        self.assertTrue(id in [id1, id2])  
-#        self.assertEqual(len(repo.get_identified()), 1)
-#        
-#        #add some bioport-edited info to our new person
-#        bioport_bio = repo.get_bioport_biography(p)
-#        self.assertTrue(bioport_bio in p.get_biographies())
-#        
-#        #now unidentify them again
-#        ls = repo.unidentify(p)
-#        
-#        #we should get two persons back
-#        self.assertEqual(len(ls), 2)
-#        p3, p4 = ls
-#        id3 = p3.bioport_id
-#        id4 = p4.bioport_id
-#        
-#        #each of the new persons is associated with a single biogrpahy
-#        self.assertEqual(len(p3.get_biographies()),1)
-#        self.assertEqual(len(p4.get_biographies()),1)
-#        
-#        #these new persons have been saved in the repository
-#        p3 = repo.get_person(id3)
-#        p4 = repo.get_person(id4)
-#        
-#        #they use the same old ids
-#        self.assertTrue(id1 in [id3, id4], [id1, id2, id3, id4, id])
-#        self.assertTrue(id2 in [id3, id4])
-#        self.assertEqual(len(p3.get_biographies()),1)
-#        self.assertEqual(len(p4.get_biographies()),1)
-#       
-#        #sanity? the biography should refer to the old id
-#        self.assertEqual(p3.get_biographies()[0].get_idno('bioport'), id3)
-#        self.assertEqual(p4.get_biographies()[0].get_idno('bioport'), id4)
-#        
-#        self.assertEqual(len(repo.get_identified()), 0)
-#        
-#        #the status of the two people should be back to new
-#        self.assertEqual(p3.status, STATUS_NEW)
-#        self.assertEqual(p4.status, STATUS_NEW)
+    def test_unidentify(self):
+        repo = self.create_filled_repository(sources=1)
+        persons = repo.get_persons()
+        p1 = persons[1]
+        p2 = persons[2]
+        id1 = p1.bioport_id
+        id2 = p2.bioport_id
+        
+        #identify two persons
+        p = repo.identify(p1, p2)
+        #the new person has one of the original bioport ids
+        id = p.bioport_id
+        self.assertTrue(id in [id1, id2])  
+        self.assertEqual(len(repo.get_identified()), 1)
+        
+        #add some bioport-edited info to our new person
+        bioport_bio = repo.get_bioport_biography(p)
+        self.assertTrue(bioport_bio in p.get_biographies())
+        
+        #now unidentify them again
+        ls = repo.unidentify(p)
+        
+        #we should get two persons back
+        self.assertEqual(len(ls), 2)
+        p3, p4 = ls
+        id3 = p3.bioport_id
+        id4 = p4.bioport_id
+        
+        #each of the new persons is associated with a single biogrpahy
+        self.assertEqual(len(p3.get_biographies()),1)
+        self.assertEqual(len(p4.get_biographies()),1)
+        
+        #these new persons have been saved in the repository
+        p3 = repo.get_person(id3)
+        p4 = repo.get_person(id4)
+        
+        #they use the same old ids
+        self.assertTrue(id1 in [id3, id4], [id1, id2, id3, id4, id])
+        self.assertTrue(id2 in [id3, id4])
+        self.assertEqual(len(p3.get_biographies()),1)
+        self.assertEqual(len(p4.get_biographies()),1)
+       
+        #sanity? the biography should refer to the old id
+        self.assertEqual(p3.get_biographies()[0].get_idno('bioport'), id3)
+        self.assertEqual(p4.get_biographies()[0].get_idno('bioport'), id4)
+        
+        self.assertEqual(len(repo.get_identified()), 0)
+        
+        #the status of the two people should be back to new
+        self.assertEqual(p3.status, STATUS_NEW)
+        self.assertEqual(p4.status, STATUS_NEW)
         
 
     def test_fill_similarity_cache(self):

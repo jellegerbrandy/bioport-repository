@@ -436,7 +436,7 @@ class DBRepository:
     
         #update the different caches to reflect any changes
         if compute_similarities:
-	        self.fill_similarity_cache(person=person, refresh=True)
+            self.fill_similarity_cache(person=person, refresh=True)
          
     def update_persons(self):
         """Update the information of all the persons in the database.
@@ -571,7 +571,7 @@ class DBRepository:
                 #if it has a bioport_id defined, it should already have been registered
                 bioport_id = biography.get_bioport_id()
                 try:
-	                r_bioportidrecord = session.query(BioPortIdRecord
+                    r_bioportidrecord = session.query(BioPortIdRecord
                              ).filter(BioPortIdRecord.bioport_id==bioport_id).one()
                         
                 except NoResultFound:
@@ -1350,7 +1350,7 @@ class DBRepository:
 #                    logging.info('highest similarity score: %s (%s)' % (most_sim.score, most_sim))
                 else:
 #                    logging.info('no similar persons found')
-					pass
+                    pass
                 for p in similarity_computer._persons[:k]:
                     if p.score > minimal_score:
                         self.add_to_similarity_cache(person.bioport_id, p.bioport_id, p.score)
@@ -1985,4 +1985,47 @@ and b2.redirect_to is null
         versions = self.get_versions(document_id=document_id, version=version+1)
         assert versions
         self.repository.save_biography(versions[0].biography, comment='restored version of  %s' % versions[0].time or '[before versioning]')
+        
+    def unidentify(self, person):
+        """Create a new person for each biography associated with person.
+       
+        returns:
+            the new persons
+        """
+        bios = person.get_biographies()
+        result = []
+        if len(bios) == 1:
+            return [person]
+       
+        used_ids = []
+       
+        for bio in bios:
+            if bio.get_source().id == 'bioport':
+                #we delete the bioport biographies
+                self.delete_biography(bio)
+            else:
+                original_bioport_id = bio.get_idnos(type='bioport')[0]
+                #print '1:',  original_bioport_id
+                #the next three lines are there only because in a previous version, bioport_ids were not 'remembered
+                if original_bioport_id in used_ids:
+                    original_bioport_id = self.fresh_identifier()
+                used_ids.append(original_bioport_id)
                 
+                #save the changes to the biography
+                bio.set_value('bioport_id',original_bioport_id)
+                self.save_biography(bio, 
+                    user=self.user, 
+                    comment='unidentified %s' % person,
+                    )
+               
+                #remove the 'redirect' instruction from this bioport id (if there was one)
+                self.redirect_identifier(bioport_id=original_bioport_id, redirect_to=None)
+               
+                #create a new person
+                new_person = Person(bioport_id=original_bioport_id, biographies=[bio])
+                new_person.repository = self.repository
+                new_person.add_biography(bio)
+                self.repository.save_person(new_person)
+                result.append(new_person)
+               
+        return result                
