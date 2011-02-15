@@ -30,7 +30,14 @@ def _remove_irrelevent_items_from_similarity_table(dsn):
     print 'committing...'
     session.commit()
     print 'done.'
+ 
+"""
+USAGE:
     
+from bioport_repository.helper_scripts import identify_dbnl_biographies
+dsn = 'mysql://localhost/bioport'
+identify_dbnl_biographies(dsn)
+"""
 def identify_dbnl_biographies(dsn):
     """search in the database for all biographies that have an idno of type 'dbnl_id'
        and identify all persons that have the same dbnl_id
@@ -57,7 +64,6 @@ def identify_dbnl_biographies(dsn):
     for k in dct.keys():
         if len(dct[k]) < 2:
             del dct[k]
-    pprint(dct)
     total = len(dct)
     i = 0
     for dbnl_id in dct:
