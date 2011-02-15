@@ -23,15 +23,16 @@ def _remove_irrelevent_items_from_similarity_table(dsn):
     for r in qry:
         i += 1
         print 'progress %s/%s' % (i, total)
-        if not db._should_be_in_similarity_cache(r.bioport_id1, r.bioport_id2):
-            print 'deleting %s form similiaryt cache' % r
-            j += 1
-            k += 1
-            session.delete(r)
-            try:
-	            session.commit()
-            except:
-                session.rollback()
+        try:
+            if not db._should_be_in_similarity_cache(r.bioport_id1, r.bioport_id2):
+                print 'deleting %s form similiaryt cache' % r
+                j += 1
+                k += 1
+                session.delete(r)
+                session.commit()
+        except Exception, error:
+            print error
+            session.rollback()
     session.commit()
     print 'deleted %s items' % j 
     print 'committing...'
