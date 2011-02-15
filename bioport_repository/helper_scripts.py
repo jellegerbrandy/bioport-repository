@@ -1,7 +1,36 @@
 from bioport_repository.repository import Repository
-from pprint import pprint
+from bioport_repository.db_definitions import  CacheSimilarityPersons
 DSN ='mysql://localhost/bioport'
 LIMIT = 0
+
+"""
+
+USAGE:
+>>> from bioport_repository.helper_scripts import _remove_irrelevent_items_from_similarity_table
+>>> dsn = 'mysql://localhost/bioport'
+>>> _remove_irrelevent_items_from_similarity_table(dsn)
+"""
+
+def _remove_irrelevent_items_from_similarity_table(dsn):
+    repository = Repository(db_connection=dsn)
+    db = repository.db
+    session = db.get_session() 
+    qry = session.query(CacheSimilarityPersons)
+    i = 0 
+    j = 0
+    total = qry.count()
+    for r in qry:
+        i += 1
+        print 'progress %s/%s' % (i, total)
+        if not db._should_be_in_similarity_cache(r.bioport_id1, r.bioport_id2):
+            print 'deleting %s form similiaryt cache' % r
+            j += 1
+            session.delete(r)
+    print 'deleted %s items' % j 
+    print 'committing...'
+    session.commit()
+    print 'done.'
+    
 def identify_dbnl_biographies(dsn):
     """search in the database for all biographies that have an idno of type 'dbnl_id'
        and identify all persons that have the same dbnl_id

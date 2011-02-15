@@ -47,7 +47,7 @@ from bioport_repository.versioning import Version
 
 LENGTH = 8  # the length of a bioport id
 ECHO = False
-
+EXCLUDE_THIS_STATUS_FROM_SIMILARITY = [5,9]
 
 class DBRepository:
     """Interface with the MySQL database"""
@@ -1341,24 +1341,17 @@ class DBRepository:
                     persons_to_compare = self.get_persons(any_soundex = soundexes)
                 logging.info('comparing to %s other persons' % len(persons_to_compare))
                 #compute the similarity
+                
+                #filter out any unwanted categories
+                persons_to_compare = [x for x in persons_to_compare if x.status not in [EXCLUDE_THIS_STATUS_FROM_SIMILARITY]]
+                
                 similarity_computer = Similarity(person, persons_to_compare)
                 similarity_computer.compute()
                 similarity_computer.sort()
                 similar_persons =  similarity_computer._persons
-                if len(similar_persons) > 1:
-                    most_sim = similar_persons[1]
-#                    logging.info('highest similarity score: %s (%s)' % (most_sim.score, most_sim))
-                else:
-#                    logging.info('no similar persons found')
-                    pass
                 for p in similarity_computer._persons[:k]:
-                    if p.score > minimal_score:
+                    if p.score > minimal_score and self._should_be_in_similarity_cache(person.bioport_id, p.bioport_id, ignore_status=True):
                         self.add_to_similarity_cache(person.bioport_id, p.bioport_id, p.score)
-#                        try:
-#                            msg =  '%s|%s|%s|%s|%s|' % (person.bioport_id, p.bioport_id, p.score, person.naam(), p.naam())
-#                            logging.info(msg)
-#                        except UnicodeEncodeError:
-#                            logging.info('scores could not be printed due to UnicodeEncodeError')
 
     def add_to_similarity_cache(self,bioport_id1, bioport_id2,score):
         with self.get_session_context() as session:
@@ -1373,8 +1366,7 @@ class DBRepository:
                 # caused by having already added the relation when we processed item
                 # we update the record to reflect the highest score
                 session.transaction.rollback()
-                r_duplicate = session.query(CacheSimilarityPersons
-                                    ).filter_by(bioport_id1=id1, bioport_id2=id2).one()
+                r_duplicate = session.query(CacheSimilarityPersons).filter_by(bioport_id1=id1, bioport_id2=id2).one()
                 if score > r_duplicate.score:
                     r_duplicate.score = score
         
@@ -1403,32 +1395,36 @@ class DBRepository:
 #        if refresh: 
 #            (re) fill the cache
 #            self.fill_similarity_cache(refresh=refresh)            
+#        if refresh: 
+#            (re) fill the cache
+#            self.fill_similarity_cache(refresh=refresh)            
         qry = session.query(CacheSimilarityPersons)
-        qry = qry.outerjoin((AntiIdentifyRecord,  
-             and_( 
-                  AntiIdentifyRecord.bioport_id1==CacheSimilarityPersons.bioport_id1, 
-                  AntiIdentifyRecord.bioport_id2==CacheSimilarityPersons.bioport_id2, )
-             ))
-        qry = qry.outerjoin((DeferIdentificationRecord,  
-             and_( 
-                  DeferIdentificationRecord.bioport_id1==CacheSimilarityPersons.bioport_id1, 
-                  DeferIdentificationRecord.bioport_id2==CacheSimilarityPersons.bioport_id2, )
-             ))
-        qry = qry.join((BioPortIdRecord, BioPortIdRecord.bioport_id==CacheSimilarityPersons.bioport_id1))
-        BioPortIdRecord2 = aliased(BioPortIdRecord)
-        qry = qry.join((BioPortIdRecord2, BioPortIdRecord2.bioport_id==CacheSimilarityPersons.bioport_id2))
-          
-        
         qry = qry.filter(CacheSimilarityPersons.bioport_id1 != CacheSimilarityPersons.bioport_id2)
-        # not antiidentical */ 
-        qry = qry.filter(AntiIdentifyRecord.bioport_id1 == None)
-        qry = qry.filter(AntiIdentifyRecord.bioport_id2 == None)
+#        qry = qry.outerjoin((AntiIdentifyRecord,  
+#             and_( 
+#                  AntiIdentifyRecord.bioport_id1==CacheSimilarityPersons.bioport_id1, 
+#                  AntiIdentifyRecord.bioport_id2==CacheSimilarityPersons.bioport_id2, )
+#             ))
+#        qry = qry.outerjoin((DeferIdentificationRecord,  
+#             and_( 
+#                  DeferIdentificationRecord.bioport_id1==CacheSimilarityPersons.bioport_id1, 
+#                  DeferIdentificationRecord.bioport_id2==CacheSimilarityPersons.bioport_id2, )
+#             ))
+#        qry = qry.join((BioPortIdRecord, BioPortIdRecord.bioport_id==CacheSimilarityPersons.bioport_id1))
+#        BioPortIdRecord2 = aliased(BioPortIdRecord)
+#        qry = qry.join((BioPortIdRecord2, BioPortIdRecord2.bioport_id==CacheSimilarityPersons.bioport_id2))
+#          
+#        
+#         not antiidentical */ 
+#        qry = qry.filter(AntiIdentifyRecord.bioport_id1 == None)
+#        qry = qry.filter(AntiIdentifyRecord.bioport_id2 == None)
         #    not deferred */ 
-        qry = qry.filter(DeferIdentificationRecord.bioport_id1 == None)
-        qry = qry.filter(DeferIdentificationRecord.bioport_id2 == None)
+#        qry = qry.filter(DeferIdentificationRecord.bioport_id1 == None)
+#        qry = qry.filter(DeferIdentificationRecord.bioport_id2 == None)
         
-        qry = qry.filter(BioPortIdRecord.redirect_to == None)
-        qry = qry.filter(BioPortIdRecord2.redirect_to == None)
+#        qry = qry.filter(BioPortIdRecord.redirect_to == None)
+#        qry = qry.filter(BioPortIdRecord2.redirect_to == None)
+        
         
         if bioport_id:
             qry = qry.filter(or_(CacheSimilarityPersons.bioport_id1 == bioport_id, CacheSimilarityPersons.bioport_id2==bioport_id))
@@ -1484,105 +1480,38 @@ class DBRepository:
         if size:
             qry = qry.slice(start, start + size)
         else:
-            start = 1000
+            size = 100
             qry = qry.slice(start, start + size)
-#        logging.info('executing %s'% qry.statement)
         ls = [(r.score, Person(r.bioport_id1, repository=self.repository, score=r.score), Person(r.bioport_id2, repository=self, score=r.score)) for r in session.execute(qry)]
         return ls
      
-#    def XXX_fill_most_similar_persons_cache(self, refresh=False): #, start=0, size=20):
-#        #this gives us the most similar SimilarityCacheopbjects
-#        with self.get_session_context() as session:
-#            qry = session.query(CacheSimilarityPersons)
-#            if not refresh and qry.count():
-#                return
-#            else:
-#                logging.info('fill most similar persons cache' )
-#                qry.delete()
-#        
-#        i = 0
-#        min_score = 0
-#        sql = """SELECT score, n1.id, n1.xml, n2.id, n2.xml,
-#        r1.bioport_id as bioport_id1, 
-#        r2.bioport_id as bioport_id2
-#        FROM cache_similarity c 
-#inner join naam n1
-#on n1.id = c.naam1_id
-#inner join naam n2
-#on n2.id = c.naam2_id
-#inner join biography b1
-#on n1.biography_id = b1.id
-#inner join biography b2
-#on n2.biography_id = b2.id
-#inner join relbioportidbiography r1
-#on r1.biography_id = b1.id
-#inner join relbioportidbiography r2
-#on r2.biography_id = b2.id
-#left outer join antiidentical a
-#on 
-#    a.bioport_id1 =  IF( r1.bioport_id < r2.bioport_id, r1.bioport_id, r2.bioport_id)
-#     and a.bioport_id2 = IF( r1.bioport_id < r2.bioport_id, r2.bioport_id, r1.bioport_id)
-#left outer join defer_identification d
-#on 
-#    d.bioport_id1 =  IF( r1.bioport_id < r2.bioport_id, r1.bioport_id, r2.bioport_id) 
-#    and d.bioport_id2 = IF( r1.bioport_id < r2.bioport_id, r2.bioport_id, r1.bioport_id)
-#left outer join bioportid b 
-#on ((b.bioport_id = r1.bioport_id and b.redirect_to = r2.bioport_id) or (b.bioport_id = r1.bioport_id and b.redirect_to = r2.bioport_id))
-#where 
-#n1.id != n2.id /*different names */
-#and r1.bioport_id != r2.bioport_id /*different persones */
-#and a.bioport_id1 is null /* not antiidentical */ 
-#and a.bioport_id2 is null
-#and d.bioport_id1 is null /*not deferred */ 
-#and d.bioport_id2 is null
-#and b.bioport_id is null /* not redirected to others */
-#and b.redirect_to is null
-#and b1.source_id != b2.source_id /*from different sources */
-#order by score desc
-#        """
-#
-#        with self.get_session_context() as session:
-#            rs = session.execute(sql)
-#            for r in rs:
-#                score = r.score 
-#                id1 = r.bioport_id1            
-#                id2 = r.bioport_id2            
-#                
-#    #            if id1 != id2: # and not qry.count():
-#                #p1 = Person(id1, repository=self)
-#                #p2 = Person(id2, repository=self)
-#                #srcs1 = [src for src in [bio.get_source() for bio in p1.get_biographies()]]
-#                #srcs2 = [src for src in [bio.get_source() for bio in p2.get_biographies()]]
-#                #srcs_intersection = [s for s in srcs1 if s in srcs2]
-#                #if srcs_intersection == []:
-#                i += 1
-#                id1, id2 = (min(id1, id2), max(id1, id2)) 
-#                r_cache = CacheSimilarityPersons(score=score, bioport_id1=id1, bioport_id2=id2)
-#                session.add(r_cache) 
-#                try:
-#                    session.flush()
-#                except (IntegrityError, InvalidRequestError), e:
-#                    session.transaction.rollback()
-#                    # this must be a duplicate - which is no problem 
-#                    # XXX but we must take the highest score
-#                    r_existing = session.query(CacheSimilarityPersons).filter(
-#                        CacheSimilarityPersons.bioport_id1==id1).filter(
-#                        CacheSimilarityPersons.bioport_id2==id2).one()
-#                    if score > r_existing.score:
-#                        r_existing.score = score
-#                        session.flush()
-#                    
-#                # give some minimal user feedback
-#                if i % 100 == 0:
-#                    logging.info(str(i))
-#                        
-#                        #if i > start+size:
-#                        #    return
-#            session.flush()
-#            
-#            #notify caching machinery that the table is filled
-#            self._cache_filled_similarity_persons = True 
-#            logging.info('done')
+
+    def _should_be_in_similarity_cache(self, bioport_id1, bioport_id2,
+        ignore_status = False,
+        ): 
+        if self.is_antiidentified(bioport_id1, bioport_id2):
+            return False
+        #remove is_deferred
+        elif self.is_deferred(bioport_id1, bioport_id2):
+            return False
+        #remove redirected items
+        elif self.redirects_to(bioport_id1) != bioport_id1:
+            return False
+        elif self.redirects_to(bioport_id2) != bioport_id2:
+            return False
+        #remove items that are  
+        elif not ignore_status:
+            p1 = self.get_person(bioport_id1, self.repository)
+            p2 = self.get_person(bioport_id2, self.repository)
+            #(5, 'moeilijk geval (troep)'),
+            #(7, 'te weinig informatie'), 
+		    #(8, 'familielemma'), 
+		    #(9, 'verwijslemma'), 
+            if p1.status in EXCLUDE_THIS_STATUS_FROM_SIMILARITY:
+                return False
+            if p2.status in EXCLUDE_THIS_STATUS_FROM_SIMILARITY:
+                return False
+        return True
         
     def identify(self, person1, person2):    
         """identify person1 and person2
@@ -1630,6 +1559,7 @@ class DBRepository:
         
         #we identified so we can remove this pair from the deferred list
         self._remove_from_cache_deferidentification(new_person, old_person)
+        self._remove_from_cache_similarity_persons(old_person)
         
         #now delete the old person from the Person table
         self.delete_person(old_person)
@@ -1690,15 +1620,25 @@ class DBRepository:
             qry = qry.filter(DeferIdentificationRecord.bioport_id2==max(id1, id2))
             qry.delete()
         
-    def _remove_from_cache_similarity_persons(self, person1, person2):
+    def _remove_from_cache_similarity_persons(self, person1, person2=None):
         #also remove the person  from the cache
         with self.get_session_context() as session:
-            id1 = person1.get_bioport_id()
-            id2 = person2.get_bioport_id()
-            qry = session.query(CacheSimilarityPersons)
-            qry = qry.filter(CacheSimilarityPersons.bioport_id1 == min(id1, id2))
-            qry = qry.filter(CacheSimilarityPersons.bioport_id2 == max(id1, id2))
-            qry.delete()        
+            if person2:
+	            id1 = person1.get_bioport_id()
+	            id2 = person2.get_bioport_id()
+	            qry = session.query(CacheSimilarityPersons)
+	            qry = qry.filter(CacheSimilarityPersons.bioport_id1 == min(id1, id2))
+	            qry = qry.filter(CacheSimilarityPersons.bioport_id2 == max(id1, id2))
+	            qry.delete()        
+            else:
+	            id1 = person1.get_bioport_id()
+	            qry = session.query(CacheSimilarityPersons)
+	            qry = qry.filter(or_(
+                     CacheSimilarityPersons.bioport_id1 == id1,
+                     CacheSimilarityPersons.bioport_id2 == id1)
+                     )
+	            qry.delete()        
+                
         
     def get_antiidentified(self):
         query = self.get_session().query(AntiIdentifyRecord)
@@ -1707,10 +1647,34 @@ class DBRepository:
     def is_antiidentified(self, person1, person2):
         """return True if these two persons are on the 'anti-identified' list"""
         qry = self.get_session().query(AntiIdentifyRecord)
-        id1 = person1.get_bioport_id()
-        id2 = person2.get_bioport_id()
+        if  isinstance(person1, Person):
+            id1 = person1.get_bioport_id()
+        else:
+            id1 = person1
+        if  isinstance(person2, Person):
+            id2 = person2.get_bioport_id()
+        else:
+            id2 = person2
         qry = qry.filter(AntiIdentifyRecord.bioport_id1 == min(id1, id2))
         qry = qry.filter(AntiIdentifyRecord.bioport_id2 == max(id1, id2))
+        
+        if qry.count():
+            return True
+        else:
+            return False
+        
+    def is_deferred(self, person1, person2):
+        qry = self.get_session().query(DeferIdentificationRecord)
+        if  isinstance(person1, Person):
+            id1 = person1.get_bioport_id()
+        else:
+            id1 = person1
+        if  isinstance(person2, Person):
+            id2 = person2.get_bioport_id()
+        else:
+            id2 = person2
+        qry = qry.filter(DeferIdentificationRecord.bioport_id1 == min(id1, id2))
+        qry = qry.filter(DeferIdentificationRecord.bioport_id2 == max(id1, id2))
         
         if qry.count():
             return True
