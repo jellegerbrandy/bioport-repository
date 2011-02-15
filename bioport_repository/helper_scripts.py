@@ -18,6 +18,7 @@ def _remove_irrelevent_items_from_similarity_table(dsn):
     qry = session.query(CacheSimilarityPersons)
     i = 0 
     j = 0
+    k = 0
     total = qry.count()
     for r in qry:
         i += 1
@@ -25,10 +26,14 @@ def _remove_irrelevent_items_from_similarity_table(dsn):
         if not db._should_be_in_similarity_cache(r.bioport_id1, r.bioport_id2):
             print 'deleting %s form similiaryt cache' % r
             j += 1
+            k += 1
             session.delete(r)
+        if k > 10:
+            k = 0
+		    session.commit()
+    session.commit()
     print 'deleted %s items' % j 
     print 'committing...'
-    session.commit()
     print 'done.'
  
 """
