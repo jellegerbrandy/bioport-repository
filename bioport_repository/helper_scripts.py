@@ -30,7 +30,7 @@ def _remove_irrelevent_items_from_similarity_table(dsn):
             session.delete(r)
         if k > 10:
             k = 0
-		    session.commit()
+            session.commit()
     session.commit()
     print 'deleted %s items' % j 
     print 'committing...'
@@ -82,7 +82,7 @@ def identify_dbnl_biographies(dsn):
             print 'identifying', person1, person2
             if person1 and person2: #this to avoid a misterious bug that i cannot be bothered to investiage
                 if not repository.is_antiidentified(person1, person2):
-		            person1 = repository.identify(person1, person2)
+                    person1 = repository.identify(person1, person2)
             else:
                 person1 = person2
         person1 = person2 = None
