@@ -1256,6 +1256,7 @@ class DBRepository:
             source_id = unicode(source_id)
             
         logging.info('Refreshing similarity table for %s, refresh=%s' % (source_id, refresh))
+        """
         if refresh:
             with self.get_session_context() as session:
                 #if refresh is true, we delete all relevant records
@@ -1295,6 +1296,7 @@ class DBRepository:
 #                    logging.info('Deleting all records from cachesimilaritypersons related')
                     qry.delete()
                                    
+        """
         #if the person argument is not given, we update for all persons
         if person:
             persons = [person]
@@ -1312,7 +1314,9 @@ class DBRepository:
                 qry = session.query(CacheSimilarityPersons.bioport_id1)
                 qry = qry.filter_by(bioport_id1=bioport_id, bioport_id2=bioport_id) 
                 
-                if qry.all():
+                if refresh:
+                    qry.delete() 
+                elif qry.all():
                     #we have already done this person , and we did not explicitly call for a refresh
     #                print 'already done'
 #                    logging.info('skipped computing similarities for %s out of %s: %s - already in database' % (i, len(persons), person))
