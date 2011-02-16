@@ -1404,7 +1404,7 @@ class DBRepository:
 #             and_( 
 #                  AntiIdentifyRecord.bioport_id1==CacheSimilarityPersons.bioport_id1, 
 #                  AntiIdentifyRecord.bioport_id2==CacheSimilarityPersons.bioport_id2, )
-#             ))
+#           d;ipdb.set_trace( ))
 #        qry = qry.outerjoin((DeferIdentificationRecord,  
 #             and_( 
 #                  DeferIdentificationRecord.bioport_id1==CacheSimilarityPersons.bioport_id1, 
@@ -1428,6 +1428,7 @@ class DBRepository:
         
         if bioport_id:
             qry = qry.filter(or_(CacheSimilarityPersons.bioport_id1 == bioport_id, CacheSimilarityPersons.bioport_id2==bioport_id))
+        
         
         source_ids = filter(None, [source_id, source_id2])
         if source_ids:
@@ -1459,7 +1460,7 @@ class DBRepository:
                     BiographyRecord2.source_id.in_(source_ids)
                     ))
                 
-        if search_name or sex:
+        if search_name or sex or status:
             qry = qry.join((PersonRecord, 
                PersonRecord.bioport_id==CacheSimilarityPersons.bioport_id1
                 ))
@@ -1472,6 +1473,9 @@ class DBRepository:
             
         if sex:
             qry = qry.filter(or_(PersonRecord.sex==sex, PersonRecord2.sex==sex))
+        
+        if status:
+            qry = qry.filter(or_(PersonRecord.status==status, PersonRecord2.status == status))
             
         
         qry = qry.distinct()
@@ -1480,9 +1484,10 @@ class DBRepository:
         if size:
             qry = qry.slice(start, start + size)
         else:
-            size = 100
             qry = qry.slice(start, start + size)
+#        import ipdb;ipdb.set_trace()
         ls = [(r.score, Person(r.bioport_id1, repository=self.repository, score=r.score), Person(r.bioport_id2, repository=self, score=r.score)) for r in session.execute(qry)]
+#        import ipdb;ipdb.set_trace()
         return ls
      
 
