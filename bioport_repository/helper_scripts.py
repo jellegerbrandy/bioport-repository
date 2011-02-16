@@ -89,8 +89,7 @@ def identify_dbnl_biographies(dsn):
                 person1 = person2
         person1 = person2 = None
             
-        
-        
+             
 
 if __name__ == '__main__':
     identify_dbnl_biographies(dsn=DSN)

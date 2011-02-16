@@ -213,6 +213,10 @@ class Repository(object):
 
         return
 
+    @instance.clearafter
+    def detach_biography(self, biography):
+        return self.db.detach_biography(biography)
+    
     def delete_biographies(self, source):
         sources_ids = [src.id for src in self.get_sources()]
         if source.id not in sources_ids:

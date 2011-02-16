@@ -279,6 +279,42 @@ class RepositoryTestCase(CommonTestCase):
         self.assertEqual(p3.status, STATUS_NEW)
         self.assertEqual(p4.status, STATUS_NEW)
     
+        
+    def test_detach_biography(self):
+        repo = self.repo
+        persons = repo.get_persons()
+        p1 = persons[1]
+        p2 = persons[2]
+        bio1 = p1.get_biographies()[0]
+        bio2 = p1.get_biographies()[0]
+        id1 = p1.bioport_id
+        id2 = p2.bioport_id
+        
+        #identify two persons
+        p = repo.identify(p1, p2)
+        #the new person has one of the original bioport ids
+        id = p.bioport_id
+        self.assertTrue(id in [id1, id2])  
+        self.assertEqual(len(repo.get_identified()), 1)
+        
+        #add some bioport-edited info to our new person
+        bioport_bio = repo.get_bioport_biography(p)
+        self.assertTrue(bioport_bio in p.get_biographies())
+        
+        self.assertTrue(len(p.get_biographies()), 3)
+        
+        #now detach the old biography, and create a new person
+        new_person = self.repo.detach_biography(bio1)
+        
+        #is it really detached?
+        self.assertTrue(len(p.get_biographies()), 2)
+        self.assertTrue(len(new_person.get_biographies()), 1)
+        
+        #this new persons have been saved in the repository
+        self.assertTrue(repo.get_person(new_person.bioport_id))
+        
+        #the status of the new person should be back to new
+        self.assertEqual(new_person.status, STATUS_NEW)
     
     
     def test_fill_similarity_cache(self):

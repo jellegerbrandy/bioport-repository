@@ -1986,10 +1986,25 @@ and b2.redirect_to is null
                 self.redirect_identifier(bioport_id=original_bioport_id, redirect_to=None)
                
                 #create a new person
-                new_person = Person(bioport_id=original_bioport_id, biographies=[bio])
+                new_person = Person(bioport_id=original_bioport_id)
                 new_person.repository = self.repository
                 new_person.add_biography(bio)
                 self.repository.save_person(new_person)
                 result.append(new_person)
                
         return result                
+
+    def detach_biography(self, biography):
+        """detach the biography from the person -- i.e. create a new person for this biography"""
+        #detaching a biography from a person only makes sense if this person has more than one biography
+        
+        if not len(self.get_biographies(bioport_id = biography.get_person().bioport_id)) > 1:
+            raise Exception('Cannot detach biography %s form person %s, because this person only has one attached biography' % (biography, biography.get_person()))
+        new_person = Person(bioport_id=self.fresh_identifier())
+        new_person.repository = self.repository
+        biography.get_person()
+        comment = 'Detached biography %s from person %s and create new person %s' % (biography, biography.get_person(), new_person)
+        new_person.add_biography(biography, comment=comment)
+        self.repository.save_person(new_person)
+        return new_person
+        

@@ -4,6 +4,7 @@ from plone.memoize import instance
 
 from bioport_repository.repocommon import is_valid_bioport_id
 from bioport_repository.merged_biography import MergedBiography, BiographyMerger
+from bioport_repository.db_definitions import STATUS_NEW
 
 class Person(object):
     """A Person is an object that is identified with a bioport
@@ -15,7 +16,7 @@ class Person(object):
                        biographies=None,  # XXX - this is not used!
                        repository=None,
                        record=None,
-                       status=None,
+                       status=STATUS_NEW,
                        remarks=None,
                        score=None,
                 ):
