@@ -1317,7 +1317,7 @@ class DBRepository:
                 if not refresh and qry.all():
                     #we have already done this person , and we did not explicitly call for a refresh
     #                print 'already done'
-                    logging.info('[%s/%s] skipped computing similarities - already in database' % (i, len(persons), person))
+                    logging.info('[%s/%s] skipped computing similarities - already in database' % (i, len(persons)))
                     continue
                 else:
                     if refresh:
@@ -1357,7 +1357,7 @@ class DBRepository:
                 for p in similarity_computer._persons[:k]:
                     if p.score > minimal_score and self._should_be_in_similarity_cache(person.bioport_id, p.bioport_id, ignore_status=True):
                         self.add_to_similarity_cache(person.bioport_id, p.bioport_id, p.score)
-
+        logging.info('done')
     def add_to_similarity_cache(self,bioport_id1, bioport_id2,score):
         with self.get_session_context() as session:
             id1 = min(bioport_id1, bioport_id2)
