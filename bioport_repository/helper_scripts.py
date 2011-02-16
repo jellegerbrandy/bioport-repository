@@ -6,14 +6,14 @@ LIMIT = 0
 
 USAGE:
 dsn = 'mysql://localhost/bioport'
-from bioport_repository.helper_scripts import _set_category_of_dbnl_to_klaar
-_set_category_of_dbnl_to_klaar(dsn)
+from bioport_repository.helper_scripts import _set_status_of_persons_in_source
+_set_status_of_persons_in_source(dsn, source_id='dbnl')
 """
 
-def _set_category_of_dbnl_to_klaar(dsn):
+def _set_status_of_persons_in_source(dsn, source_id, status=STATUS_DONE):
     repository = Repository(db_connection=dsn)
     db = repository.db
-    bios = db.get_biographies(source_id='dbnl')
+    bios = db.get_biographies(source_id=source_id)
     i = 0
     for biography in bios:
         i += 1
