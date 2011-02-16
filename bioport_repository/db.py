@@ -2007,4 +2007,3 @@ and b2.redirect_to is null
         new_person.add_biography(biography, comment=comment)
         self.repository.save_person(new_person)
         return new_person
-        
