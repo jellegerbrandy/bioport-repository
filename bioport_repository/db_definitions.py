@@ -346,13 +346,14 @@ class Comment(Base):
     email = Column(MSString(40))
     
 STATUS_NEW = 1
+STATUS_DONE = 4
 STATUS_VALUES =  [
     (STATUS_NEW, 'nieuw'), #
     (2, 'bewerkt'),
     (12, 'nog niet bewerkt'),
     (3, 'moeilijk geval'),
     (5, 'moeilijk geval (troep)'),
-    (4, 'klaar'), 
+    (STATUS_DONE, 'klaar'), 
     (7, 'te weinig informatie'), 
     (8, 'familielemma'), 
     (9, 'verwijslemma'), 

@@ -1314,15 +1314,15 @@ class DBRepository:
                 qry = session.query(CacheSimilarityPersons.bioport_id1)
                 qry = qry.filter_by(bioport_id1=bioport_id, bioport_id2=bioport_id) 
                 
-                if refresh:
-                    qry.delete() 
-                elif qry.all():
+                if not refresh and qry.all():
                     #we have already done this person , and we did not explicitly call for a refresh
     #                print 'already done'
-#                    logging.info('skipped computing similarities for %s out of %s: %s - already in database' % (i, len(persons), person))
+                    logging.info('[%s/%s] skipped computing similarities - already in database' % (i, len(persons), person))
                     continue
                 else:
-                    logging.info('computing similarities for %s out of %s: %s' % (i, len(persons), person))
+                    if refresh:
+                        qry.delete() 
+                    logging.info('[%s/%s] computing similarities: %s' % (i, len(persons), person))
                     #we add the identity score so that we can check later that we have 'done' this record, 
                     self.add_to_similarity_cache(bioport_id, bioport_id, score=1.0)
                 
@@ -1343,11 +1343,12 @@ class DBRepository:
                     persons_to_compare = []
                 else:
                     persons_to_compare = self.get_persons(any_soundex = soundexes)
-                logging.info('comparing to %s other persons' % len(persons_to_compare))
                 #compute the similarity
                 
                 #filter out any unwanted categories
                 persons_to_compare = [x for x in persons_to_compare if x.status not in [EXCLUDE_THIS_STATUS_FROM_SIMILARITY]]
+                
+                logging.info('comparing to %s other persons' % len(persons_to_compare))
                 
                 similarity_computer = Similarity(person, persons_to_compare)
                 similarity_computer.compute()
@@ -1514,8 +1515,8 @@ class DBRepository:
             p2 = self.get_person(bioport_id2, self.repository)
             #(5, 'moeilijk geval (troep)'),
             #(7, 'te weinig informatie'), 
-		    #(8, 'familielemma'), 
-		    #(9, 'verwijslemma'), 
+            #(8, 'familielemma'), 
+            #(9, 'verwijslemma'), 
             if p1.status in EXCLUDE_THIS_STATUS_FROM_SIMILARITY:
                 return False
             if p2.status in EXCLUDE_THIS_STATUS_FROM_SIMILARITY:
@@ -1633,20 +1634,20 @@ class DBRepository:
         #also remove the person  from the cache
         with self.get_session_context() as session:
             if person2:
-	            id1 = person1.get_bioport_id()
-	            id2 = person2.get_bioport_id()
-	            qry = session.query(CacheSimilarityPersons)
-	            qry = qry.filter(CacheSimilarityPersons.bioport_id1 == min(id1, id2))
-	            qry = qry.filter(CacheSimilarityPersons.bioport_id2 == max(id1, id2))
-	            qry.delete()        
+                id1 = person1.get_bioport_id()
+                id2 = person2.get_bioport_id()
+                qry = session.query(CacheSimilarityPersons)
+                qry = qry.filter(CacheSimilarityPersons.bioport_id1 == min(id1, id2))
+                qry = qry.filter(CacheSimilarityPersons.bioport_id2 == max(id1, id2))
+                qry.delete()        
             else:
-	            id1 = person1.get_bioport_id()
-	            qry = session.query(CacheSimilarityPersons)
-	            qry = qry.filter(or_(
+                id1 = person1.get_bioport_id()
+                qry = session.query(CacheSimilarityPersons)
+                qry = qry.filter(or_(
                      CacheSimilarityPersons.bioport_id1 == id1,
                      CacheSimilarityPersons.bioport_id2 == id1)
                      )
-	            qry.delete()        
+                qry.delete()        
                 
         
     def get_antiidentified(self):

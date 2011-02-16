@@ -1,7 +1,27 @@
 from bioport_repository.repository import Repository
-from bioport_repository.db_definitions import  CacheSimilarityPersons
-DSN ='mysql://localhost/bioport'
+from bioport_repository.db_definitions import  CacheSimilarityPersons, STATUS_DONE
 LIMIT = 0
+
+"""
+
+USAGE:
+dsn = 'mysql://localhost/bioport'
+from bioport_repository.helper_scripts import _set_category_of_dbnl_to_klaar
+_set_category_of_dbnl_to_klaar(dsn)
+"""
+
+def _set_category_of_dbnl_to_klaar(dsn):
+    repository = Repository(db_connection=dsn)
+    db = repository.db
+    bios = db.get_biographies(source_id='dbnl')
+    i = 0
+    for biography in bios:
+        i += 1
+        person = biography.get_person()
+        person.status = STATUS_DONE
+        print '[%s/%s]' % (i, len(bios))
+        repository.save_person(person)
+
 
 """
 
@@ -89,7 +109,8 @@ def identify_dbnl_biographies(dsn):
                 person1 = person2
         person1 = person2 = None
             
-             
+   
 
-if __name__ == '__main__':
-    identify_dbnl_biographies(dsn=DSN)
+#if __name__ == '__main__':
+#    DSN ='mysql://localhost/bioport'
+#    _set_category_of_dbnl_to_klaar(DSN)
