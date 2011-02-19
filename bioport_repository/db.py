@@ -44,6 +44,7 @@ from bioport_repository.biography import Biography
 from bioport_repository.source import Source 
 from bioport_repository.common import format_date , to_date
 from bioport_repository.versioning import Version
+from bioport_repository.merged_biography import BiographyMerger
 
 LENGTH = 8  # the length of a bioport id
 ECHO = False
@@ -1490,9 +1491,7 @@ class DBRepository:
             qry = qry.slice(start, start + size)
         else:
             qry = qry.slice(start, start + size)
-#        import ipdb;ipdb.set_trace()
         ls = [(r.score, Person(r.bioport_id1, repository=self.repository, score=r.score), Person(r.bioport_id2, repository=self, score=r.score)) for r in session.execute(qry)]
-#        import ipdb;ipdb.set_trace()
         return ls
      
 
@@ -1549,16 +1548,28 @@ class DBRepository:
         if new_person.bioport_id == old_person.bioport_id:
             #these two persons are already identified
             return new_person
-        
             
-
+        #create a new 'merged biography' to add to the new person
+        bio1 = self.repository.get_bioport_biography(new_person, create_if_not_exists=False)
+        bio2 = self.repository.get_bioport_biography(old_person, create_if_not_exists=False)
+        if bio1 and bio2:
+	        merged_bio = BiographyMerger.merge_biographies(bio1, bio2)
+        else:
+            merged_bio = None
+            
         #now attach all biographies to the new bioportid
 #        for bio in new_person.get_biographies() + old_person.get_biographies(): 
         for bio in old_person.get_biographies(): 
             new_person.add_biography(bio,
                 comment='Identified %s and %s: added biography %s to %s' % (person1.name(), person2.name(), bio, new_person),
                 )
-            
+        
+        if merged_bio:
+	        new_person.add_biography(merged_bio, 
+                comment='Identified %s and %s: added merged biography to %s' % (person1.name(), person2.name(), new_person)
+                )
+       
+                 
         #mege the bioport biographies in the new person
         #XXX Uncomment when merge_bioport_biographies is well tested
 #        new_person.merge_bioport_biographies()

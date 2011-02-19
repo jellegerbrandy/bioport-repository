@@ -116,9 +116,9 @@ class Person(object):
         """
         return MergedBiography(self.get_biographies())
 
-    def get_bioport_biography(self):
+    def get_bioport_biography(self, create_if_not_exists=True):
         #convenience mthod
-        return  self.repository.get_bioport_biography(self)
+        return  self.repository.get_bioport_biography(self, create_if_not_exists=create_if_not_exists)
 
     def get_names(self):
         return self.get_merged_biography().get_names()

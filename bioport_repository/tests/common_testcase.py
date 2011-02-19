@@ -8,10 +8,9 @@ from plone.memoize import instance
 import sqlalchemy
 
 from bioport_repository.repository import Repository
-from bioport_repository.source import Source
 from bioport_repository.tests.config import DSN
 from bioport_repository.biography import Biography
-
+from bioport_repository.source import BioPortSource, Source
 from gerbrandyutils import sh
 
 from names.name import Name
@@ -42,7 +41,7 @@ class CommonTestCase(unittest.TestCase):
               images_cache_local=IMAGES_CACHE_LOCAL,
               )
               
-        
+         
         self.repo.db.metadata.drop_all()
         if self._fill_repository:
             if not os.path.isfile(SQLDUMP_FILENAME):
@@ -93,6 +92,11 @@ class CommonTestCase(unittest.TestCase):
             self.repo.download_biographies(source)
         self.repo.db._update_category_table()
         
+        #also add Bioport source
+        src = Source('bioport', repository=self.repo)
+        self.repo.add_source(src)
+        src.set_quality(10000)
+
         def parse_dsn(s):
             return sqlalchemy.engine.url._parse_rfc1738_args(s)
 

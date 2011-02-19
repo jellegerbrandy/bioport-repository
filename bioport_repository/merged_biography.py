@@ -254,27 +254,57 @@ class MergedBiography:
 class BiographyMerger(object): 
     """methods for merging biographies into a single new one"""
     @staticmethod
-    def merge_biographies(bios):
+    def merge_biographies(bio1, bio2):
         """merge the biographies in bios into a single one
+        
+        changes bio1 and returns the changed biography
+        
+        bio1 takes precedence over bio2
        
         arguments:
-            bios: a  list of Biography instances
+            bio1, bio2: two Biography instances
         returns:
             an instnace of Biography if the merge is successfull, None otherwise
             
         if the bios are not mergeable (they may have different data), don't change anything, and return the list
         """
-        if len(bios) < 2:
-            return bios
-        source_ids = [bio.source_id for bio in bios]
-        assert len(set(source_ids)) == 1
-        source_id = source_ids[0]
-        merged_bio = Biography(source_id=source_id).from_string(bios[0].to_string())
-        for bio in bios[1:]:
-            merged_bio = BiographyMerger._merge_biographies(merged_bio, bio)
-            if not merged_bio:
-                return bios
-        return merged_bio
+        _changed = False
+        
+        #merged categories
+        merged_categories = bio1.get_states(type='category') + bio2.get_states(type='category')
+        merged_categories = [x.get('idno') for x in merged_categories]
+        if set(merged_categories) != set([x.get('idno') for x in bio1.get_states(type='category')]):
+            bio1.set_category(merged_categories)
+            _changed = True
+        
+        for x in [
+              'birth_date',
+             'birth_place',
+             'death_date',
+             'death_place',
+             ]:
+            if not bio1.get_value(x) and bio2.get_value(x):
+                bio1.set_value(x, bio2.get_value(x))
+                _changed = True
+        for x in [
+             'birth_date',
+             'death_date',
+             ]:
+            v1 = bio1.get_value(x)
+            v2 = bio2.get_value(x)
+            if v1 and v2 and len(v1) < len(v2) and v2[:len(v1)] == v1:
+                bio1.set_value(x, bio2.get_value(x))
+                _changed = True
+                
+        if _changed:
+            return bio1
+    
+    
+#        for bio in bios[1:]:
+#            merged_bio = BiographyMerger._merge_biographies(merged_bio, bio)
+#            if not merged_bio:
+#                return bios
+#        return merged_bio
     @staticmethod
     def _merge_biographies(bio1, bio2):
         """try to merge bio1 and bio2 - if we cannot (because they are not consistent), return None""" 
@@ -285,6 +315,7 @@ class BiographyMerger(object):
             v1= bio1.get_value(k)
             v2= bio2.get_value(k)
             if v1 and v2 and v1 != v2:
+                raise Exception('Cannot merge biographies because values for %s are different (%s and %s)' % (k,v1, v2 ))
                 return
             else:
                 dct[k] = v1 or v2

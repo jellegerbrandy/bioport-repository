@@ -1,7 +1,7 @@
 import os
 from bioport_repository.tests.common_testcase import CommonTestCase, unittest 
 #from bioport_repository.repository import
-from bioport_repository.source import Source
+from bioport_repository.source import Source, BioPortSource
 
 
 THIS_DIR = os.path.split(os.path.abspath(__file__))[0]
@@ -24,7 +24,6 @@ class WorkflowTestCase(CommonTestCase):
         #------------------------ 
         url = 'file://%s' % os.path.join(THIS_DIR, 'data/knaw/list.xml')
         source = Source(id=u'test', url=url , description=u'test', repository=repository)
-        
         repository.add_source(source)
         repository.download_biographies(source)
         
@@ -38,6 +37,9 @@ class WorkflowTestCase(CommonTestCase):
         
         self.assertEqual(len(repository.get_biographies()), 10)
         self.assertEqual(len(repository.get_persons()), 10)
+        
+        source = BioPortSource()
+        repository.add_source(source)
         #------------------------ 
         #identify two biographies
         #------------------------ 
@@ -61,7 +63,6 @@ class WorkflowTestCase(CommonTestCase):
         
         
         #for more identification workflow, see test_repository.RepositoryTestCase.test_workflow_identification
-        
         person = repository.identify(person1, person2)
         if person.get_bioport_id() == person2.get_bioport_id():
             id1, id2 = id2, id1

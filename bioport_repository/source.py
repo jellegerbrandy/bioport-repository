@@ -123,7 +123,7 @@ class BioPortSource(Source):
     #this is the 'bioport source' : the biographical descriptions added and edited by the bioport editors
     def __init__(self, id='bioport'):
         self.id = 'bioport'
-        Source.__init__(self, self.id)
+        Source.__init__(self, self.id, quality=99999)
     
     def new_biography(self, id):
         """create a new biography

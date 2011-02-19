@@ -535,7 +535,8 @@ class RepositoryTestCase(CommonTestCase):
         bio2 = person2.get_biographies()[0]
         id1 = person1.get_bioport_id() 
         id2 = person2.get_bioport_id()  
-        
+       
+     
         assert id1 != id2
        
         #identify the two people
@@ -563,7 +564,7 @@ class RepositoryTestCase(CommonTestCase):
         bios = person.get_biographies()
         self.assertEqual(set([b.id for b in bios]), set([bio1.id, bio2.id]))
         
-        #also, if we try to found the person with id1, we cannot find it anymore
+        #also, if we try to find the person with id1, we cannot find it anymore
         person1 = repo.get_person(bioport_id=id1)
         self.assertEqual(person1.bioport_id, id2)
         person2 = repo.get_person(bioport_id=id2)
@@ -572,6 +573,45 @@ class RepositoryTestCase(CommonTestCase):
 
         assert len(person2.get_biographies()) == 2, person2.get_biographies()
         
+    def test_identify_categories(self):
+        """see what happens with categories if we identify two persons"""
+        #get two persons
+        persons = self.repo.get_persons()
+        self.assertEqual(len(persons), 10)
+        person1 = persons[1]
+        person2 = persons[2]
+#        bio1 = person1.get_biographies()[0]
+#        bio2 = person2.get_biographies()[0]
+        id1 = person1.get_bioport_id() 
+        id2 = person2.get_bioport_id()  
+     
+        assert id1 != id2
+       
+        def get_category_ids(bio):
+        #now the new person should have the combined categories
+            cats = bio.get_states(type='category') 
+            cats = [x.get('idno') for x in cats]
+            return set(cats)
+       
+        bio = person1.get_bioport_biography()
+        bio.set_category([1,2]) 
+        self.repo.save_biography(bio, 'test')
+        bio = person2.get_bioport_biography()
+        bio.set_category([2,3]) 
+        self.repo.save_biography(bio, 'test')
+        
+        #just make sure everything is ok in the repo
+        person1 = self.repo.get_person(person1.get_bioport_id())
+        person2 = self.repo.get_person(person2.get_bioport_id())
+        self.assertEqual(get_category_ids(person1.get_bioport_biography()), set(['1','2']))
+        self.assertEqual(get_category_ids(person2.get_bioport_biography()), set(['2','3']))
+        
+        #identify the two people
+        person = self.repo.identify(person1, person2)
+        
+        #the new person should have the combined categories of the original
+        self.assertEqual(get_category_ids(person.get_bioport_biography()), set(['1','2','3']))
+       
  
 def test_suite():
     return unittest.TestSuite((

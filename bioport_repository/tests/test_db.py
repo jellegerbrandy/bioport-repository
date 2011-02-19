@@ -13,12 +13,13 @@ class DBRepositoryTestCase(CommonTestCase):
         assert 'soundex' in db.engine.table_names(), db.engine.table_names()
 
     def test_manipulate_source(self):
+        nbase = self.db.get_session().query(SourceRecord).count()
         src = Source(id='123')
         self.db.add_source(src)
-        self.assertEqual(len(self.db.get_session().query(SourceRecord).all()), 3)
-        self.assertEqual(len(self.db.get_sources()), 3)
+        self.assertEqual(len(self.db.get_session().query(SourceRecord).all()), nbase+1)
+        self.assertEqual(len(self.db.get_sources()), nbase+1)
         self.db.delete_source(src)
-        self.assertEqual(len(self.db.get_sources()), 2)
+        self.assertEqual(len(self.db.get_sources()),nbase) 
     
     def test_manipulate_biographies(self): 
         """tests for adding and deleting biographies"""
@@ -274,9 +275,8 @@ class DBRepositoryTestCase(CommonTestCase):
         #just check some general sanity
         #we have 10 biographies in two sources, 5 bios each
         self.assertEqual(session.query(BiographyRecord).count(), 10)
-        
-        self.assertEqual(len(self.repo.get_sources()), 2)
-        source1, source2 = self.repo.get_sources()
+        self.assertEqual(len(self.repo.get_sources()), 3)
+        bioportsource, source1, source2 = self.repo.get_sources()
         self.assertEqual(len(self.repo.get_persons()), 10)
         self.assertEqual(len(self.repo.get_persons(source_id=source1.id)), 5)
         self.assertEqual(len(self.repo.get_persons(source_id=source2.id)), 5)
@@ -295,7 +295,7 @@ class DBRepositoryTestCase(CommonTestCase):
         self.repo.delete_biographies(source1)
             
         #the sources are still there
-        self.assertEqual(len(self.repo.get_sources()), 2)
+        self.assertEqual(len(self.repo.get_sources()), 3)
         #and also the bioport_ids we used
         self.assertEqual(len(self.repo.get_bioport_ids()), 10)
         

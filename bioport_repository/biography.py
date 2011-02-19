@@ -251,7 +251,6 @@ class Biography(object, BioDesDoc): #, SVNEntry):
         """set the categories of the biography to the given set
         
         overwrites any existing categories"""
-        
         for el in self.get_states(type='category'):
             el.getparent().remove(el)
             

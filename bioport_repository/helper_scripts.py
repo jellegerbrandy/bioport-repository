@@ -3,6 +3,7 @@ from bioport_repository.db_definitions import  CacheSimilarityPersons, STATUS_DO
 LIMIT = 0
 
 """
+Set the status of all person with a biography of a certain source
 
 USAGE:
 dsn = 'mysql://localhost/bioport'
@@ -24,6 +25,7 @@ def _set_status_of_persons_in_source(dsn, source_id, status=STATUS_DONE):
 
 
 """
+remove all items fro the similarity table that should not be there to begin with
 
 USAGE:
 from bioport_repository.helper_scripts import _remove_irrelevent_items_from_similarity_table
@@ -59,10 +61,12 @@ def _remove_irrelevent_items_from_similarity_table(dsn):
     print 'done.'
  
 """
+identify any two persons that have dbnl biographies witht he same dbnl id
+
 USAGE:
     
-from bioport_repository.helper_scripts import identify_dbnl_biographies
 dsn = 'mysql://localhost/bioport'
+from bioport_repository.helper_scripts import identify_dbnl_biographies
 identify_dbnl_biographies(dsn)
 """
 def identify_dbnl_biographies(dsn):
@@ -78,6 +82,7 @@ def identify_dbnl_biographies(dsn):
                 yield biography
     
     i = 0
+    #construct a dictionary dbnl_id --> [bioportids]
     for biography in get_bios():
         i += 1
         print i
@@ -88,9 +93,13 @@ def identify_dbnl_biographies(dsn):
             bioport_id = biography.get_bioport_id()
             if bioport_id not in dct.get(dbnl_id, []):
                 dct[dbnl_id] = dct.get(dbnl_id, []) + [bioport_id]
+                
+    #remove any keys that have just one biograpphy 
     for k in dct.keys():
         if len(dct[k]) < 2:
             del dct[k]
+            
+    #now identify any two persons that have the saem dbnl_id
     total = len(dct)
     i = 0
     for dbnl_id in dct:
@@ -107,7 +116,8 @@ def identify_dbnl_biographies(dsn):
                     person1 = repository.identify(person1, person2)
             else:
                 person1 = person2
-        person1 = person2 = None
+        #just to make sure, we set all values to none
+        bioport_id1 = bioport_id2 = person1 = person2 = None
             
    
 

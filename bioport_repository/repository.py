@@ -329,7 +329,7 @@ class Repository(object):
                     logging.warning("can't download image: %s" % str(err))
         # remove the temp directory which has been used to extract
         # the xml files
-        if source.url.endswith("tar.gz"):
+        if source.url and source.url.endswith("tar.gz"):
             afile = bio.source_url.replace('file://', '')
             directory = os.path.dirname(afile)
             if os.path.isdir(directory):
@@ -397,7 +397,7 @@ class Repository(object):
         if self.ENABLE_SVN:
             raise NotImplementedError#        id = self.get_identifier(bioport_id)
 
-    def get_bioport_biography(self, person):
+    def get_bioport_biography(self, person, create_if_not_exists=True):
         """get, or if it does not yet exist, create, a biodes document that represents the interventions 
         of the editors in the biographical portal
         
@@ -406,7 +406,7 @@ class Repository(object):
         returns:
             an instance of Biography
         """    
-        source = BioPortSource(id='dummy')
+        source = BioPortSource()
                 
         if not source.id in [s.id for s in self.get_sources()]:
             src = Source('bioport', repository=self)
@@ -415,13 +415,30 @@ class Repository(object):
 
         ls = self.get_biographies(source=source, bioport_id=person.get_bioport_id())
         if not ls:
-            #create a new biography
-            return self._create_bioport_biography(person)
+            if create_if_not_exists:
+	            #create a new biography
+	            return self._create_bioport_biography(person)
+            else:
+                return 
         else:
             #disabled warning - this is not so bad after all
 #            if len(ls) != 1: 
 #                logging.warning( 'There was more than one Bioport Biography found for the person with bioport_id %s' %
 #                          person.get_bioport_id())
+            #if we have more than one biography, we take the one that has the same bioport_id as the person
+            #(if such exists) - otherwise, arbitrarily, the one with the highest id
+            if len(ls) == 1:
+                return ls[0]
+            
+            ls = [b for b in ls if person.get_bioport_id() in b.id]
+            if ls:
+                return ls[0]
+            else:
+                ls = [(b.id, b) for b in ls]
+                ls.sort(reverse=True) #we sort reverse, because that is also how we sort in "get_biographies"
+                ls = [b for (x, b) in ls]
+                return ls[0]
+
             ls = [(b.id, b) for b in ls]
             ls.sort(reverse=True) #we sort reverse, because that is also how we sort in "get_biographies"
             ls = [b for (x, b) in ls]
