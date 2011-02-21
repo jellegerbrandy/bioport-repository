@@ -12,11 +12,26 @@ helper_scripts._set_new_rkdartists_to_done(dsn)
 
 """
 def _set_new_rkdartists_to_done(dsn):
-    repository = Repository(db_connection=dsn)
-    db = repository.db
     source_id = 'rkdartists'
+    _set_new_persons_to_done(dsn,source_id)
+
+def _set_new_dbnlers_to_done(dsn):
+    source_id = 'dbnl'
+    _set_new_persons_to_done(dsn, source_id)
+
+"""
+Set all RKD artists with status "New" to status "DONE"
+
+USAGE:
+dsn = 'mysql://localhost/bioport'
+from bioport_repository import  helper_scripts
+helper_scripts._set_new_dbnlers_to_done(dsn)
+
+"""
+def _set_new_persons_to_done(dsn, source_id):
+    repository = Repository(db_connection=dsn)
     print 'getting persons'
-    persons = db.get_persons(source_id=source_id, status=STATUS_NEW)
+    persons = repository.get_persons(source_id=source_id, status=STATUS_NEW)
     print 'found %s persons' % len(persons)
     i = 0
     for person in persons:
