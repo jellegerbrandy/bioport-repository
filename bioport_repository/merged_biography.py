@@ -12,9 +12,9 @@ class MergedBiography:
     """ """
     
     def __init__(self, biographies):
-        ls = [(b.get_source().quality,b.id, b) for b in biographies]
-        ls.sort(reverse=True)
-        ls = [b for q,i, b in ls]
+#        ls = [(b.get_source().quality,b.id, b) for b in biographies]
+#        ls.sort(reverse=True)
+#        ls = [b for q,i, b in ls]
         self._biographies = ls
     
     def to_string(self):
