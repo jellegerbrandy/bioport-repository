@@ -1,6 +1,28 @@
 from bioport_repository.repository import Repository
-from bioport_repository.db_definitions import  CacheSimilarityPersons, STATUS_DONE
+from bioport_repository.db_definitions import  CacheSimilarityPersons, STATUS_DONE, STATUS_NEW
 LIMIT = 0
+
+"""
+Set all RKD artists with status "New" to status "DONE"
+
+USAGE:
+dsn = 'mysql://localhost/bioport'
+from bioport_repository.helper_scripts import _set_status_of_persons_in_source
+_set_status_of_persons_in_source(dsn, source_id='dbnl')
+
+"""
+def _set_new_rkdartists_to_done():
+    repository = Repository(db_connection=dsn)
+    db = repository.db
+    bios = db.get_biographies(source_id=source_id)
+    i = 0
+    for biography in bios:
+        i += 1
+        person = biography.get_person()
+        person.status = STATUS_DONE
+        print '[%s/%s]' % (i, len(bios))
+        repository.save_person(person)
+    
 
 """
 Set the status of all person with a biography of a certain source

@@ -430,9 +430,9 @@ class Repository(object):
             if len(ls) == 1:
                 return ls[0]
             
-            ls = [b for b in ls if person.get_bioport_id() in b.id]
-            if ls:
-                return ls[0]
+            ls_with_our_bioid = [b for b in ls if person.get_bioport_id() in b.id]
+            if ls_with_our_bioid:
+                return ls_with_our_bioid[0]
             else:
                 ls = [(b.id, b) for b in ls]
                 ls.sort(reverse=True) #we sort reverse, because that is also how we sort in "get_biographies"
