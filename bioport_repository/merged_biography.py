@@ -15,7 +15,7 @@ class MergedBiography:
 #        ls = [(b.get_source().quality,b.id, b) for b in biographies]
 #        ls.sort(reverse=True)
 #        ls = [b for q,i, b in ls]
-        self._biographies = ls
+        self._biographies = biographies
     
     def to_string(self):
         """return a BioDes file that represents all information that we want to share"""
