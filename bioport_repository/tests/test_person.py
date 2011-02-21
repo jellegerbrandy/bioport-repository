@@ -151,15 +151,15 @@ class InconsistentPersonsTestCase(CommonTestCase):
 
         self.assertEqual(len(cons), 2)
         birth_con = cons[0]
-        self.assertEqual(birth_con.values, [('birth1', 'knaw'), 
+        self.assertEqual(set(birth_con.values),set([('birth1', 'knaw'), 
                                             ('birth2', 'knaw'), 
-                                            ('birth3', 'knaw')]
+                                            ('birth3', 'knaw')])
                         )
         self.assertEqual(birth_con.type, 'birth places')
 
         death_con = cons[1]
-        self.assertEqual(death_con.values, [('death1','knaw'), 
-                                            ('death2', 'knaw')]
+        self.assertEqual(set(death_con.values), set([('death1','knaw'), 
+                                            ('death2', 'knaw')])
                         )
         self.assertEqual(death_con.type, 'death places')
 
