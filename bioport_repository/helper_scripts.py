@@ -1,5 +1,5 @@
 from bioport_repository.repository import Repository
-from bioport_repository.db_definitions import  CacheSimilarityPersons, STATUS_DONE, STATUS_NEW
+from bioport_repository.db_definitions import  CacheSimilarityPersons, STATUS_DONE, STATUS_NEW, CATEGORY_LETTERKUNDE
 LIMIT = 0
 
 """
@@ -7,21 +7,50 @@ Set all RKD artists with status "New" to status "DONE"
 
 USAGE:
 dsn = 'mysql://localhost/bioport'
-from bioport_repository.helper_scripts import _set_status_of_persons_in_source
-_set_status_of_persons_in_source(dsn, source_id='dbnl')
+from bioport_repository import  helper_scripts
+helper_scripts._set_new_rkdartists_to_done(dsn)
 
 """
-def _set_new_rkdartists_to_done():
+def _set_new_rkdartists_to_done(dsn):
     repository = Repository(db_connection=dsn)
     db = repository.db
-    bios = db.get_biographies(source_id=source_id)
+    source_id = 'rkdartists'
+    print 'getting persons'
+    persons = db.get_persons(source_id=source_id, status=STATUS_NEW)
+    print 'found %s persons' % len(persons)
     i = 0
-    for biography in bios:
+    for person in persons:
         i += 1
-        person = biography.get_person()
         person.status = STATUS_DONE
-        print '[%s/%s]' % (i, len(bios))
+        print '[%s/%s] new status is "done"' % (i, len(persons))
         repository.save_person(person)
+
+
+
+"""
+Set all DNBL with no category the category 'letterkunde' 
+
+USAGE:
+dsn = 'mysql://localhost/bioport'
+from bioport_repository import  helper_scripts
+reload(helper_scripts)
+helper_scripts._set_dbnl_to_letterkunde(dsn)
+
+"""
+
+def _set_dbnl_to_letterkunde(dsn): 
+    repository = Repository(db_connection=dsn)
+    print 'getting persons'
+    i = 0
+    persons = repository.get_persons(source_id='dbnl')
+    for person in persons:
+        i += 1
+        print '[%s/%s]' % (i, len(persons))
+        bio = person.get_bioport_biography()
+        if not bio.get_category_ids():
+            print 'set category'
+            bio.set_category([CATEGORY_LETTERKUNDE])
+            repository.save_biography(bio, comment=u'Set category to "letterkunde"')
     
 
 """

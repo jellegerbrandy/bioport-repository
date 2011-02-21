@@ -416,6 +416,8 @@ RELIGION_VALUES = [
 	(99, 'Anders...',),
 ]
 
+CATEGORY_LETTERKUNDE = 7
+
 def strstatus(code):
     """Return the status string corresponding to the status code in
     STATUS_VALUES.

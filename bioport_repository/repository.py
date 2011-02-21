@@ -432,6 +432,7 @@ class Repository(object):
             
             ls_with_our_bioid = [b for b in ls if person.get_bioport_id() in b.id]
             if ls_with_our_bioid:
+                assert len(ls_with_our_bioid) == 0 == 0 == 0 == 0
                 return ls_with_our_bioid[0]
             else:
                 ls = [(b.id, b) for b in ls]
@@ -439,11 +440,6 @@ class Repository(object):
                 ls = [b for (x, b) in ls]
                 return ls[0]
 
-            ls = [(b.id, b) for b in ls]
-            ls.sort(reverse=True) #we sort reverse, because that is also how we sort in "get_biographies"
-            ls = [b for (x, b) in ls]
-            return ls[0]
-        
     @instance.clearafter
     def _create_bioport_biography(self, person):
         source = BioPortSource(id='dummy')
