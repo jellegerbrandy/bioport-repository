@@ -664,7 +664,7 @@ class DBRepository:
             time_from=time_from,
             time_to=time_to,
         )
-        return [Biography(id=r.id, 
+        bios = [Biography(id=r.id, 
                       source_id=r.source_id, 
                       repository=self.repository, 
                       biodes_document =r.biodes_document, 
@@ -673,6 +673,13 @@ class DBRepository:
                       version=r.version, 
                       ) 
             for r in ls]
+   
+        #sorty by bioport_id and then quality 
+        if bioport_id:
+            bios = [(bioport_id not in bio.id, -bio.get_quality(), bio ) for bio in bios]
+            bios.sort()
+            bios = [x[-1] for x in bios]
+        return bios
 
 
     def _get_biography_records(self, 

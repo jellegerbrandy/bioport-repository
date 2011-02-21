@@ -432,7 +432,8 @@ class Repository(object):
             
             ls_with_our_bioid = [b for b in ls if person.get_bioport_id() in b.id]
             if ls_with_our_bioid:
-                assert len(ls_with_our_bioid) == 0 == 0 == 0 == 0
+                if not len(ls_with_our_bioid) == 1: 
+                    raise Exception()
                 return ls_with_our_bioid[0]
             else:
                 ls = [(b.id, b) for b in ls]
