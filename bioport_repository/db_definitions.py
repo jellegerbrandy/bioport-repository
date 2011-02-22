@@ -357,7 +357,7 @@ STATUS_NADER_ONDERZOEK = 10
 STATUS_VALUES =  [
     (0, '(geen status toegekend)'),
     (STATUS_NEW, 'nieuw'), #
-    (2, 'bewerkt'), #XXX TO DELETE
+#    (2, 'bewerkt'), #XXX TO DELETE
     (STATUS_DIFFICULT, 'moeilijk geval'),
 #    (STATUS_MESSY, 'moeilijk geval (troep)'), #XXX TO DELETE
     (STATUS_DONE, 'klaar'), 
