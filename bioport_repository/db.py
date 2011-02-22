@@ -34,7 +34,8 @@ from bioport_repository.db_definitions import (CacheSimilarityPersons,
                                                RelBioPortIdBiographyRecord,
                                                BiographyRecord,
                                                SourceRecord,
-                                               STATUS_NEW)
+                                               STATUS_NEW, STATUS_FOREIGNER, STATUS_MESSY, STATUS_REFERENCE, STATUS_NOBIOS,
+                                               )
 
 
 
@@ -849,13 +850,18 @@ class DBRepository:
 #        if hide_no_external_biographies:
 #            qry = qry.filter(not_(sqlalchemy.func.ifnull(PersonRecord.status.in_([9999]), False)))
         if hide_invisible:
+            #we always hide the follwing categoires
             
-            #(5, 'moeilijk geval (troep)'),
-            #(9, 'verwijslemma'), 
-            qry = qry.filter(not_(sqlalchemy.func.ifnull(PersonRecord.status.in_([5, 9, 9999]), False)))
+            #(STATUS_FOREIGNER, 'buitenlands'), 
+            #    (STATUS_MESSY, 'moeilijk geval (troep)'),
+            #    (STATUS_REFERENCE, 'verwijslemma'), 
+            #    (STATUS_NOBIOS, 'no external biographies')
+            #    (STATUS_ALIVE, 'leeft nog')
+            to_hide = [STATUS_FOREIGNER, STATUS_MESSY, STATUS_REFERENCE, STATUS_NOBIOS, STATUS_ALIVE]
+            qry = qry.filter(not_(sqlalchemy.func.ifnull(PersonRecord.status.in_(to_hide), False)))
         if hide_foreigners:
             #  (11, 'buitenlands'), 
-            qry = qry.filter(not_(sqlalchemy.func.ifnull(PersonRecord.status.in_([11]), False)))
+            qry = qry.filter(not_(sqlalchemy.func.ifnull(PersonRecord.status.in_([STATUS_FOREIGNER]), False)))
 #            (1, 'nieuw'),
 #            (2, 'bewerkt'),
 #            (3, 'moeilijk geval'),
@@ -1560,7 +1566,7 @@ class DBRepository:
         bio1 = self.repository.get_bioport_biography(new_person, create_if_not_exists=False)
         bio2 = self.repository.get_bioport_biography(old_person, create_if_not_exists=False)
         if bio1 and bio2:
-	        merged_bio = BiographyMerger.merge_biographies(bio1, bio2)
+            merged_bio = BiographyMerger.merge_biographies(bio1, bio2)
         else:
             merged_bio = None
             
@@ -1572,7 +1578,7 @@ class DBRepository:
                 )
         
         if merged_bio:
-	        new_person.add_biography(merged_bio, 
+            new_person.add_biography(merged_bio, 
                 comment='Identified %s and %s: added merged biography to %s' % (person1.name(), person2.name(), new_person)
                 )
        

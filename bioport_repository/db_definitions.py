@@ -346,22 +346,30 @@ class Comment(Base):
     email = Column(MSString(40))
     
 STATUS_NEW = 1
+STATUS_DIFFICULT = 3
 STATUS_DONE = 4
+STATUS_MESSY = 5
+STATUS_REFERENCE = 9
+STATUS_FOREIGNER = 11
+STATUS_ALIVE = 14
+STATUS_NOBIOS = 9999
+
 STATUS_VALUES =  [
+    (0, '(geen status toegekend)'),
     (STATUS_NEW, 'nieuw'), #
     (2, 'bewerkt'),
-    (12, 'nog niet bewerkt'),
-    (3, 'moeilijk geval'),
-    (5, 'moeilijk geval (troep)'),
+    (STATUS_DIFFICULT, 'moeilijk geval'),
+    (STATUS_MESSY, 'moeilijk geval (troep)'),
     (STATUS_DONE, 'klaar'), 
     (7, 'te weinig informatie'), 
     (8, 'familielemma'), 
-    (9, 'verwijslemma'), 
+    (STATUS_REFERENCE, 'verwijslemma'), 
     (10, 'nader onderzoek nodig'), 
-    (11, 'buitenlands'), 
+    (STATUS_FOREIGNER, 'buitenlands'), 
+    (12, 'nog niet bewerkt'),
     (13, 'portrait'), 
-    (0, '(geen status toegekend)'),
-    (9999, 'no external biographies')
+    (STATUS_NOBIOS, 'no external biographies')
+    (STATUS_ALIVE, 'leeft nog')
 ]
 
 
