@@ -1,7 +1,25 @@
 from bioport_repository.repository import Repository
-from bioport_repository.db_definitions import  CacheSimilarityPersons, STATUS_DONE, STATUS_NEW, CATEGORY_LETTERKUNDE
+from bioport_repository.db_definitions import  CacheSimilarityPersons, STATUS_DONE, STATUS_NEW, CATEGORY_LETTERKUNDE, STATUS_NADER_ONDERZOEK, STATUS_DIFFICULT
 LIMIT = 0
 
+"""Set all status of X to Y
+dsn = 'mysql://localhost/bioport'
+from bioport_repository import  helper_scripts
+helper_scripts._change_states(dsn, status_old=helper_scripts.STATUS_NADER_ONDERZOEK, status_new=helper_scripts.STATUS_DIFFICULT)
+
+"""
+def _change_states(dsn, status_old, status_new):
+    repository = Repository(db_connection=dsn)
+    print 'getting persons'
+    persons = repository.get_persons(status=status_old)
+    i = 0
+    for person in persons:
+        i += 1
+        print '[%s/%s] new status is "done"' % (i, len(persons))
+        person.status = status_new
+        repository.save_person(person)
+    print 'done!'
+    
 """
 Set all RKD artists with status "New" to status "DONE"
 

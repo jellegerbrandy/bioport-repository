@@ -353,23 +353,23 @@ STATUS_REFERENCE = 9
 STATUS_FOREIGNER = 11
 STATUS_ALIVE = 14
 STATUS_NOBIOS = 9999
-
+STATUS_NADER_ONDERZOEK = 10
 STATUS_VALUES =  [
     (0, '(geen status toegekend)'),
     (STATUS_NEW, 'nieuw'), #
-    (2, 'bewerkt'),
+    (2, 'bewerkt'), #XXX TO DELETE
     (STATUS_DIFFICULT, 'moeilijk geval'),
-    (STATUS_MESSY, 'moeilijk geval (troep)'),
+    (STATUS_MESSY, 'moeilijk geval (troep)'), #XXX TO DELETE
     (STATUS_DONE, 'klaar'), 
     (7, 'te weinig informatie'), 
     (8, 'familielemma'), 
     (STATUS_REFERENCE, 'verwijslemma'), 
-    (10, 'nader onderzoek nodig'), 
+    (STATUS_NADER_ONDERZOEK, 'nader onderzoek nodig'),  #XXX TO DELETE --> moeilijk geval
     (STATUS_FOREIGNER, 'buitenlands'), 
     (12, 'nog niet bewerkt'),
     (13, 'portrait'), 
-    (STATUS_NOBIOS, 'no external biographies')
-    (STATUS_ALIVE, 'leeft nog')
+    (STATUS_NOBIOS, 'no external biographies'),
+    (STATUS_ALIVE, 'leeft nog'),
 ]
 
 

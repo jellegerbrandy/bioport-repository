@@ -35,6 +35,7 @@ from bioport_repository.db_definitions import (CacheSimilarityPersons,
                                                BiographyRecord,
                                                SourceRecord,
                                                STATUS_NEW, STATUS_FOREIGNER, STATUS_MESSY, STATUS_REFERENCE, STATUS_NOBIOS,
+                                               STATUS_ALIVE,
                                                )
 
 
