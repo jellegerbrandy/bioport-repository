@@ -176,7 +176,6 @@ class Illustration:
             if os.path.isfile(self.cached_local):
                 os.remove(self.cached_local)
             raise
-        
 
         # write two smaller thumbs on disk
         try:

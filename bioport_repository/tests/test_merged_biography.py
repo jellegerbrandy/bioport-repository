@@ -147,7 +147,13 @@ class TestBiographyMerger(CommonTestCase):
         m_bio = BiographyMerger.merge_biographies(bio6, bio5)
         self.assertEqual(m_bio.get_value('birth_date'), '1900-01-01')
 
- 
+        bio5.add_figure(uri='http://1.com', text='2')
+        bio6.add_figure(uri='http://3.com', text='4')
+        m_bio = BiographyMerger.merge_biographies(bio6, bio5)
+        self.assertTrue(m_bio is not None)
+        self.assertEqual(set(m_bio.get_figures_data()), set([('http://3.com', '4'), ('http://1.com', '2')]))
+        
+        
 def test_suite():
     return unittest.TestSuite((
         unittest.makeSuite(TestMergedBiography),

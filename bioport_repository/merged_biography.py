@@ -264,7 +264,10 @@ class BiographyMerger(object):
         arguments:
             bio1, bio2: two Biography instances
         returns:
-            an instnace of Biography if the merge is successfull, None otherwise
+            an instance of Biography if:
+                the merge succeeded
+                the merged biography is different from bio1
+            None: otherwise
             
         if the bios are not mergeable (they may have different data), don't change anything, and return the list
         """
@@ -275,6 +278,11 @@ class BiographyMerger(object):
         merged_categories = [x.get('idno') for x in merged_categories]
         if set(merged_categories) != set([x.get('idno') for x in bio1.get_states(type='category')]):
             bio1.set_category(merged_categories)
+            _changed = True
+        
+        merged_figures = bio1.get_figures_data() + bio2.get_figures_data()
+        if set(merged_figures) != set(bio1.get_figures_data()):
+            bio1._replace_figures(merged_figures)
             _changed = True
         
         for x in [
