@@ -617,6 +617,7 @@ class DBRepository:
         """return the number of biographies in the database, 
         excluding those of the source 'bioport'"""
         qry = self.get_session().query(BiographyRecord)
+        qry = qry.filter(BiographyRecord.version == 0)
         if source:
             qry = qry.filter(BiographyRecord.source_id==source.id)
         else:
