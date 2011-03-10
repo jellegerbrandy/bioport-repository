@@ -164,7 +164,7 @@ def identify_persons(dsn, source_id, min_score):
         if score > min_score:
             i += 1
             print i, score, person1, person2
-#            repository.identify(person1, person2)
+            repository.identify(person1, person2)
         else:
             break
         
