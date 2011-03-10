@@ -160,7 +160,7 @@ helper_scripts.identify_persons(dsn, source_id='pdc', min_score=0.8647)
 def identify_persons(dsn, source_id, min_score):
     repository = Repository(db_connection=dsn)
     i = 0
-    for score, person1, person2 in repository.get_most_similar_persons(source_id=source_id):
+    for score, person1, person2 in repository.get_most_similar_persons(source_id=source_id, size=200):
         if score > min_score:
             i += 1
             print i, score, person1, person2
