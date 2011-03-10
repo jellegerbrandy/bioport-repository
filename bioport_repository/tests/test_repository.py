@@ -373,6 +373,15 @@ class RepositoryTestCase(CommonTestCase):
         
         #the deferred list contains now only 1 pair
         self.assertEqual(len(self.repo.get_deferred()), 1)
+
+    def test_get_most_similar_persons(self):
+        repo = self.create_filled_repository()
+        self.repo.db.SIMILARITY_TRESHOLD = 0.0
+        self.repo.db.fill_similarity_cache(minimal_score=0.0, refresh=True)
+        score, p1, p2  = repo.get_most_similar_persons()[0]
+        source_id = p1.get_biographies()[0].get_source().id
+        self.assertEqual((score, p1, p2 ) , repo.get_most_similar_persons(source_id=source_id)[0])
+        self.assertEqual((score, p1, p2 ) , repo.get_most_similar_persons(source_id2=source_id)[0])
         
     def xxx_test_merging_in_identification(self):
         #XXX this is a test for when merging while identifying has been activated (in Repository.identify)

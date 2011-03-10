@@ -284,9 +284,12 @@ class DBRepository:
             self._register_biography(biography)
             
             #get all biographies with this id, and increment their version number with one
-            ls =  self._get_biography_records(local_id=biography.id, order_by=BiographyRecord.version)
-            for r_bio in ls:
-                r_bio.version += 1
+            ls =  self._get_biography_records(local_id=biography.id, order_by='version')
+            ls = enumerate(ls)
+            ls = list(ls)
+            ls.reverse()
+            for i, r_bio in ls:
+                r_bio.version = i + 1 
                 session.flush()
             
             r_biography = BiographyRecord(id=biography.get_id())
@@ -722,7 +725,7 @@ class DBRepository:
             qry = qry.order_by(BiographyRecord.id)
         elif order_by == 'version':
             #order by time added and version
-            qry = qry.order_by(sqlalchemy.desc(BiographyRecord.time), BiographyRecord.version)
+            qry = qry.order_by( BiographyRecord.version, sqlalchemy.desc(BiographyRecord.time))
         elif order_by:
             qry = qry.order_by(order_by)
         if limit:
@@ -1414,40 +1417,10 @@ class DBRepository:
                 if both are given, we return tuples such that both person1 adn person2 ahve a biography among the sources
         """
         session = self.get_session() 
-#        if refresh: 
-#            (re) fill the cache
-#            self.fill_similarity_cache(refresh=refresh)            
-#        if refresh: 
-#            (re) fill the cache
-#            self.fill_similarity_cache(refresh=refresh)            
+          
         qry = session.query(CacheSimilarityPersons)
         qry = qry.filter(CacheSimilarityPersons.bioport_id1 != CacheSimilarityPersons.bioport_id2)
-#        qry = qry.outerjoin((AntiIdentifyRecord,  
-#             and_( 
-#                  AntiIdentifyRecord.bioport_id1==CacheSimilarityPersons.bioport_id1, 
-#                  AntiIdentifyRecord.bioport_id2==CacheSimilarityPersons.bioport_id2, )
-#           d;ipdb.set_trace( ))
-#        qry = qry.outerjoin((DeferIdentificationRecord,  
-#             and_( 
-#                  DeferIdentificationRecord.bioport_id1==CacheSimilarityPersons.bioport_id1, 
-#                  DeferIdentificationRecord.bioport_id2==CacheSimilarityPersons.bioport_id2, )
-#             ))
-#        qry = qry.join((BioPortIdRecord, BioPortIdRecord.bioport_id==CacheSimilarityPersons.bioport_id1))
-#        BioPortIdRecord2 = aliased(BioPortIdRecord)
-#        qry = qry.join((BioPortIdRecord2, BioPortIdRecord2.bioport_id==CacheSimilarityPersons.bioport_id2))
-#          
-#        
-#         not antiidentical */ 
-#        qry = qry.filter(AntiIdentifyRecord.bioport_id1 == None)
-#        qry = qry.filter(AntiIdentifyRecord.bioport_id2 == None)
-        #    not deferred */ 
-#        qry = qry.filter(DeferIdentificationRecord.bioport_id1 == None)
-#        qry = qry.filter(DeferIdentificationRecord.bioport_id2 == None)
-        
-#        qry = qry.filter(BioPortIdRecord.redirect_to == None)
-#        qry = qry.filter(BioPortIdRecord2.redirect_to == None)
-        
-        
+
         if bioport_id:
             qry = qry.filter(or_(CacheSimilarityPersons.bioport_id1 == bioport_id, CacheSimilarityPersons.bioport_id2==bioport_id))
         
@@ -1465,7 +1438,7 @@ class DBRepository:
             RelBioPortIdBiographyRecord2 = aliased(RelBioPortIdBiographyRecord)
             qry = qry.join((
                 RelBioPortIdBiographyRecord2, 
-                 RelBioPortIdBiographyRecord2.bioport_id==CacheSimilarityPersons.bioport_id1,
+                 RelBioPortIdBiographyRecord2.bioport_id==CacheSimilarityPersons.bioport_id2,
             ))
             BiographyRecord2 = aliased(BiographyRecord)
             qry = qry.join((BiographyRecord2, 
@@ -1509,7 +1482,6 @@ class DBRepository:
             qry = qry.slice(start, start + size)
         ls = [(r.score, Person(r.bioport_id1, repository=self.repository, score=r.score), Person(r.bioport_id2, repository=self, score=r.score)) for r in session.execute(qry)]
         return ls
-     
 
     def _should_be_in_similarity_cache(self, bioport_id1, bioport_id2,
         ignore_status = False,
