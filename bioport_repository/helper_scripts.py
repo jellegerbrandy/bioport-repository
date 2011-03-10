@@ -145,6 +145,32 @@ def _remove_irrelevent_items_from_similarity_table(dsn):
     print 'done.'
  
 """
+identify any two persons such that: 
+
+    one is from source
+    score > score
+USAGE:
+    
+dsn = 'mysql://localhost/bioport'
+from bioport_repository import helper_scripts
+helper_scripts.identify_persons(dsn, source_id='pdc', min_score=0.8647)
+    
+"""
+
+def identify_persons(dsn, source_id, min_score):
+    repository = Repository(db_connection=dsn)
+    i = 0
+    for score, person1, person2 in repository.get_most_similar_persons(source_id=source_id):
+        if score > min_score:
+            i += 1
+            print i, score, person1, person2
+            repository.identify(person1, person2)
+        else:
+            break
+        
+    print 'done (%s persons)' % i
+
+"""
 identify any two persons that have dbnl biographies witht he same dbnl id
 
 USAGE:

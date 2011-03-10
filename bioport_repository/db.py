@@ -1374,6 +1374,7 @@ class DBRepository:
                     if p.score > minimal_score and self._should_be_in_similarity_cache(person.bioport_id, p.bioport_id, ignore_status=True):
                         self.add_to_similarity_cache(person.bioport_id, p.bioport_id, p.score)
         logging.info('done')
+        
     def add_to_similarity_cache(self,bioport_id1, bioport_id2,score):
         with self.get_session_context() as session:
             id1 = min(bioport_id1, bioport_id2)
