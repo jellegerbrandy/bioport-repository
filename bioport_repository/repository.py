@@ -485,7 +485,6 @@ class Repository(object):
     def get_log_messages(self, **args):
         return self.db.get_log_messages(**args)
 
-
     def get_versions(self, **args):
         """get the amount of last changes
         
