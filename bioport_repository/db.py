@@ -689,7 +689,8 @@ class DBRepository:
             #        first those biographies that have the present bioport_id in their id - 
             #        then the reset, by quality
             #(note that False comes before True when sorting, hence the 'not in')
-            bios = [('bioport/%s' % bioport_id not in bio.id, -bio.get_quality(), bio ) for bio in bios]
+            
+            bios = [(('bioport/%s' % bioport_id) not in bio.id, -bio.get_quality(), bio.id, bio ) for bio in bios]
             bios.sort()
             bios = [x[-1] for x in bios]
         return bios
