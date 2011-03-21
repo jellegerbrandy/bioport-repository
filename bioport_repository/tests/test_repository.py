@@ -133,10 +133,10 @@ class RepositoryTestCase(CommonTestCase):
         self.assertEqual(self.repo.db.get_sources()[0], bio.get_source())
         #set a value
         bio.set_value('geboortedatum', '1999-01-01')
+        self.assertEqual(bio.get_value('geboortedatum'), '1999-01-01')
         self._save_biography(bio)
         
         self.assertEqual(bio.get_value('geboortedatum'), '1999-01-01')
-        
         
         self.assertEqual(person.get_merged_biography().get_value('geboortedatum'), '1999-01-01')
         

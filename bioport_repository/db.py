@@ -284,7 +284,12 @@ class DBRepository:
             self._register_biography(biography)
             
             #get all biographies with this id, and increment their version number with one
-            ls =  self._get_biography_records(local_id=biography.id, order_by='version')
+            ls =  self._get_biography_records(
+#                source_id=biography.source_id,
+#                bioport_id=biography.get_bioport_id(),
+                local_id=biography.id,
+                order_by='version',
+                )
             ls = enumerate(ls)
             ls = list(ls)
             ls.reverse()
@@ -680,9 +685,11 @@ class DBRepository:
                       ) 
             for r in ls]
    
-        #sorty by bioport_id and then quality 
         if bioport_id:
-            bios = [(bioport_id not in bio.id, -bio.get_quality(), bio ) for bio in bios]
+            #        first those biographies that have the present bioport_id in their id - 
+            #        then the reset, by quality
+            #(note that False comes before True when sorting, hence the 'not in')
+            bios = [('bioport/%s' % bioport_id not in bio.id, -bio.get_quality(), bio ) for bio in bios]
             bios.sort()
             bios = [x[-1] for x in bios]
         return bios

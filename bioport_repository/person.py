@@ -84,7 +84,9 @@ class Person(object):
     @instance.memoize
     def get_biographies(self, source_id=None):
         """Return all Biographies instances that are known to be
-        of this person.
+        of this person. 
+        
+        We order the results in some way (any way) that is determinate
         """
         ls = self.repository.get_biographies(
             bioport_id=self.get_bioport_id(), 
@@ -92,6 +94,7 @@ class Person(object):
             source_id=source_id,
             version=0,
             )
+        
         return ls
 
     def get_bioport_id(self):
