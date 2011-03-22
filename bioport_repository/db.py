@@ -21,7 +21,8 @@ from names.similarity import soundexes_nl
 from names.common import TUSSENVOEGSELS, words
 from names.name import TYPE_PREPOSITION,  TYPE_FAMILYNAME,  TYPE_GIVENNAME , TYPE_INTRAPOSITON,  TYPE_POSTFIX,  TYPE_TERRITORIAL 
 
-from bioport_repository.db_definitions import PersonRecord, AntiIdentifyRecord
+from bioport_repository.db_definitions import PersonRecord, AntiIdentifyRecord,\
+    CacheSimilarityPersons
 from bioport_repository.db_definitions import DeferIdentificationRecord
 from bioport_repository.db_definitions import ChangeLog, Occupation
 from bioport_repository.db_definitions import Category, Base, Location, Comment
@@ -1348,7 +1349,8 @@ class DBRepository:
                     continue
                 else:
                     if refresh:
-                        qry.delete() 
+		                qry = session.query(CacheSimilarityPersons).filter(CacheSimilarityPersons.bioport_id1 == bioport_id).delete()
+		                qry = session.query(CacheSimilarityPersons).filter(CacheSimilarityPersons.bioport_id2 == bioport_id).delete()
                     logging.info('[%s/%s] computing similarities: %s' % (i, len(persons), person))
                     #we add the identity score so that we can check later that we have 'done' this record, 
                     self.add_to_similarity_cache(bioport_id, bioport_id, score=1.0)
