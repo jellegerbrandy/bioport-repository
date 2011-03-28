@@ -279,6 +279,7 @@ class DBRepository:
             None
         """
         assert user
+        
         with self.get_session_context() as session:
             #register the biography in the bioportid registry
             #(note that this changes the XML in the biography object)
