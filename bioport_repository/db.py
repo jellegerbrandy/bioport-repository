@@ -1442,8 +1442,8 @@ class DBRepository:
         qry = qry.order_by(CacheSimilarityPersons.bioport_id1)
         if size:
             qry = qry.slice(start, start + size)
-        else:
-            qry = qry.slice(start, start + size)
+#        else:
+#            qry = qry.slice(start, start + size)
         ls = [(r.score, Person(r.bioport_id1, repository=self.repository, score=r.score), Person(r.bioport_id2, repository=self, score=r.score)) for r in session.execute(qry)]
         return ls
 
