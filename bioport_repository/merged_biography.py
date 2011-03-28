@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import copy
-from plone.memoize import instance
+#from plone.memoize import instance
 from biodes import BioDesDoc
 #from bioport_repository.data_extraction import BioDataExtractor
 from bioport_repository.biography import Biography
@@ -21,7 +21,7 @@ class MergedBiography:
         """return a BioDes file that represents all information that we want to share"""
         return self.to_xml().to_string()
     
-    @instance.memoize
+#    @instance.memoize
     def to_xml(self): 
         doc = BioDesDoc()
         bioport_id = self.get_biographies()[0].get_bioport_id()
@@ -155,19 +155,24 @@ class MergedBiography:
     
     def get_geboortedatum_max(self):
         return self.geboortedatum()
+    
     def get_sterfdatum_min(self):
         return self.sterfdatum()
+    
     def get_sterfdatum_max(self):
         return self.sterfdatum()
+    
     def get_event(self, type):
         for bio in self.get_biographies():
             if bio.get_event(type) is not None:
                 return bio.get_event(type)
+            
     def get_states(self, type):
         for bio in self.get_biographies():
             if bio.get_states(type):
                 return bio.get_states(type)
         return []
+    
     def get_value(self, k, default=None):
         """get the 'merged' value of for k
         
@@ -219,13 +224,15 @@ class MergedBiography:
                 
         return default
     
-    @instance.memoize   
+#    @instance.memoize   
+#    remove memoize declaration, because the cache of this instance does not get cleared when we save new data
     def title(self):
         for b in self.get_biographies():
             if b.title():
                 return b.title()
             
-    @instance.memoize   
+#    @instance.memoize   
+#    remove memoize declaration, because the cache of this instance does not get cleared when we save new data
     def get_names(self): 
         result = []
         for bio in self.get_biographies():
@@ -243,7 +250,8 @@ class MergedBiography:
             ls += bio.get_illustrations() 
         return ls or default
     
-    @instance.memoize   
+#    @instance.memoize   
+#    remove memoize declaration, because the cache of this instance does not get cleared when we save new data
     def naam(self):
         """return the first name that you can find in the associated biographies"""
         for b in self.get_biographies():

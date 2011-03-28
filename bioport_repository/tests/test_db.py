@@ -201,6 +201,10 @@ class DBRepositoryTestCase(CommonTestCase):
         qry.update(dict(levendjaar_max=1800, levendmaand_max=2, levenddag_max=21))
         self.assertEqual(len(repo.get_persons(**qry)), 4)
         
+        #februari!
+        qry = dict(levendjaar_max=1800, levendmaand_max=2 )
+        self.assertEqual(len(repo.get_persons(**qry)), 4)
+        
     def test_complex_geboorte_date_get_persons_partial(self):
         self.create_filled_repository()
         repo = self.repo
@@ -311,7 +315,7 @@ class DBRepositoryTestCase(CommonTestCase):
         
 def test_suite():
     return unittest.TestSuite((
-        unittest.makeSuite(DBRepositoryTestCase, 'test_'),
+        unittest.makeSuite(DBRepositoryTestCase, 'test_complex_levend_date_get_persons_full'),
         ))
 
 if __name__=='__main__':

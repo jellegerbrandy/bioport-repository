@@ -1016,7 +1016,7 @@ class DBRepository:
         maand_min = int(datmaand_min or 1)
         dag_min = int(datdag_min or 1)
         maand_max = int(datmaand_max or 12)
-        dag_max = int(datdag_max or 31)
+        dag_max = int(datdag_max or 0) 
         date_filter = "TRUE"
         
         
@@ -1029,7 +1029,10 @@ class DBRepository:
             jaar_min = int(datjaar_min or 1)
             jaar_max = int(datjaar_max or 9999)
             start_date = "%04i-%02i-%02i" % (jaar_min, maand_min, dag_min)
-            end_date = "%04i-%02i-%02i" % (jaar_max, maand_max, dag_max)
+            if dag_max:
+                end_date = "%04i-%02i-%02i" % (jaar_max, maand_max, dag_max)
+            else:
+                end_date = "%04i-%02i" % (jaar_max, maand_max)
             if datetype == 'levend':
                 date_filter = and_(
                        self._apply_date_operator('geboorte', '<=', end_date), 
@@ -1040,6 +1043,7 @@ class DBRepository:
                        self._apply_date_operator(datetype, '>=',  start_date),
                        self._apply_date_operator(datetype, '<=', end_date)
                        )
+                
         elif (datmaand_min or datdag_min
               or datmaand_max or datdag_max):
             #the user has not specified a year, only a date 
@@ -1198,24 +1202,6 @@ class DBRepository:
                          ))
             qry.delete()   
                     
-#    def get_authors(self, biography=None,
-#                          beginletter=None,
-#                          search_term=None,
-#                          order_by='name'):
-#        assert 0, 'get_authors is (perhaps temporarily) disabled (because we do not use it and it eats time and memory)'
-#        session = self.get_session()
-#        qry = session.query(AuthorRecord)
-#        if biography:
-#            qry = qry.filter(AuthorRecord.biographies.any(biography_id=biography.id))
-#  
-#        if beginletter:
-#            qry = qry.filter(AuthorRecord.name.like('%s%%' % beginletter))
-#        if search_term:
-#            qry = qry.filter(AuthorRecord.name.like('%%%s%%' % search_term))
-#        qry = qry.order_by(order_by)
-#        ls = qry.all()
-#        return ls
-    
     def get_author(self, author_id):
         session = self.get_session()
         qry = session.query(AuthorRecord)
@@ -1267,6 +1253,7 @@ class DBRepository:
         k=20, 
         refresh=False, 
         limit=None,
+        start=None,
         source_id=None,
         minimal_score=None,
         ):
@@ -1284,52 +1271,12 @@ class DBRepository:
             source_id = unicode(source_id)
             
         logging.info('Refreshing similarity table for %s, refresh=%s' % (source_id, refresh))
-        """
-        if refresh:
-            with self.get_session_context() as session:
-                #if refresh is true, we delete all relevant records
-                qry = session.query(CacheSimilarityPersons)
-                if person:
-                    #just remove the records of this person
-#                    logging.info('Deleting all records from cachesimilaritypersons related to %s' % person)
-                    qry = qry.filter(CacheSimilarityPersons.bioport_id1==person.get_bioport_id())  
-                    qry.delete()   
-                    qry = qry.filter(CacheSimilarityPersons.bioport_id2==person.get_bioport_id())  
-                    qry.delete()   
-                    
-                elif source_id:
-#                    logging.info('Deleting all records from cachesimilaritypersons related to %s' % source_id)
-                    qry = qry.outerjoin((
-                        RelBioPortIdBiographyRecord, 
-                        or_( RelBioPortIdBiographyRecord.bioport_id==CacheSimilarityPersons.bioport_id1,
-                             RelBioPortIdBiographyRecord.bioport_id==CacheSimilarityPersons.bioport_id2
-                        )
-                    ))
-                    qry = qry.join((BiographyRecord, 
-                           BiographyRecord.id ==RelBioPortIdBiographyRecord.biography_id,
-                           ))
-                    qry = qry.filter(BiographyRecord.source_id==source_id)
-                        
-                    #the next statement fails fro some obscure reason
-                    #qry.delete()
-                        
-                    #hack our way to a delete query
-                    s = unicode(qry.statement)
-                    s = s[s.find('FROM'):]
-                    s = s % ("'%s'" %  source_id)
-                    s = 'DELETE cache_similarity_persons %s' % s
-                    session.execute(s)
-                    session.expunge_all()
-                else:
-#                    logging.info('Deleting all records from cachesimilaritypersons related')
-                    qry.delete()
-                                   
-        """
+        
         #if the person argument is not given, we update for all persons
         if person:
             persons = [person]
         else:
-            persons = self.get_persons(source_id=source_id)
+            persons = self.get_persons(source_id=source_id, start=start)
             
         i = 0        
         with self.get_session_context() as session:
@@ -1338,7 +1285,8 @@ class DBRepository:
                 if limit and i > limit:
                     break
                 bioport_id = person.bioport_id
-                #check if we have alread done this naam
+                
+                #check if we have alread done this name
                 qry = session.query(CacheSimilarityPersons.bioport_id1)
                 qry = qry.filter_by(bioport_id1=bioport_id, bioport_id2=bioport_id) 
                 
@@ -1349,8 +1297,10 @@ class DBRepository:
                     continue
                 else:
                     if refresh:
-		                qry = session.query(CacheSimilarityPersons).filter(CacheSimilarityPersons.bioport_id1 == bioport_id).delete()
-		                qry = session.query(CacheSimilarityPersons).filter(CacheSimilarityPersons.bioport_id2 == bioport_id).delete()
+                        #remove  all info that we have of this person
+                        qry = session.query(CacheSimilarityPersons).filter(CacheSimilarityPersons.bioport_id1 == bioport_id).delete()
+                        qry = session.query(CacheSimilarityPersons).filter(CacheSimilarityPersons.bioport_id2 == bioport_id).delete()
+                        session.commit()
                     logging.info('[%s/%s] computing similarities: %s' % (i, len(persons), person))
                     #we add the identity score so that we can check later that we have 'done' this record, 
                     self.add_to_similarity_cache(bioport_id, bioport_id, score=1.0)
