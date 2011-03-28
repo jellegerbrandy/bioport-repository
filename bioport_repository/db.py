@@ -1434,8 +1434,8 @@ class DBRepository:
             qry = qry.filter(or_(PersonRecord.status==status, PersonRecord2.status == status))
         
         if min_score:
-            qry = qry.filter(CacheSimilarityPersons.score > min_score)   
-        
+            qry = qry.filter(CacheSimilarityPersons.score >= min_score)   
+            
         qry = qry.distinct()
         qry = qry.order_by(desc(CacheSimilarityPersons.score))
         qry = qry.order_by(CacheSimilarityPersons.bioport_id1)
