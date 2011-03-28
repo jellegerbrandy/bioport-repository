@@ -28,13 +28,13 @@ class Repository(object):
     ENABLE_DB = True
 
     def __init__(self, 
-		svn_repository=None,
-		svn_repository_local_copy=None,
-		db_connection=None,
-		user='Unknown User',
-		images_cache_local=None,
-		images_cache_url=None,
-		):
+        svn_repository=None,
+        svn_repository_local_copy=None,
+        db_connection=None,
+        user='Unknown User',
+        images_cache_local=None,
+        images_cache_url=None,
+        ):
     
         assert user
         #define the database connection
@@ -356,7 +356,11 @@ class Repository(object):
         """
         #the oldest identifier will be the canonical one
         return self.db.identify(person1, person2)
-
+    
+    def identify_persons(self, source_id, min_score):
+        for score, person1, person2 in self.get_most_similar_persons(source_id=source_id, min_score=min_score):
+            self.identify(person1, person2)
+            
     def antiidentify(self, person1, person2):
         self.db.antiidentify(person1,person2)
     
@@ -416,8 +420,8 @@ class Repository(object):
         ls = self.get_biographies(source=source, bioport_id=person.get_bioport_id())
         if not ls:
             if create_if_not_exists:
-	            #create a new biography
-	            return self._create_bioport_biography(person)
+                #create a new biography
+                return self._create_bioport_biography(person)
             else:
                 return 
         else:
@@ -427,6 +431,7 @@ class Repository(object):
 #                          person.get_bioport_id())
             #if we have more than one biography, we take the one that has the same bioport_id as the person
             #(if such exists) - otherwise, arbitrarily, the one with the highest id
+            return ls[0]
             if len(ls) == 1:
                 return ls[0]
             
@@ -436,9 +441,9 @@ class Repository(object):
                     raise Exception()
                 return ls_with_our_bioid[0]
             else:
-                ls = [(b.id, b) for b in ls]
-                ls.sort(reverse=True) #we sort reverse, because that is also how we sort in "get_biographies"
-                ls = [b for (x, b) in ls]
+#                ls = [(b.id, b) for b in ls]
+#                ls.sort(reverse=True) #we sort reverse, because that is also how we sort in "get_biographies"
+#                ls = [b for (x, b) in ls]
                 return ls[0]
 
     @instance.clearafter
@@ -565,4 +570,3 @@ class AttributeDict(dict):
     def __init__(self, *args, **kwargs):
         dict.__init__(self, *args, **kwargs)
         self.__dict__ = self
-
