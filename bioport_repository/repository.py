@@ -280,7 +280,7 @@ class Repository(object):
             #create a Biography object 
             bio = Biography(source_id=source.id, repository=source.repository)
             bio.from_url(biourl)
-            self.save_biography(bio, comment='downloaded biography from source %s' % source)
+            self.save_biography(bio, comment=u'downloaded biography from source %s' % source)
 
         # remove the temp directory which has been used to extract
         # the xml files

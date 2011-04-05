@@ -2,6 +2,7 @@ class BioPortException(Exception):
     pass
 
 import datetime
+
 def to_date(s, round='down' ):
     """Take a string in YYYY[-MM[-DD] format and return a date object
     

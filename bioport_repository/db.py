@@ -1028,7 +1028,7 @@ class DBRepository:
         
         if datjaar_min or datjaar_max:
             jaar_min = int(datjaar_min or 1)
-            jaar_max = int(datjaar_max or 9999)
+            jaar_max = int(datjaar_max or 9000)
             start_date = "%04i-%02i-%02i" % (jaar_min, maand_min, dag_min)
             if dag_max:
                 end_date = "%04i-%02i-%02i" % (jaar_max, maand_max, dag_max)
