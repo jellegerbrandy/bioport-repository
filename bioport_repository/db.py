@@ -874,6 +874,7 @@ class DBRepository:
             #    (STATUS_ALIVE, 'leeft nog')
             to_hide = [STATUS_FOREIGNER, STATUS_MESSY, STATUS_REFERENCE, STATUS_NOBIOS, STATUS_ALIVE]
             qry = qry.filter(not_(sqlalchemy.func.ifnull(PersonRecord.status.in_(to_hide), False)))
+            
         if hide_foreigners:
             #  (11, 'buitenlands'), 
             qry = qry.filter(not_(sqlalchemy.func.ifnull(PersonRecord.status.in_([STATUS_FOREIGNER]), False)))
@@ -998,7 +999,9 @@ class DBRepository:
             
         if size:
             qry = qry.limit(size)
-        qry = qry.distinct() #XXX: why to we need this?
+            
+        qry = qry.distinct()
+
         return qry
     
 
