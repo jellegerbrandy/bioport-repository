@@ -49,11 +49,15 @@ class TestMergedBiography(CommonTestCase):
         self.assertEqual(doc.get_value('geboortedatum'), '2000-02-01', doc.to_string())
         self.assertEqual(doc.get_value('birth_date'), '2000-02-01')
 
+    def test_to_json(self):
+        self.create_filled_repository()
+        repo = self.repo
+        #get an existing biography
+        bios = repo.get_biographies()[1:4]
+        merged = MergedBiography(bios)
+        merged.to_dict()
+        
     def test_min_max_dates(self):
-        date_birth = '1900'
-        date_baptism = '1901'
-        date_death = '1902'
-        date_burial = '1903'
         bio1 = self._create_biography(naam='Lucky', birth_date='1900', death_date ='1970')
         m_bio = MergedBiography([bio1])
         
@@ -121,7 +125,6 @@ class TestBiographyMerger(CommonTestCase):
         
         m_bio = BiographyMerger.merge_biographies(m_bio, bio3)
         self.assertEqual(len(m_bio.get_states(type='category')), 2)
-        state = m_bio.get_state('birth')
         
         bio4 = self._create_biography(naam='Camier')
         bio4.set_category([2, 3])

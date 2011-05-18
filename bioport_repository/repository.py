@@ -257,7 +257,7 @@ class Repository(object):
             raise BioPortException('Error parsing data at %s -- check if this is valid XML\n%s' % (source.url, error))
         
         if not ls:
-            raise BioPortException('The list at %s does not contain any links to biographies' % source.url)
+            raise BioPortException('The file at %s does not contain any links to biographies' % source.url)
         
         #we have a valid list of biographies to download
         #first we remove all previously imported biographies at this source

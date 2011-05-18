@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 import copy
+import simplejson
 #from plone.memoize import instance
 from biodes import BioDesDoc
-#from bioport_repository.data_extraction import BioDataExtractor
+#from bioport_repositorydata_extraction import BioDataExtractor
 from bioport_repository.biography import Biography
 from bioport_repository.common import to_date
 from lxml.etree import SubElement
@@ -58,6 +59,47 @@ class MergedBiography:
                         el_author.text = s
         return doc
         
+    def to_dict(self):
+        bioport_id = self.get_biographies()[0].get_bioport_id()
+        d = dict(
+            naam_publisher='Het Biografisch Portaal',
+            url_biografie='http://www.biografischportaal.nl/persoon/%s' % bioport_id,
+            url_publisher='http://www.biografischportaal.nl',
+            namen=[n.volledige_naam() for n in self.get_names()],
+            bioport_id=bioport_id,
+            sex = self.get_value('sex'),
+            )
+        
+        #add the events
+        for event_type in ['birth', 'death', 'funeral', 'baptism', 'floruit']:
+            event = self.get_event(event_type)
+            if event is not None:
+                d.update({'event':self._event_to_dict(event)})
+                
+        d.update({'figures':[dict(url=ill.source_url, head=ill.caption) for ill in self.get_illustrations()]})
+        #add links to all sources
+        bios = []
+        for bio in self.get_biographies():
+            if bio.get_source().id != 'bioport':
+                #construct a bibl element
+                author = bio.get_value('author') or []
+                bios.append(dict(
+	                publisher= bio.get_value('name_publisher'),
+	                url_biography = bio.get_value('url_biography'),
+	                author = [s for s in author],
+                    ))
+                
+        d.update(dict(biographies = bios))
+        return d
+
+    def _event_to_dict(self, event):
+        """represent the main info of the event as a json dictionary"""
+        return dict(
+	            type = event.get('type'),
+	            when = event.get('when'),
+	            text = event.text,
+	            place = event.find('place') is not None and event.find('place').text,
+		        )
     def get_biographies(self):
         return self._biographies
     
@@ -83,7 +125,6 @@ class MergedBiography:
         """return a tuple (birth_date_min, birth_date_max, death_date_min, death_date_max
         
         using as much information as is possibly available"""
-        birth_date_min = birth_date_max = death_date_min = death_date_max = None
         
         def extract_min_max_from_event(type):
             """given an event, return a miminal and maximal date
@@ -131,8 +172,8 @@ class MergedBiography:
                     pass
                        
         if not birth_date_max:
-            if baptism_date_min:
-                birth_date_max = baptism_date_min
+            if baptism_date_max:
+                birth_date_max = baptism_date_max.replace(year=baptism_date_max.year - DELTA_BIRTH_BAPTISM_MIN)
             elif death_date_max:
                 try:
                     birth_date_max = death_date_max.replace(year = death_date_max.year-DELTA_BIRTH_DEATH_MIN)

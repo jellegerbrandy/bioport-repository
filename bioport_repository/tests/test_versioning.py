@@ -76,7 +76,7 @@ class VersioningTestCase(CommonTestCase):
         bioport_ids1 = [p.bioport_id for p in self.repo.get_persons()]
         bioport_ids2numberofbios1 = dict([(p.bioport_id, p.get_biographies()) for p in self.repo.get_persons()])
         for id1 in bioport_ids1:
-	        self.assertEqual(repo.redirects_to(id1), id1)
+            self.assertEqual(repo.redirects_to(id1), id1)
         p1, p2 = persons[0], persons[1]
         new_p = repo.identify(p1, p2)
         old_p = new_p == p1 and p2 or p1
@@ -87,7 +87,7 @@ class VersioningTestCase(CommonTestCase):
         #undo any changes in the biodes documents
         for bio in new_p.get_biographies():
             if repo.get_versions(document_id=bio.id, version=1):
-	            repo.undo_version(document_id=bio.id, version=0)
+                repo.undo_version(document_id=bio.id, version=0)
         len3 = len(self.repo.get_persons())
         bioport_ids3 = [p.bioport_id for p in self.repo.get_persons()]
         bioport_ids2numberofbios3 = dict([(p.bioport_id, p.get_biographies()) for p in self.repo.get_persons()])
@@ -99,7 +99,7 @@ class VersioningTestCase(CommonTestCase):
         self.assertEqual(set(bioport_ids1),set( bioport_ids3))
         #moreover, "redirection info" should be back to normal (no bioport_id redirects to another) 
         for id1 in bioport_ids3:
-	        self.assertEqual(repo.redirects_to(id1), id1)
+            self.assertEqual(repo.redirects_to(id1), id1)
         
         #now, having undone all changes, the number of biographies of our old people should be the same as the new ones
         self.assertEqual(bioport_ids2numberofbios1,bioport_ids2numberofbios3  )
@@ -112,5 +112,4 @@ def test_suite():
 
 if __name__=='__main__':
     unittest.main(defaultTest='test_suite')
-
 

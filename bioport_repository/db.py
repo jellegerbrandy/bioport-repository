@@ -11,7 +11,7 @@ from datetime import datetime
 from lxml import etree
 
 import sqlalchemy
-from sqlalchemy.exceptions import IntegrityError, InvalidRequestError
+from sqlalchemy.exceptions import IntegrityError
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
@@ -21,8 +21,7 @@ from names.similarity import soundexes_nl
 from names.common import TUSSENVOEGSELS, words
 from names.name import TYPE_PREPOSITION,  TYPE_FAMILYNAME,  TYPE_GIVENNAME , TYPE_INTRAPOSITON,  TYPE_POSTFIX,  TYPE_TERRITORIAL 
 
-from bioport_repository.db_definitions import PersonRecord, AntiIdentifyRecord,\
-    CacheSimilarityPersons
+from bioport_repository.db_definitions import PersonRecord, AntiIdentifyRecord
 from bioport_repository.db_definitions import DeferIdentificationRecord
 from bioport_repository.db_definitions import ChangeLog, Occupation
 from bioport_repository.db_definitions import Category, Base, Location, Comment
@@ -998,8 +997,10 @@ class DBRepository:
             qry = qry.filter(PersonRecord.has_contradictions==True)
             
         if size:
-            qry = qry.limit(size)
-            
+            if int(size) > -1:
+                qry = qry.limit(size)
+        if start:
+            qry = qry.offset(start) 
         qry = qry.distinct()
 
         return qry
