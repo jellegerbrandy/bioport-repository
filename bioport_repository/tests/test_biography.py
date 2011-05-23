@@ -132,6 +132,7 @@ about. """
   <biography>
     <text>
       <title>Inventaris van het archief van De Constant Rebecque</title>
+      <span></span>
     </text>
   </biography>
 </biodes>

@@ -1,4 +1,17 @@
 """
+
+CREATE TABLE `bioport`.`relpersonreligion` (
+  `id` integer  NOT NULL AUTO_INCREMENT,
+  `bioport_id` integer  NOT NULL,
+  `religion_id` integer  NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `nix_bioport_id`(`bioport_id`),
+  INDEX `ix_religion_id`(`religion_id`)
+)
+ENGINE = MyISAM;
+"""
+
+"""
 2009114:
 Excute the following querys:
 

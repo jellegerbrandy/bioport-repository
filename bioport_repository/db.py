@@ -28,7 +28,7 @@ from bioport_repository.db_definitions import Category, Base, Location, Comment
 from bioport_repository.db_definitions import PersonSource, PersonSoundex, AuthorRecord
 from bioport_repository.db_definitions import RelPersonCategory, PersonName
 #from bioport_repository.db_definitions import NaamRecord 
-#from bioport_repository.db_definitions import SoundexRecord
+from bioport_repository.db_definitions import SoundexRecord
 from bioport_repository.db_definitions import (CacheSimilarityPersons,
                                                BioPortIdRecord,
                                                RelBioPortIdBiographyRecord,

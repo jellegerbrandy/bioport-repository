@@ -84,13 +84,11 @@ class Biography(object, BioDesDoc): #, SVNEntry):
     
     def get_text_without_markup(self):
         """get the text of the biography, but remove any HTML codes"""
-#        import pdb;pdb.set_trace()
-#        text = self.get_value('tekst')
         text_node = self.xpath('biography/text')
         if text_node:
             assert len(text_node) == 1
             text_node = text_node[0]
-            text = '\n'.join([n.text for n in text_node.getiterator()])
+            text = '\n'.join([n.text for n in text_node.getiterator() if n.text])
                 
         
             for tagname in ('head', 'style', 'script'):
