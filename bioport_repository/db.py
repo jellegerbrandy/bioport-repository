@@ -28,7 +28,7 @@ from bioport_repository.db_definitions import Category, Base, Location, Comment
 from bioport_repository.db_definitions import PersonSource, PersonSoundex, AuthorRecord
 from bioport_repository.db_definitions import RelPersonCategory, PersonName
 #from bioport_repository.db_definitions import NaamRecord 
-from bioport_repository.db_definitions import SoundexRecord
+#from bioport_repository.db_definitions import SoundexRecord
 from bioport_repository.db_definitions import (CacheSimilarityPersons,
                                                BioPortIdRecord,
                                                RelBioPortIdBiographyRecord,
@@ -315,6 +315,9 @@ class DBRepository:
         self.update_person(biography.get_bioport_id(), default_status=default_status)
             
         msg  = 'saved biography with id %s' % (biography.id)
+        if comment:
+            msg += '; %s' % comment
+            
         self.log(msg=msg, record = r_biography)
 
         
@@ -801,6 +804,7 @@ class DBRepository:
         match_term=None, #use for myqsl 'matching' (With stopwords and stuff)
         order_by='sort_key', 
         place=None,
+        religion=None,
         search_term=None,  #
         search_name=None, #use for mysql REGEXP matching
         search_family_name=None, #use for mysql REGEXP matching
@@ -905,6 +909,9 @@ class DBRepository:
             qry = qry.join(RelPersonCategory)
             qry = qry.filter(RelPersonCategory.category_id==category)
 
+        if religion:
+            qry = qry.join(RelPersonReligion)
+            qry = qry.filter(RelPersonReligion.religion_id==religion)
 
         geboorte_date_filter = self._get_date_filter(locals(), 'geboorte')
         qry = qry.filter(geboorte_date_filter)
@@ -941,6 +948,7 @@ class DBRepository:
         
         if match_term:
             qry = qry.filter(PersonRecord.naam.match(match_term))
+            
             
         if search_term:
             #full-text search

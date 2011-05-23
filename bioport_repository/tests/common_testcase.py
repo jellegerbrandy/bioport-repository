@@ -60,7 +60,8 @@ class CommonTestCase(unittest.TestCase):
         
         # remove also all data from the database
         self.repo.db.metadata.drop_all()
-        shutil.rmtree(IMAGES_CACHE_LOCAL)
+        if os.path.exists(IMAGES_CACHE_LOCAL):
+	        shutil.rmtree(IMAGES_CACHE_LOCAL)
         #self.repo.db.namenindex.db.metadata.drop_all()
         return
    

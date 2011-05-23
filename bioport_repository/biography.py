@@ -26,14 +26,14 @@ def create_biography_id(source_id, local_id):
 class Biography(object, BioDesDoc): #, SVNEntry):
 
     def __init__(self, 
-		id=None, 
-		source_id=None, 
-		biodes_document=None, 
-		source_url=None,
-		repository=None,
-		record=None,
+        id=None, 
+        source_id=None, 
+        biodes_document=None, 
+        source_url=None,
+        repository=None,
+        record=None,
         version=None,
-		): 
+        ): 
         """
         arguments:
             id - a 'local id': should be unique with the biographies in the 
@@ -84,16 +84,25 @@ class Biography(object, BioDesDoc): #, SVNEntry):
     
     def get_text_without_markup(self):
         """get the text of the biography, but remove any HTML codes"""
-        text = self.get_value('tekst')
-        if text:
+#        import pdb;pdb.set_trace()
+#        text = self.get_value('tekst')
+        text_node = self.xpath('biography/text')
+        if text_node:
+            assert len(text_node) == 1
+            text_node = text_node[0]
+            text = '\n'.join([n.text for n in text_node.getiterator()])
+                
+        
             for tagname in ('head', 'style', 'script'):
                 start, end = "<%s>" % tagname, "</%s>" % tagname
                 expr = "%(start)s.*?%(end)s" % locals()
                 text = re.compile(expr, re.IGNORECASE|re.DOTALL).sub( '', text)
-            text = re.compile('<.*?>',re.DOTALL).sub( '', text)
+            text = re.compile('<.*?>',re.DOTALL).sub( '', text) #need to compile for DOTALL to work
             text = html2unicode(text)
             text = text.strip()
-        return text
+            return text
+        else:
+            return ''
 
     def get_text_with_highlight(self):
         """

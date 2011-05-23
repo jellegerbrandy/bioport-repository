@@ -140,6 +140,7 @@ class PersonRecord(Base):
     sex = Column(Integer, index=True)
     bioport_id_record = relation(BioPortIdRecord)
     
+    
 #    sqlalchemy.schema.ForeignKeyConstraint(['bioport_id'], ['bioportid.bioport_id'])
     search_source = Column(UnicodeText)
     snippet = Column(UnicodeText)
@@ -308,7 +309,6 @@ class ChangeLog(Base):
     user = Column(MSString(50))
     timestamp = Column(TIMESTAMP)
 
-
 class DBNLIds(Base):
     """this is a temporary class used for identifying vdaa and nnbw entries"""
     __tablename__ = 'dbnl_ids' 
@@ -325,13 +325,17 @@ class RelPersonCategory(Base):
     bioport_id = Column(Integer, ForeignKey('person.bioport_id'), index=True)
     category_id = Column(Integer, ForeignKey('category.id'), index=True)   
     persons = relation(PersonRecord, backref='categories')
-    
-    
+     
+class RelPersonReligion(Base):
+    __tablename__ = 'relpersonreligion'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    bioport_id = Column(Integer, ForeignKey('person.bioport_id'), index=True)
+    religion_id = Column(Integer) #, ForeignKey('category.id'), index=True)   
+    persons = relation(PersonRecord, backref='religions')
     
 class Comment(Base):
     """This table holds comments submitted by portal users
     """
-    
     __tablename__ = 'comment'
     id = Column(Integer, primary_key=True, autoincrement=True)
     bioport_id = Column(

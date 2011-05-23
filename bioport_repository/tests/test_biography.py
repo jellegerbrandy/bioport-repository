@@ -91,6 +91,7 @@ class BiographyTestCase(CommonTestCase):
         repo = self.repo
         bio = repo.get_biography(local_id='knaw/005')
         snippet = bio.snippet()
+        #USELESS_TEXT is in between <style> tags and therefore should be ignored by the snippet
         self.assertFalse('USELESS_TEXT' in snippet)
     
     def test_get_set_snippet(self):
@@ -113,6 +114,51 @@ about. """
         
         
     def test_snippet(self):
+        s = """<?xml version="1.0" encoding="UTF-8"?>
+<!--2011-05-18 11:26:12-->
+<biodes version="1.0">
+  <fileDesc>
+    <author>Nationaal Archief</author>
+    <ref target="http://proxy.handle.net/10648/cd48fc47-2b91-42f6-bb63-c2de770135b1"/>
+    <date when="1920"/>
+    <publisher>
+      <name>Nationaal Archief</name>
+      <ref target="http://www.gahetna.nl/collectie/archief"/>
+    </publisher>
+  </fileDesc>
+  <person>
+    <persName>Jan Daniël Cornelis Carel Willem de Constant Rebecque</persName>
+  </person>
+  <biography>
+    <text>
+      <title>Inventaris van het archief van De Constant Rebecque</title>
+    </text>
+  </biography>
+</biodes>
+	    """
+        bio = Biography().from_string(s)
+        self.assertEqual(bio.snippet(1000), 'Inventaris van het archief van De Constant Rebecque')
+        
+        s = """<biodes version="1.0">
+  <fileDesc>
+    <author>Nationaal Archief</author>
+    <ref target="http://proxy.handle.net/10648/cd48fc47-2b91-42f6-bb63-c2de770135b1"/>
+    <date when="1920"/>
+    <publisher>
+      <name>Nationaal Archief</name>
+      <ref target="http://www.gahetna.nl/collectie/archief"/>
+    </publisher>
+  </fileDesc>
+  <person>
+    <persName>Jan Daniël Cornelis Carel Willem de Constant Rebecque</persName>
+  </person>
+  <biography>
+  </biography>
+</biodes>
+        """
+        bio = Biography().from_string(s)
+        self.assertEqual(bio.snippet(), '')
+        
         source = Source(id='bioport_test')
         self.repo.save_source(source)        
         #make a new biography
@@ -148,6 +194,7 @@ any more""",
         bio.set_value('text', 'ca. 1800-1900')
         self.assertEqual(bio.snippet(), 'ca. 1800-1900')
 
+        
     def test_get_illustrations(self):      
         bio = self.repo.get_biography(local_id='knaw/001')
         self.assertEqual(len(bio.get_illustrations()), 4)
