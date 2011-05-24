@@ -141,11 +141,15 @@ class RepositoryTestCase(CommonTestCase):
         self.assertEqual(person.get_merged_biography().get_value('geboortedatum'), '1999-01-01')
         
         bio.set_value('geboortedatum', '1999-01-02')
-        
         self.assertEqual(bio.get_value('geboortedatum'), '1999-01-02')
         self._save_biography(bio)
         self.assertEqual(self.repo.get_person(person.bioport_id).get_merged_biography().get_value('geboortedatum'), '1999-01-02')
-    
+        
+        bio.set_religion('3')
+        self.assertEqual(bio.get_religion().get('idno'), '3')
+        self._save_biography(bio)
+        self.assertEqual(self.repo.get_person(person.bioport_id).get_merged_biography().get_religion().get('idno'), '3')
+     
     def test_save_biography(self):
         source = Source(id='bioport_test')
         self.repo.add_source(source)
@@ -624,7 +628,7 @@ class RepositoryTestCase(CommonTestCase):
  
 def test_suite():
     return unittest.TestSuite((
-        unittest.makeSuite(RepositoryTestCase, 'test'),
+        unittest.makeSuite(RepositoryTestCase, 'test_'),
         ))
 
 if __name__=='__main__':

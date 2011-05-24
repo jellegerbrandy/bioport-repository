@@ -22,22 +22,22 @@ class VersioningTestCase(CommonTestCase):
         repo = self.repo
         bio = repo.get_biographies()[0]
         bio.set_category([3])
-        self._save_biography(bio, 'test_comment')
+        self._save_biography(bio, u'test_comment')
         self.assertEqual(len(repo.get_versions(document_id=bio.id)), 2)
         
         #test searching versions by user
         user = self.repo.user = 'test123'
-        self._save_biography(bio, 'test_comment')
+        self._save_biography(bio, u'test_comment')
         self.assertEqual(len(repo.get_versions(user=user)), 1)
        
         #test searching users by time
         time.sleep(1)
         time0 = datetime.datetime.today().isoformat()
-        self._save_biography(bio, 'test_comment')
+        self._save_biography(bio, u'test_comment')
         time.sleep(1)
         time1 = datetime.datetime.today().isoformat()
         time.sleep(1)
-        self._save_biography(bio, 'test_comment')
+        self._save_biography(bio, u'test_comment')
         self.assertEqual(len(repo.get_versions(time_from=time1)), 1)
         self.assertEqual(len(repo.get_versions(time_from=time0, time_to=time1)), 1)
         self.assertEqual(len(repo.get_versions(time_to=time0)), len(repo.get_versions()) - 1)
@@ -49,10 +49,10 @@ class VersioningTestCase(CommonTestCase):
         date1 = '1111-01-01'
         date2 = '2222-01-01'
         bio.set_value(birth_date=date1)
-        self._save_biography(bio, 'test_comment')
+        self._save_biography(bio, u'test_comment')
         
         bio.set_value(birth_date=date2)
-        self._save_biography(bio, 'test_comment')
+        self._save_biography(bio, u'test_comment')
         
         versions = repo.get_versions(document_id=bio.id)
         #sanity check

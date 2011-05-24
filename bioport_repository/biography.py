@@ -321,7 +321,11 @@ class Biography(object, BioDesDoc): #, SVNEntry):
         els = self.get_states(type='religion')
         #we expect only one 'religion' state
         assert len(els) < 2
-        self.add_or_update_state(type='religion', idno=str(idno))
+        if els and not idno:
+            #remove the state
+            self.remove_state(0, 'religion') 
+        else:
+            self.add_or_update_state(type='religion', idno=str(idno))
       
     def get_religion(self): 
         els = self.get_states(type='religion')

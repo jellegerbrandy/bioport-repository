@@ -84,9 +84,9 @@ class MergedBiography:
                 #construct a bibl element
                 author = bio.get_value('author') or []
                 bios.append(dict(
-	                publisher= bio.get_value('name_publisher'),
-	                url_biography = bio.get_value('url_biography'),
-	                author = [s for s in author],
+                    publisher= bio.get_value('name_publisher'),
+                    url_biography = bio.get_value('url_biography'),
+                    author = [s for s in author],
                     ))
                 
         d.update(dict(biographies = bios))
@@ -95,11 +95,11 @@ class MergedBiography:
     def _event_to_dict(self, event):
         """represent the main info of the event as a json dictionary"""
         return dict(
-	            type = event.get('type'),
-	            when = event.get('when'),
-	            text = event.text,
-	            place = event.find('place') is not None and event.find('place').text,
-		        )
+                type = event.get('type'),
+                when = event.get('when'),
+                text = event.text,
+                place = event.find('place') is not None and event.find('place').text,
+                )
     def get_biographies(self):
         return self._biographies
     
@@ -228,27 +228,6 @@ class MergedBiography:
                'beroep',
                ]
         
-#        if k in ['geboortedatum',
-#                 'sterfdatum',
-#                 ]:
-#            #get the longest 'consistent' value
-#            #i.e. if we have
-#            #    bio1:  2000
-#            #    bio2:  2000-02
-#            #reutrn 2000-02
-#            #but  if we have
-#            #    bio1 : 2000
-#            #    bio2 : 2001-02
-#            #then we return 2000
-#            
-#            result = ''
-#            for bio in self.get_biographies():
-#                val = bio.get_value(k)
-#                if val and val.startswith(result):
-#                    result = val
-#            if result: #dont return result if no value was found, to retain behavior consistent with biography.get_value 
-#                return result        
-#        elif k in cumulative_keys:
         if k in cumulative_keys:
             result = []
             for bio in self.get_biographies():
@@ -265,6 +244,11 @@ class MergedBiography:
                 
         return default
     
+    def get_religion(self):
+        for bio in self.get_biographies():
+            if bio.get_religion() is not None:
+                return bio.get_religion()
+            
 #    @instance.memoize   
 #    remove memoize declaration, because the cache of this instance does not get cleared when we save new data
     def title(self):

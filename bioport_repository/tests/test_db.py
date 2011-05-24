@@ -1,6 +1,7 @@
 from bioport_repository.tests.common_testcase import CommonTestCase, unittest 
 from bioport_repository.db import Source, BiographyRecord,  PersonRecord, SoundexRecord, SourceRecord, Biography, RelBioPortIdBiographyRecord
-from bioport_repository.db_definitions import RelPersonCategory, PersonSoundex
+from bioport_repository.db_definitions import RelPersonCategory, PersonSoundex,\
+    RELIGION_VALUES
 
 
 class DBRepositoryTestCase(CommonTestCase):
@@ -112,6 +113,28 @@ class DBRepositoryTestCase(CommonTestCase):
         new_p = repo.get_person(p.get_bioport_id())
         self.assertEqual(len(new_p.get_merged_biography().get_states(type='category')), len(categories))
         self.assertTrue(p in repo.get_persons(category=categories[0]))
+
+    def test_religion(self):        
+        repo = self.repo
+        #get some person from the database
+        
+        bio1 = repo.get_persons()[1].get_bioport_biography()
+        bio2 = repo.get_persons()[2].get_bioport_biography()
+        #set some properties here and there
+        rel_id = unicode(RELIGION_VALUES[2][0])
+        
+        bio1.set_religion(rel_id)
+        self._save_biography(bio1)
+        self.assertEqual(bio1.get_religion().get('idno'), rel_id)
+        self.assertEqual(len(repo.get_persons(religion=rel_id)), 1)
+        bio2.set_religion(rel_id)
+        self._save_biography(bio2)
+        self.assertEqual(len(repo.get_persons(religion=rel_id)), 2)
+        bio2.set_religion(None)
+        self._save_biography(bio2)
+        self.assertEqual(bio2.get_religion(), None)
+        self.assertEqual(len(repo.get_persons(religion=rel_id)), 1)
+        
         
     def test_get_persons(self):
         repo = self.repo
@@ -129,7 +152,7 @@ class DBRepositoryTestCase(CommonTestCase):
         self.assertEqual(len(repo.get_persons(is_identified=True)), 1)
         self.assertEqual(len(repo.get_persons(category=1)), 1)
         
-        self.assertEqual(len(repo.get_persons(search_name='jan')), 1)
+        self.assertEqual(len(repo.get_persons(search_name='jan')), 2)
         self.assertEqual(len(repo.get_persons(search_term='molloy')), 1)
         self.assertEqual(len(repo.get_persons(has_illustrations=True)), 2)
         self.assertEqual(len(repo.get_persons(has_illustrations=False)), 7)
@@ -315,7 +338,7 @@ class DBRepositoryTestCase(CommonTestCase):
         
 def test_suite():
     return unittest.TestSuite((
-        unittest.makeSuite(DBRepositoryTestCase, 'test_complex_levend_date_get_persons_full'),
+        unittest.makeSuite(DBRepositoryTestCase, 'test_'),
         ))
 
 if __name__=='__main__':

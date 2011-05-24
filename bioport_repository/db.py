@@ -34,6 +34,7 @@ from bioport_repository.db_definitions import (CacheSimilarityPersons,
                                                RelBioPortIdBiographyRecord,
                                                BiographyRecord,
                                                SourceRecord,
+                                               RelPersonReligion,
                                                STATUS_NEW, STATUS_FOREIGNER, STATUS_MESSY, STATUS_REFERENCE, STATUS_NOBIOS,
                                                STATUS_ALIVE,
                                                )
@@ -350,10 +351,10 @@ class DBRepository:
             self.log(msg, r)
 
     def update_person(self,
-          bioport_id, 
-          default_status=STATUS_NEW,
-          compute_similarities=False,
-          ):
+        bioport_id, 
+        default_status=STATUS_NEW,
+        compute_similarities=False,
+        ):
         """add or update a person table with the information contained in its biographies
         
         - bioport_id:  the id that identifies the person
@@ -369,7 +370,7 @@ class DBRepository:
                 r_person = PersonRecord(bioport_id=bioport_id) 
                 session.add(r_person)
                 r_person.status = default_status
-                
+               
         person = Person(bioport_id=bioport_id, record=r_person, repository=self)
         with self.get_session_context() as session:
             merged_biography = person.get_merged_biography()
@@ -410,10 +411,8 @@ class DBRepository:
             r_person.has_contradictions = bool(person.get_biography_contradictions())
             illustrations =  merged_biography.get_illustrations()
             r_person.thumbnail = illustrations and illustrations[0].image_small_url or u''
-            
+           
             #update categories
-#            r_person.categories = [RelPersonCategory(category_id=id) for state in merged_biography.get_states(type='categories')]
-
             session.query(RelPersonCategory).filter(RelPersonCategory.bioport_id==bioport_id).delete()
             
             for category in merged_biography.get_states(type='category'):
@@ -426,6 +425,23 @@ class DBRepository:
                     raise Exception(msg)
                 r = RelPersonCategory(bioport_id=bioport_id, category_id=category_id)
                 session.add(r)
+                session.flush()
+            
+            
+            #update the religion table
+            religion= merged_biography.get_religion()
+            religion_qry = session.query(RelPersonReligion).filter(RelPersonReligion.bioport_id==bioport_id)
+            if religion is not None:
+                religion_id =  religion.get('idno')
+                try:    
+                    r = religion_qry.one()
+                    r.religion_id = religion_id
+                except  NoResultFound:
+                    r = RelPersonReligion(bioport_id=bioport_id, religion_id=religion_id)
+                    session.add(r)
+                    session.flush()
+            else:
+                religion_qry.delete()
                 session.flush()
                 
             
@@ -452,7 +468,7 @@ class DBRepository:
         #update the different caches to reflect any changes
         if compute_similarities:
             self.fill_similarity_cache(person=person, refresh=True)
-         
+        
     def update_persons(self):
         """Update the information of all the persons in the database.
         Return the number of processed persons.

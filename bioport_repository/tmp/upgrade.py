@@ -8,7 +8,6 @@ CREATE TABLE `bioport`.`relpersonreligion` (
   INDEX `nix_bioport_id`(`bioport_id`),
   INDEX `ix_religion_id`(`religion_id`)
 )
-ENGINE = MyISAM;
 """
 
 """

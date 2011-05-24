@@ -3,8 +3,8 @@
 import cProfile
 import pstats
 import tempfile
-import sys
-import os
+#import sys
+#import os
 
 from common import CommonTestCase, unittest, SQLDUMP_FILENAME
 
@@ -12,7 +12,7 @@ from names.name import Naam
 
 from bioport_repository.repository import Repository
 from bioport_repository.similarity.similarity import Similarity
-from bioport_repository.person import Person
+#from bioport_repository.person import Person
 from bioport_repository.biography import Biography
 from bioport_repository.source import Source
 
