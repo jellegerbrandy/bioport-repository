@@ -469,11 +469,11 @@ class DBRepository:
         if compute_similarities:
             self.fill_similarity_cache(person=person, refresh=True)
         
-    def update_persons(self):
+    def update_persons(self, start=None, size=None):
         """Update the information of all the persons in the database.
         Return the number of processed persons.
         """
-        persons = self.get_persons()
+        persons = self.get_persons(start=start, size=size)
         total = len(persons)
         for index, person in enumerate(persons):
             index += 1
@@ -779,8 +779,8 @@ class DBRepository:
         qry = session.query(PersonRecord)
         return qry.count()
     
-    def get_persons(self, **args):
         # XXX - There seems to be a memory leak when calling session.execute()
+    def get_persons(self, **args):
         # this is the same problem described here:
         # http://www.mail-archive.com/sqlalchemy@googlegroups.com/msg13511.html
         # We should investigate further.

@@ -97,6 +97,12 @@ class Repository(object):
         qry = self.db._get_persons_query(**args)
         return PersonList(qry, self)
 
+    def get_persons_iterator(self, **args):
+        qry = self.db._get_persons_query(**args)
+        for r in qry:
+            yield Person(bioport_id=r.bioport_id,
+                      repository=self, record=r)
+            
     def delete_person(self, person):
         if self.ENABLE_DB:
             return self.db.delete_person(person)

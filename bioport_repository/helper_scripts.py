@@ -2,6 +2,24 @@ from bioport_repository.repository import Repository
 from bioport_repository.db_definitions import  CacheSimilarityPersons, STATUS_DONE, STATUS_NEW, CATEGORY_LETTERKUNDE, STATUS_NADER_ONDERZOEK, STATUS_DIFFICULT
 LIMIT = 0
 
+"""a set of helper scripts to run in bin/bioport-debug"""
+
+"""update all persons
+
+dsn = 'mysql://localhost/bioport'
+from bioport_repository import  helper_scripts
+helper_scripts.update_persons(dsn)
+
+"""
+def update_persons(dsn, start=None, size=None):
+    #show everything
+    import logging
+#    reload(logging)
+#    logging.basicConfig(level=logging.INFO)
+    logging.info('start updating')
+    repository = Repository(db_connection=dsn)
+    repository.db.update_persons(start=start, size=size)
+    
 """Set all status of X to Y
 dsn = 'mysql://localhost/bioport'
 from bioport_repository import  helper_scripts
