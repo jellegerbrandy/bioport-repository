@@ -1,8 +1,40 @@
 from bioport_repository.repository import Repository
-from bioport_repository.db_definitions import  CacheSimilarityPersons, STATUS_DONE, STATUS_NEW, CATEGORY_LETTERKUNDE, STATUS_NADER_ONDERZOEK, STATUS_DIFFICULT
+from bioport_repository.db_definitions import  CacheSimilarityPersons, STATUS_DONE, STATUS_NEW, CATEGORY_LETTERKUNDE, STATUS_NADER_ONDERZOEK, STATUS_DIFFICULT, RelPersonReligion
+from sqlalchemy.orm.exc import NoResultFound
 LIMIT = 0
-
 """a set of helper scripts to run in bin/bioport-debug"""
+"""
+
+dsn = 'mysql://localhost/bioport'
+from bioport_repository import  helper_scripts
+helper_scripts.update_religion(dsn)
+"""
+def update_religion(dsn):
+    repository = Repository(db_connection=dsn)
+    session = repository.db.get_session()
+    total = repository.count_persons()
+    i = 0
+    for p in repository.get_persons():
+        i += 1
+        print '[%s/%s] updating religion' % (i, total)
+        #update the religion table
+        merged_biography = p.get_merged_biography()
+        bioport_id = p.get_bioport_id()
+        religion= merged_biography.get_religion()
+        religion_qry = session.query(RelPersonReligion).filter(RelPersonReligion.bioport_id==bioport_id)
+        if religion is not None:
+            religion_id =  religion.get('idno')
+            try:    
+                r = religion_qry.one()
+                r.religion_id = religion_id
+            except  NoResultFound:
+                r = RelPersonReligion(bioport_id=bioport_id, religion_id=religion_id)
+                session.add(r)
+                session.flush()
+        else:
+            religion_qry.delete()
+            session.flush()        
+
 
 """update all persons
 
@@ -14,8 +46,8 @@ helper_scripts.update_persons(dsn)
 def update_persons(dsn, start=None, size=None):
     #show everything
     import logging
-#    reload(logging)
-#    logging.basicConfig(level=logging.INFO)
+    reload(logging)
+    logging.basicConfig(level=logging.INFO)
     logging.info('start updating')
     repository = Repository(db_connection=dsn)
     repository.db.update_persons(start=start, size=size)
