@@ -2,7 +2,11 @@ import os
 
 from bioport_repository.tests.common_testcase import CommonTestCase, unittest , THIS_DIR
 from bioport_repository.repository import  Source, Biography 
-from bioport_repository.db_definitions import CacheSimilarityPersons, AntiIdentifyRecord, STATUS_NEW
+from bioport_repository.db_definitions import (
+   CacheSimilarityPersons, AntiIdentifyRecord, STATUS_NEW,
+   STATUS_ONLY_VISIBLE_IF_CONNECTED,
+   )
+                                               
 from bioport_repository.person import Person
 
 
@@ -537,8 +541,7 @@ class RepositoryTestCase(CommonTestCase):
                
     def test_identify(self):
         
-        repo = self.create_filled_repository()
-        
+        repo = self.repo
         #get two persons
         persons = repo.get_persons()
         self.assertEqual(len(persons), 10)
@@ -549,9 +552,7 @@ class RepositoryTestCase(CommonTestCase):
         id1 = person1.get_bioport_id() 
         id2 = person2.get_bioport_id()  
        
-     
         assert id1 != id2
-       
         #identify the two people
         person = repo.identify(person1, person2)
         
@@ -585,7 +586,23 @@ class RepositoryTestCase(CommonTestCase):
         self.assertNotEqual(person2, None)
 
         assert len(person2.get_biographies()) == 2, person2.get_biographies()
+
+    def test_identify_status_only_if_connected(self):        
         
+        persons = self.repo.get_persons()
+        self.assertEqual(len(persons), 10)
+        person1 = persons[1]
+        person2 = persons[2]
+        id1 = person1.get_bioport_id() 
+        id2 = person2.get_bioport_id()  
+        assert id1 != id2
+        person1.status = STATUS_ONLY_VISIBLE_IF_CONNECTED
+        self.repo.save_person(person1)
+        #identify the two people
+        person = self.repo.identify(person1, person2)
+        self.assertEqual(person.status,person2.status)
+        self.assertEqual(self.repo.get_person(person.get_bioport_id()).status, person2.status)
+    
     def test_identify_categories(self):
         """see what happens with categories if we identify two persons"""
         #get two persons

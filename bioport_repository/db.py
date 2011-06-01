@@ -29,15 +29,18 @@ from bioport_repository.db_definitions import PersonSource, PersonSoundex, Autho
 from bioport_repository.db_definitions import RelPersonCategory, PersonName
 #from bioport_repository.db_definitions import NaamRecord 
 from bioport_repository.db_definitions import SoundexRecord
-from bioport_repository.db_definitions import (CacheSimilarityPersons,
-                                               BioPortIdRecord,
-                                               RelBioPortIdBiographyRecord,
-                                               BiographyRecord,
-                                               SourceRecord,
-                                               RelPersonReligion,
-                                               STATUS_NEW, STATUS_FOREIGNER, STATUS_MESSY, STATUS_REFERENCE, STATUS_NOBIOS,
-                                               STATUS_ALIVE,
-                                               )
+from bioport_repository.db_definitions import (
+   CacheSimilarityPersons,
+   BioPortIdRecord,
+   RelBioPortIdBiographyRecord,
+   BiographyRecord,
+   SourceRecord,
+   RelPersonReligion,
+   STATUS_NEW, STATUS_FOREIGNER, 
+   STATUS_MESSY, STATUS_REFERENCE, STATUS_NOBIOS,
+   STATUS_ONLY_VISIBLE_IF_CONNECTED,
+   STATUS_ALIVE,
+   )
 
 
 
@@ -887,7 +890,14 @@ class DBRepository:
             #    (STATUS_REFERENCE, 'verwijslemma'), 
             #    (STATUS_NOBIOS, 'no external biographies')
             #    (STATUS_ALIVE, 'leeft nog')
-            to_hide = [STATUS_FOREIGNER, STATUS_MESSY, STATUS_REFERENCE, STATUS_NOBIOS, STATUS_ALIVE]
+            to_hide = [
+               STATUS_FOREIGNER, 
+               STATUS_MESSY, 
+               STATUS_REFERENCE, 
+               STATUS_NOBIOS, 
+               STATUS_ALIVE,
+               STATUS_ONLY_VISIBLE_IF_CONNECTED,
+               ]
             qry = qry.filter(not_(sqlalchemy.func.ifnull(PersonRecord.status.in_(to_hide), False)))
             
         if hide_foreigners:
@@ -1488,7 +1498,7 @@ class DBRepository:
             a Person instance - representing the identified person
         """
         #we need to merge the two persons, and choose one as the one to "point to"
-        #we take the one that uses a biography with the highest trusworthiness
+        #we take the one that uses a biography with the highest trustworthiness
         trust1 = max([bio.get_source().quality for bio in person1.get_biographies() if bio.get_source().id != 'bioport']  + [0])
         trust2 = max([bio.get_source().quality for bio in person2.get_biographies() if bio.get_source().id != 'bioport']  + [0])
        
@@ -1499,12 +1509,13 @@ class DBRepository:
             new_person = person1
             old_person = person2
 
-        new_id = new_person.bioport_id
-        old_id = old_person.bioport_id
-        
         if new_person.bioport_id == old_person.bioport_id:
             #these two persons are already identified
             return new_person
+ 
+        if new_person.status == STATUS_ONLY_VISIBLE_IF_CONNECTED:
+            new_person.status = old_person.status           
+            self.save_person(new_person)
             
         #create a new 'merged biography' to add to the new person
         bio1 = self.repository.get_bioport_biography(new_person, create_if_not_exists=False)
@@ -1514,8 +1525,7 @@ class DBRepository:
         else:
             merged_bio = None
             
-        #now attach all biographies to the new bioportid
-#        for bio in new_person.get_biographies() + old_person.get_biographies(): 
+        #now attach the biographies of old_person to new_person
         for bio in old_person.get_biographies(): 
             new_person.add_biography(bio,
                 comment='Identified %s and %s: added biography %s to %s' % (person1.name(), person2.name(), bio, new_person),
@@ -1525,13 +1535,7 @@ class DBRepository:
             new_person.add_biography(merged_bio, 
                 comment='Identified %s and %s: added merged biography to %s' % (person1.name(), person2.name(), new_person)
                 )
-       
                  
-        #mege the bioport biographies in the new person
-        #XXX Uncomment when merge_bioport_biographies is well tested
-#        new_person.merge_bioport_biographies()
-        #if we have different bioport biographies, we need to choose one
-        
         #changhe de bioportid table
         self.redirect_identifier(old_person.get_bioport_id(), new_person.get_bioport_id())
         
