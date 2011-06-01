@@ -1292,7 +1292,7 @@ class DBRepository:
         if person:
             persons = [person]
         else:
-            persons = self.get_persons(source_id=source_id, start=start)
+            persons = self.get_persons(source_id=source_id, start=start, hide_invisible=False)
             
         i = 0        
         with self.get_session_context() as session:
