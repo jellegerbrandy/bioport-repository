@@ -433,12 +433,13 @@ class DBRepository:
             religion_qry = session.query(RelPersonReligion).filter(RelPersonReligion.bioport_id==bioport_id)
             if religion is not None:
                 religion_id =  religion.get('idno')
-                try:    
-                    r = religion_qry.one()
-                    r.religion_id = religion_id
-                except  NoResultFound:
-                    r = RelPersonReligion(bioport_id=bioport_id, religion_id=religion_id)
-                    session.add(r)
+                if religion_id:
+                    try:    
+                        r = religion_qry.one()
+                        r.religion_id = religion_id
+                    except  NoResultFound:
+                        r = RelPersonReligion(bioport_id=bioport_id, religion_id=religion_id)
+                        session.add(r)
                     session.flush()
             else:
                 religion_qry.delete()
@@ -878,15 +879,10 @@ class DBRepository:
             #XXX: this is not a good definition
             PBioPortIdRecord = aliased(BioPortIdRecord)
             qry = qry.join((PBioPortIdRecord, PersonRecord.bioport_id == PBioPortIdRecord.redirect_to))
-#            qry = qry.join(BioPortIdRecord).join(RelBioPortIdBiographyRecord)
-#            qry = qry.filter(RelBioPortIdBiographyRecord.biography_id.count() > 1)
             
-#        if hide_no_external_biographies:
-#            qry = qry.filter(not_(sqlalchemy.func.ifnull(PersonRecord.status.in_([9999]), False)))
         if hide_invisible:
             #we always hide the follwing categoires
-            
-            #(STATUS_FOREIGNER, 'buitenlands'), 
+            #    (STATUS_FOREIGNER, 'buitenlands'), 
             #    (STATUS_MESSY, 'moeilijk geval (troep)'),
             #    (STATUS_REFERENCE, 'verwijslemma'), 
             #    (STATUS_NOBIOS, 'no external biographies')
@@ -895,20 +891,8 @@ class DBRepository:
             qry = qry.filter(not_(sqlalchemy.func.ifnull(PersonRecord.status.in_(to_hide), False)))
             
         if hide_foreigners:
-            #  (11, 'buitenlands'), 
             qry = qry.filter(not_(sqlalchemy.func.ifnull(PersonRecord.status.in_([STATUS_FOREIGNER]), False)))
-#            (1, 'nieuw'),
-#            (2, 'bewerkt'),
-#            (3, 'moeilijk geval'),
-#            (5, 'moeilijk geval (troep)'),
-#            (4, 'klaar'), 
-#            (7, 'te weinig informatie'), 
-#            (8, 'familielemma'), 
-#            (9, 'verwijslemma'), 
-#            (10, 'nader onderzoek nodig'), 
-#            (11, 'buitenlands'), 
-#            (12, 'nog niet bewerkt'),
-#
+
         if beginletter:
             qry = qry.filter(PersonRecord.naam.startswith(beginletter))
         
@@ -965,7 +949,6 @@ class DBRepository:
         if match_term:
             qry = qry.filter(PersonRecord.naam.match(match_term))
             
-            
         if search_term:
             #full-text search
             ### next code is for MATCH ###
@@ -978,8 +961,6 @@ class DBRepository:
                               '("%s" in boolean mode)' % words_query)
             
         qry = self._filter_search_name(qry, search_name, search_family_name_only=search_family_name_only)
-        
-#        qry = self._filter_soundex(qry, search_soundex, search_family_name_only=search_family_name_only)
         
         if any_soundex:
             qry = qry.join(PersonSoundex)
@@ -1000,11 +981,7 @@ class DBRepository:
             if status in ['0']:
                 status = None
             qry = qry.filter(PersonRecord.status == status)
-
-#        if sterfjaar_min:
-#            qry = qry.filter(PersonRecord.sterfjaar >= sterfjaar_min)
-#        if sterfjaar_max:
-#            qry = qry.filter(PersonRecord.sterfjaar <= sterfjaar_max)
+            
         if where_clause:
             qry = qry.filter(where_clause)
 

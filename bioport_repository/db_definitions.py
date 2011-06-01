@@ -354,10 +354,11 @@ STATUS_DIFFICULT = 3
 STATUS_DONE = 4
 STATUS_MESSY = 5
 STATUS_REFERENCE = 9
+STATUS_NADER_ONDERZOEK = 10
 STATUS_FOREIGNER = 11
 STATUS_ALIVE = 14
 STATUS_NOBIOS = 9999
-STATUS_NADER_ONDERZOEK = 10
+STATUS_ONLY_VISIBLE_IF_CONNECTED = 15
 STATUS_VALUES =  [
     (0, '(geen status toegekend)'),
     (STATUS_NEW, 'nieuw'), #
@@ -374,6 +375,7 @@ STATUS_VALUES =  [
     (13, 'portrait'), 
     (STATUS_NOBIOS, 'no external biographies'),
     (STATUS_ALIVE, 'leeft nog'),
+    (STATUS_ONLY_VISIBLE_IF_CONNECTED, 'alleen gekoppeld zichtbaar'),
 ]
 
 
