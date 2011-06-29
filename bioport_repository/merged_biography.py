@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import copy
-import simplejson
+#import simplejson
 #from plone.memoize import instance
 from biodes import BioDesDoc
 #from bioport_repositorydata_extraction import BioDataExtractor
@@ -71,11 +71,18 @@ class MergedBiography:
             )
         
         #add the events
+        d['event'] = []
         for event_type in ['birth', 'death', 'funeral', 'baptism', 'floruit']:
             event = self.get_event(event_type)
             if event is not None:
-                d.update({'event':self._event_to_dict(event)})
-                
+                d['event'] += [self._event_to_dict(event)]
+        
+        #the category this person is in
+        states = []
+        for state in self.get_states(type='category'): 
+            states.append(state.get('idno'))
+        d['categories'] = states
+            
         d.update({'figures':[dict(url=ill.source_url, head=ill.caption) for ill in self.get_illustrations()]})
         #add links to all sources
         bios = []
@@ -87,6 +94,7 @@ class MergedBiography:
                     publisher= bio.get_value('name_publisher'),
                     url_biography = bio.get_value('url_biography'),
                     author = [s for s in author],
+                    source_id = bio.get_source().id,
                     ))
                 
         d.update(dict(biographies = bios))

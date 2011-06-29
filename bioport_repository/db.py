@@ -28,7 +28,7 @@ from bioport_repository.db_definitions import Category, Base, Location, Comment
 from bioport_repository.db_definitions import PersonSource, PersonSoundex, AuthorRecord
 from bioport_repository.db_definitions import RelPersonCategory, PersonName
 #from bioport_repository.db_definitions import NaamRecord 
-from bioport_repository.db_definitions import SoundexRecord
+#from bioport_repository.db_definitions import SoundexRecord
 from bioport_repository.db_definitions import (
    CacheSimilarityPersons,
    BioPortIdRecord,
@@ -778,9 +778,10 @@ class DBRepository:
         assert len(ls) == 1, 'Expected to find exactly one biography with the following arguments (but found %s): %s' % (len(ls), args)
         return ls[0]
 
-    def count_persons(self):        
+    def count_persons(self, **args):        
         session = self.get_session()
-        qry = session.query(PersonRecord)
+#        qry = session.query(PersonRecord)
+        qry = self._get_persons_query(**args)
         return qry.count()
     
         # XXX - There seems to be a memory leak when calling session.execute()
@@ -958,6 +959,7 @@ class DBRepository:
         
         if match_term:
             qry = qry.filter(PersonRecord.naam.match(match_term))
+            
             
         if search_term:
             #full-text search

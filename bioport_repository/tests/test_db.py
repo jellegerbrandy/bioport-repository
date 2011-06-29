@@ -1,7 +1,7 @@
 from bioport_repository.tests.common_testcase import CommonTestCase, unittest 
-from bioport_repository.db import Source, BiographyRecord,  PersonRecord, SoundexRecord, SourceRecord, Biography, RelBioPortIdBiographyRecord
+from bioport_repository.db import Source, BiographyRecord,  PersonRecord, SourceRecord, Biography, RelBioPortIdBiographyRecord
 from bioport_repository.db_definitions import RelPersonCategory, PersonSoundex,\
-    RELIGION_VALUES
+    RELIGION_VALUES, SoundexRecord
 
 
 class DBRepositoryTestCase(CommonTestCase):
