@@ -20,7 +20,7 @@ class RepositoryTestCase(CommonTestCase):
     
         self.repo.download_biographies(src)
         assert len(self.repo.get_biographies())
-        
+
     def test_get_persons(self):
         self.assertEqual(len(self.repo.get_persons()), 10)
         self.assertEqual(self.repo.count_persons(), 10)
