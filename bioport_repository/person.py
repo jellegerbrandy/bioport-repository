@@ -2,32 +2,32 @@
 # encoding=utf8
 ##########################################################################
 # Copyright (C) 2009 - 2014 Huygens ING & Gerbrandy S.R.L.
-# 
+#
 # This file is part of bioport.
-# 
+#
 # bioport is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as
 # published by the Free Software Foundation, either version 3 of the
 # License, or (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public
 # License along with this program.  If not, see
 # <http://www.gnu.org/licenses/gpl-3.0.html>.
 ##########################################################################
 
-# import os
+import os
 
 from sqlalchemy.orm.exc import NoResultFound, DetachedInstanceError
 from lxml import etree
 
 from names.common import coerce_to_ascii
 from bioport_repository.merged_biography import MergedBiography, BiographyMerger
-from bioport_repository.db_definitions import STATUS_NEW
+from bioport_repository.db_definitions import STATUS_NEW, SOURCE_TYPE_PORTRAITS
 from bioport_repository.common import format_date, to_date
 from bioport_repository.db_definitions import (
     RelPersonCategory,
@@ -43,13 +43,13 @@ from bioport_repository.db_definitions import (
     )
 
 TO_HIDE = [
-   STATUS_FOREIGNER,
-   STATUS_MESSY,
-   STATUS_REFERENCE,
-   STATUS_NOBIOS,
-   STATUS_ALIVE,
-   STATUS_ONLY_VISIBLE_IF_CONNECTED,
-   ]
+    STATUS_FOREIGNER,
+    STATUS_MESSY,
+    STATUS_REFERENCE,
+    STATUS_NOBIOS,
+    STATUS_ALIVE,
+    STATUS_ONLY_VISIBLE_IF_CONNECTED,
+    ]
 
 
 class Person(object):
@@ -57,12 +57,12 @@ class Person(object):
     A Person is usually associated with one or more Biography objects.
     """
 
-    def __init__(self,
+    def __init__(
+        self,
         bioport_id,
         biographies=None,  # XXX - this is not used!
         repository=None,
         record=None,
-#        status=None,
         remarks=None,
         score=None,
         ):
@@ -73,17 +73,14 @@ class Person(object):
             biographies - a list of Biography instances
             repository - a Repository instance
             record - an instance of PersonRecord
-            status - an integer
             remarks - a string
         """
 
         self.id = self.bioport_id = long(bioport_id)
         self.repository = repository
         self._record = record
-#        self._status = status
         self.remarks = remarks
         if record is not None:
-#            self.status = record.status
             self.remarks = record.remarks
         self.score = score
 
@@ -92,9 +89,9 @@ class Person(object):
             return True
         return False
 
-    def singleton_id(self, id, **args):
-        # XXX - what is this?
-        return self.id
+#     def singleton_id(self, id, **args):
+#         # XXX - what is this?
+#         return self.id
 
     def __str__(self):
         if self.get_names():
@@ -106,7 +103,8 @@ class Person(object):
 
     @property
     def status(self):
-        return self.record.status or STATUS_NEW
+        status = self.record.status or STATUS_NEW
+        return status
 
     @property
     def record(self):
@@ -166,18 +164,14 @@ class Person(object):
             r_person.thumbnail = computed_values.thumbnail
             # # BB
             #     has_name = Column(Boolean) # if naam != null && != ''
-            r_person.has_name = (r_person.naam != None) and (r_person.naam != '') 
-            
-            #     birthday = Column(MSString(4), index=True) # if geboortedatum_min = geboortedatum_max, then extract geboortedag
-            if r_person.geboortedatum_min != None and r_person.geboortedatum_min == r_person.geboortedatum_max:
-#                 print 'r_person.geboortedatum_min=%s' % r_person.geboortedatum_min
+            r_person.has_name = (r_person.naam is not None) and (r_person.naam != '')
+
+            if r_person.geboortedatum_min is not None and r_person.geboortedatum_min == r_person.geboortedatum_max:
                 date = to_date(r_person.geboortedatum_min[0:10])
-#                 print 'date = %s' % date
                 iso = date.isoformat()
                 r_person.birthday = iso[5:7] + iso[8:10]
-#                 print 'birthday = %s' % r_person.birthday
 
-            if r_person.sterfdatum_min != None and r_person.sterfdatum_min == r_person.sterfdatum_max:
+            if r_person.sterfdatum_min is not None and r_person.sterfdatum_min == r_person.sterfdatum_max:
                 date = to_date(r_person.sterfdatum_min[0:10])
 #                 print 'date = %s' % date
                 iso = date.isoformat()
@@ -190,22 +184,31 @@ class Person(object):
                     tmpinit = coerce_to_ascii(lower[0])
                     """ throws exception when first character is non-ascii """
                 except:
-                    tmpinit = coerce_to_ascii(lower.replace(u'\u0133','ij').replace(u'ã¼',u'ü').replace(u'\xf8','o'))[0]
-                r_person.initial = tmpinit 
-            #     invisible = Column(Boolean) # person.status IN (11, 5, 9, 9999, 14, 15)
-            r_person.invisible = r_person.status in TO_HIDE
+                    tmpinit = coerce_to_ascii(lower.replace(u'\u0133', 'ij').replace(u'ã¼', u'ü').replace(u'\xf8', 'o'))[0]
+                r_person.initial = tmpinit
+
+            sources = self.get_sources()
+
+            #     invisible = Column(Boolean) #
+            non_portrait_sources = [source for source in sources if source.id != 'bioport' and source.source_type != SOURCE_TYPE_PORTRAITS]
+            r_person.invisible = (
+                # person.status IN (11, 5, 9, 9999, 14, 15)
+                r_person.status in TO_HIDE or
+                # we also hide persons that are only have only portraits as biographies
+                not non_portrait_sources
+                )
+
 #             #     foreigner = Column(Boolean) # person.status IN (11)
 #             r_person.foreigner = r_person.status == STATUS_FOREIGNER
             #     orphan = Column(Boolean) # person is orphan when the only sources linking to it is 'bioport'
             """ TODO: test this"""
-            sources = self.get_sources()
-            r_person.orphan = len(sources) == 1 and sources[0].id == 'bioport' 
-              
+            r_person.orphan = len(sources) == 0 or (len(sources) == 1 and sources[0].id == 'bioport')
+
             # # /BB
             # update categories
             session.query(RelPersonCategory).filter(RelPersonCategory.bioport_id == bioport_id).delete()
 
-            done=[] 
+            done = []
             for category in merged_biography.get_states(type='category'):
                 category_id = category.get('idno')
                 assert type(category_id) in [type(u''), type('')], category_id
@@ -229,7 +232,7 @@ class Person(object):
                     try:
                         r = religion_qry.one()
                         r.religion_id = religion_id
-                    except  NoResultFound:
+                    except NoResultFound:
                         r = RelPersonReligion(bioport_id=bioport_id, religion_id=religion_id)
                         session.add(r)
                     session.flush()
@@ -263,7 +266,7 @@ class Person(object):
         # XXX: these next two lines somehow guarantee that something does not break - find out why, what, and remove them
         with self.repository.db.get_session_context() as session:
             session.merge(self.record)
-        
+
         self.repository.db._all_persons[self.bioport_id] = self
 
     def add_biography(self, biography, comment=None):
@@ -272,6 +275,7 @@ class Person(object):
             comment = 'added biography to %s' % self
 
         biography.save(user=self.repository.user, comment=comment)
+        self._fresh_record()
 
     def get_biographies(self, source_id=None):
         """Return all Biographies instances that are known to be
@@ -316,7 +320,7 @@ class Person(object):
 
     def get_bioport_biography(self, create_if_not_exists=True):
         # convenience mthod
-        return  self.repository.get_bioport_biography(self, create_if_not_exists=create_if_not_exists)
+        return self.repository.get_bioport_biography(self, create_if_not_exists=create_if_not_exists)
 
     def get_names(self):
         return self.get_merged_biography().get_names()
@@ -358,6 +362,7 @@ class Person(object):
         if self.record:
             return self.record.orphan
         else:
+            # XXX: this function is not defined
             return self.get_merged_biography().is_orphan()
 
     def birthday(self):
@@ -413,12 +418,6 @@ class Person(object):
         else:
             return self.computed_values.sterfdatum
 
-#        event = self.get_merged_biography().get_event('death')
-#        if event is not None:
-#            return event.get('when')
-#        if self.record.sterfdatum_min == self.record.sterfdatum_max:
-#            return self.record.sterfdatum_max
-
     def get_dates_for_overview(self):
         """return a tuple of ISO-dates to show in the overview
 
@@ -429,7 +428,6 @@ class Person(object):
         """
         date1 = self.geboortedatum()
 #        if not date1:
-#            event = self.get_merged_biography().get_event('baptism')
 #            if event is not None:
 #                date1 = event.get('when')
 #
@@ -450,8 +448,12 @@ class Person(object):
         elif url.startswith('http:'):
             return url
         else:
-            images_cache_url = self.repository.images_cache_url
-            return '%s/%s' % (images_cache_url, self.record.thumbnail)
+            # we assume it is a filename
+            if os.path.isfile(os.path.join(self.repository.images_cache_local, self.record.thumbnail)):
+                images_cache_url = self.repository.images_cache_url
+                return '%s/%s' % (images_cache_url, self.record.thumbnail)
+            else:
+                return None
 
     def geslachtsnaam(self):
         return self.record.geslachtsnaam
@@ -501,7 +503,7 @@ class Person(object):
         # BB anyway, put it in a set to remove duplication
         source_ids = frozenset([b.source_id for b in self.get_biographies()])
 #         print source_ids
-        
+
         with self.repository.db.get_session_context() as session:
             # delete existing references
             session.query(PersonSource).filter(PersonSource.bioport_id == bioport_id).delete()
@@ -559,12 +561,12 @@ class Person(object):
         bios = self.get_biographies(source_id='bioport')
         if not bios:
             return
-        elif type(bios) != type([]):
+        elif not isinstance(bios, type([])):
             return bios
         elif len(bios) < 2:
             return bios
         merged_bio = BiographyMerger.merge_biographies(bios)
-        for bio in  bios:
+        for bio in bios:
             self.repository.delete_biography(bio)
         self.add_biography(merged_bio)
         return merged_bio
@@ -588,7 +590,6 @@ class Person(object):
 
                 self.has_contradictions = bool(person.get_biography_contradictions())
                 illustrations = self.merged_biography.get_illustrations()
-#                self.thumbnail = illustrations and illustrations[0].has_image() and illustrations[0].image_small_url or u''
                 illustration = illustrations and illustrations[0]
                 if illustration:
                     url = illustration.image_small_url
@@ -615,6 +616,7 @@ class Person(object):
             @property
             def _names(self):
                 return self.merged_biography.get_names()
+
             @property
             def merged_biography(self):
 #                if not merged_biography.get_biographies():
@@ -628,15 +630,19 @@ class Person(object):
             @property
             def naam(self):
                 return self._name and self._name.guess_normal_form()
+
             @property
             def sort_key(self):
                 return self._name and self._name.sort_key()
+
             @property
             def geslachtsnaam(self):
                 return self._name.geslachtsnaam()
+
             @property
             def has_illustrations(self):
                 return bool(self.merged_biography.get_illustrations())
+
             @property
             def search_source(self):
                 result = []
@@ -646,6 +652,7 @@ class Person(object):
                     result.append(bio.get_text_without_markup())
                 result = [unicode(s) for s in result]
                 return u'\n'.join(result)
+
             @property
             def sex(self):
                 return self.merged_biography.get_value('geslacht')
@@ -668,8 +675,8 @@ class Person(object):
                         date2 = event.get('when')
                 return date2
 
-
         return Wrapper(self)
+
 
 class Contradiction(object):
     """An object which represents a person with contradictory
@@ -678,7 +685,7 @@ class Contradiction(object):
 
     __slots__ = ["type", "values"]
 
-    def __init__(self, type, values):
+    def __init__(self, type, values):  # @ReservedAssignment
         self.type = type
         self.values = values
 
