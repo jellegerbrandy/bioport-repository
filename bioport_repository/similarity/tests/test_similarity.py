@@ -118,7 +118,6 @@ class SimilarityTestCase(CommonTestCase):
         try:
             self.repo.save_biography(bio, comment='test')
         except Exception, error:
-            import ipdb;ipdb.set_trace()
             self.repo.save_biography(bio, comment='test')
         self.assertTrue(Similarity.are_surely_equal(p0, p1)) 
         self.assertFalse(Similarity.are_surely_equal(p0, p2)) 
@@ -184,8 +183,9 @@ class SimilarityTestCase(CommonTestCase):
         repo = self.repo
         self.assertEqual(len(self.repo.get_persons()) ,10)
         self.repo.db.fill_similarity_cache(minimal_score=0.0, refresh=True)
-        for r in self.repo.db.get_session().query(CacheSimilarityPersons).all():
-            assert r.bioport_id1 <= r.bioport_id2, (r.bioport_id1, r.bioport_id2)
+        with self.repo.db.get_session_context() as session:
+            for r in session.query(CacheSimilarityPersons).all():
+                assert r.bioport_id1 <= r.bioport_id2, (r.bioport_id1, r.bioport_id2)
         
         ls = self.repo.get_most_similar_persons(size=3) 
         ls = list(ls)

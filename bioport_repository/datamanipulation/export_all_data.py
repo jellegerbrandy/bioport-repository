@@ -56,14 +56,13 @@ def export_data(dsn):
 
 
 def create_tar_file():
-    #create a zip file  
+    # create an archive file  
     print 'creating tar.gz'
     tar = tarfile.open(TARFILE_NAME, "w:gz")
     for name in os.listdir(DIR_NAME):
         tar.add(os.path.join(DIR_NAME, name), arcname=name)
     tar.close()
     print 'Output written to ', TARFILE_NAME
-    print ''
 
 
 if __name__ == "__main__":

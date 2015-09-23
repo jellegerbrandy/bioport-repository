@@ -1,18 +1,19 @@
+# encoding=utf8
 ##########################################################################
 # Copyright (C) 2009 - 2014 Huygens ING & Gerbrandy S.R.L.
-# 
+#
 # This file is part of bioport.
-# 
+#
 # bioport is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as
 # published by the Free Software Foundation, either version 3 of the
 # License, or (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public
 # License along with this program.  If not, see
 # <http://www.gnu.org/licenses/gpl-3.0.html>.
@@ -20,15 +21,16 @@
 
 from bioport_repository.tests.common_testcase import CommonTestCase, unittest
 from bioport_repository.person import Person
-#from bioport_repository.source import Source
+# from bioport_repository.source import Source
 from bioport_repository.biography import Biography
+from bioport_repository.db_definitions import STATUS_DONE, STATUS_FOREIGNER, SOURCE_TYPE_PORTRAITS
 
 
 class PersonTestCase(CommonTestCase):
 
     def test_person_init(self):
-        p1 = Person('1234', repository=self.repo)
-        p2 = Person('2345')
+        p1 = Person(1234, repository=self.repo)
+        p2 = Person(2345)
         self.assertNotEqual(p1.id, p2.id)
 
     def test_get_names(self):
@@ -49,6 +51,88 @@ class PersonTestCase(CommonTestCase):
         p1.get_merged_biography()
         p1.get_merged_biography()
         p1.get_merged_biography()
+
+    def test_person_initial_is_set(self):
+        self.create_filled_repository(sources=1)
+        p1 = self.repo.get_persons()[1]
+        p2 = self.repo.get_persons()[2]
+        expected_initial1 = p1.naam()[0].lower()
+        expected_initial2 = p2.naam()[0].lower()
+        self.assertEquals(p1.initial(), expected_initial1, 'wrong initial: %s' % p1.initial())
+        self.assertEquals(p2.initial(), expected_initial2, 'wrong initial: %s' % p2.initial())
+
+    def test_person_initial_is_set1(self):
+        person = self._add_person(name='Zylophon')
+        self.assertEquals(person.initial(), 'z', 'wrong initial: %s' % person.initial())
+        person = self._add_person(name='Xenophon')
+        self.assertEquals(person.initial(), 'x', 'wrong initial: %s' % person.initial())
+        person = self._add_person(name=u'Äriél')
+        self.assertEquals(person.initial(), u'a', u'wrong initial: %s' % person.initial())
+
+    def test_person_has_name_is_set(self):
+        person = self._add_person(name='')
+        self.assertEqual(person.has_name(), False, 'has_name should be false')
+        person = self._add_person()
+        self.assertEqual(person.has_name(), False, 'has_name should be false')
+        person = self._add_person(name='Xenophon')
+        self.assertEqual(person.has_name(), True, 'has_name should be true')
+
+    def test_person_birthday_is_set(self):
+        person = self._add_person(name='Saskia', geboortedatum='2010-01-06')
+        self.assertEqual(person.birthday(), '0106', 'person.birthday() returns %s' % person.birthday())
+        person = self._add_person(name='Unknown')
+        self.assertEqual(person.birthday(), None, 'person.birthday() returns %s' % person.birthday())
+
+    def test_person_deathday_is_set(self):
+        person = self._add_person(name='Methusaleh', sterfdatum='2010-01-06')
+        self.assertEqual(person.deathday(), '0106', 'person.deathday() returns %s' % person.deathday())
+        person = self._add_person(name='Unknown')
+        self.assertEqual(person.deathday(), None, 'person.deathday() returns %s' % person.deathday())
+
+    def test_person_invisible_is_set(self):
+        person = self._add_person(name='Saskia')
+        person.record.status = STATUS_FOREIGNER
+        person.save()
+        self.assertEqual(person.is_invisible(), True, 'person should be invisible')
+        person.record.status = STATUS_DONE
+        person.save()
+        self.assertEqual(person.is_invisible(), False, 'person should be visible')
+
+    def test_person_orphan_is_set(self):
+        person = self._add_person(name='Remi')
+        self.assertEqual(person.is_orphan(), False)
+        b = person.get_biographies()
+        self.assertEqual(len(b), 1)
+        default_bio = b[0]
+        self.assertNotEqual(default_bio.source_id, 'bioport')
+
+        bio = Biography(id="bla", source_id=u"bioport",
+                        repository=self.repo)
+        person.add_biography(bio)
+        person.save()
+        self.assertEqual(person.is_orphan(), False)
+
+        self.repo.delete_biography(default_bio)
+        self.assertEqual(person.is_orphan(), True)
+
+    def test_person_with_only_portaits_is_invisible(self):
+        person = self._add_person(name='Remi')
+        self.assertEqual(person.is_invisible(), False)
+        for bio in person.get_biographies():
+            if bio.source_id != 'bioport':
+                self.repo.delete_biography(bio)
+
+        self.assertEqual(person.is_invisible(), True)
+
+        # now add a biography from a source that is of type 'portraits'
+        portraits_source = self._add_source(u'rijksmuseum')
+        portraits_source.source_type = SOURCE_TYPE_PORTRAITS
+        self.repo.save_source(portraits_source)
+        bio = Biography(id='1', source_id=u'rijksmuseum', repository=self.repo)
+        person.add_biography(bio)
+
+        self.assertEqual(person.is_invisible(), True)
+
 
     def test_get_dates_for_overview(self):
         person = self._add_person(name='Estragon')

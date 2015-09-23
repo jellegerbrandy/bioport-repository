@@ -20,6 +20,7 @@
 # <http://www.gnu.org/licenses/gpl-3.0.html>.
 ##########################################################################
 
+
 june21_2012 = """
 ALTER TABLE `biography` ADD INDEX `ix_source_version`(`source_id`, `version`);
 
@@ -89,6 +90,9 @@ ALTER TABLE `person` MODIFY COLUMN `search_source` TEXT  CHARACTER SET utf8 COLL
 
 """
 
+"""
+ALTER TABLE source ADD COLUMN source_type INT 
+"""
 #
 from bioport_repository.repository import *
 #from bioport_repository.db_definitions import PersonView

@@ -1,3 +1,4 @@
+
 ##########################################################################
 # Copyright (C) 2009 - 2014 Huygens ING & Gerbrandy S.R.L.
 # 
@@ -18,29 +19,24 @@
 # <http://www.gnu.org/licenses/gpl-3.0.html>.
 ##########################################################################
 
-from bioport_repository.tests.common_testcase import CommonTestCase, unittest 
+"""do a resave on all persons to set the added fields"""
 
-class IdentifierTestCase(CommonTestCase):
-        
-    def test_generators(self):       
-        i = self.repo 
-        
-        id1 = i.db.fresh_identifier()
-        id2 = i.db.fresh_identifier()
-        self.assertNotEqual(id1, id2)
-        
-        self.create_filled_repository()
-        some_person = self.repo.get_persons()[4]
-        id = some_person.get_bioport_id()
-        self.repo.delete_person(some_person)
+from bioport_repository.repository import Repository
+import sys
 
+DSN = 'mysql://histest:test@localhost/histest'
 
-def test_suite():
-    test_suite = unittest.TestSuite()
-    tests = [IdentifierTestCase]
-    for test in tests:
-        test_suite.addTest(unittest.makeSuite(test))
-    return test_suite 
+def resave_persons(dsn):
+    repository = Repository(dsn=dsn)
 
-if __name__ == '__main__':
-    unittest.main(defaultTest='test_suite')
+    print 'resaving persons'
+    persons = repository.get_persons(full_records=True, hide_invisible=False, no_empty_names=False)
+    print len(persons)
+    for j, person in enumerate(persons):
+        print 'resaving person %s/%s; bioport_id: %s' % (j, len(persons), person.get_bioport_id())
+        if person and not person.initial:
+            person.save()
+
+if __name__ == "__main__":
+    dsn = sys.argv[1] or DSN
+    resave_persons(dsn)
