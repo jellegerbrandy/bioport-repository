@@ -93,6 +93,7 @@ class PersonTestCase(CommonTestCase):
         person = self._add_person(name='Saskia')
         person.record.status = STATUS_FOREIGNER
         person.save()
+        self.assertEqual(person.record.status, STATUS_FOREIGNER)
         self.assertEqual(person.is_invisible(), True, 'person should be invisible')
         person.record.status = STATUS_DONE
         person.save()
@@ -134,6 +135,8 @@ class PersonTestCase(CommonTestCase):
             if bio.source_id != 'bioport':
                 self.repo.delete_biography(bio)
 
+        # we need to 'refresh' the person
+        person = self.repo.get_person(person.get_bioport_id())
         self.assertEqual(person.is_invisible(), True)
 
         # now add a biography from a source that is of type 'portraits'
