@@ -242,33 +242,9 @@ class DBRepository:
 
     @instance.clearafter
     def delete_biographies(self, source):  # , biography=None):
-        with self.get_session_context() as session:
-            # delete also all biographies associated with this source
-            session.query(BiographyRecord).filter_by(source_id=source.id).delete()
-            session.execute('delete rel from relbiographyauthor rel left outer join biography b on rel.biography_id = b.id where b.id is null')
-            session.execute('delete a   from author a               left outer join relbiographyauthor rel on rel.author_id = a.id where rel.author_id is null')
-            # delete also all records in person_record table
-            sql = """DELETE  s from person_source s
-                where s.source_id = '%s'""" % source.id
-            session.execute(sql)
-            # delete all persons  that have become 'orphans' (i.e. that have no source anymore)
-            sql = """DELETE  p from person p
-                left outer join person_source s
-                on s.bioport_id = p.bioport_id
-                where s.bioport_id is Null"""
-            session.execute(sql)
-            # delete all orphaned names and soundexes
-            sql = """DELETE  n from person_name n
-                left outer join person p
-                on n.bioport_id = p.bioport_id
-                where n.bioport_id is Null"""
-            session.execute(sql)
-            sql = "delete n   from naam n   where src = '%s'" % source.id
-            session.execute(sql)
-            session.execute('delete s   from soundex s            left outer join naam n  on s.naam_id = n.id where n.id is null')
-
-#            session.expunge_all()
-
+        for biography in self.get_biographies(source=source):
+            self.delete_biography(biography)
+            
     @instance.clearafter
     def delete_biography(self, biography):
         with self.get_session_context() as session:
@@ -276,7 +252,8 @@ class DBRepository:
             session.query(BiographyRecord).filter_by(id=biography.id).delete()
             session.flush()
             # now update the person associated with this biography
-            self.update_person(biography.get_bioport_id())
+        self.update_person(biography.get_bioport_id())
+
 
     @instance.clearafter
     def delete_names(self, bioport_id):
@@ -1288,7 +1265,8 @@ class DBRepository:
             qry.delete()
 
         # update the cache by deleteing the person from there as well
-        del self._all_persons[bioport_id]
+        if bioport_id in self._all_persons:
+            del self._all_persons[bioport_id]
 
     def get_author(self, author_id):
         session = self.get_session()
@@ -2065,7 +2043,27 @@ and b2.redirect_to is null
         new_person.add_biography(biography, comment=comment)
         new_person.save()
         return new_person
-
+    
+    def cleanup_orphaned_records(self):
+        with self.get_session_context() as session:
+            session.execute('delete rel from relbiographyauthor rel left outer join biography b on rel.biography_id = b.id where b.id is null')
+            session.execute('delete a   from author a               left outer join relbiographyauthor rel on rel.author_id = a.id where rel.author_id is null')
+            # delete all persons  that have that have no source anymore
+            sql = """DELETE  p from person p
+                left outer join person_source s
+                on s.bioport_id = p.bioport_id
+                where s.bioport_id is Null"""
+            session.execute(sql)
+            # delete all orphaned names and soundexes
+            sql = """DELETE  n from person_name n
+                left outer join person p
+                on n.bioport_id = p.bioport_id
+                where n.bioport_id is Null"""
+            session.execute(sql)
+            sql = "delete n   from naam n   where src = '%s'" % source.id
+            session.execute(sql)
+            session.execute('delete s   from soundex s            left outer join naam n  on s.naam_id = n.id where n.id is null')
+ 
 
 class PersonList(object):
     """This object tries to behave like a list of Person objects as efficiently as possible

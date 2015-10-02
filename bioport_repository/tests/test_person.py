@@ -106,13 +106,25 @@ class PersonTestCase(CommonTestCase):
         default_bio = b[0]
         self.assertNotEqual(default_bio.source_id, 'bioport')
 
-        bio = Biography(id="bla", source_id=u"bioport",
-                        repository=self.repo)
+        bio = Biography(id="bla", source_id=u"bioport", repository=self.repo)
         person.add_biography(bio)
         person.save()
         self.assertEqual(person.is_orphan(), False)
 
+        # check if the orphan field is updated if we delete a single biography
         self.repo.delete_biography(default_bio)
+        person = self.repo.get_person(person.get_bioport_id())
+        self.assertEqual(person.is_orphan(), True)
+
+        # check if the orphan field is updated when we call delete_biographies
+        bio = Biography(id="bla-123", source_id=u'bioport_test', repository=self.repo)
+        person.add_biography(bio)
+        person.save()
+        self.assertEqual(person.is_orphan(), False)
+
+        source = self.repo.get_source(u'bioport_test')
+        self.repo.delete_biographies(source)
+        person = self.repo.get_person(person.get_bioport_id())
         self.assertEqual(person.is_orphan(), True)
 
     def test_person_with_only_portaits_is_invisible(self):
