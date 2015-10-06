@@ -134,16 +134,17 @@ class Person(object):
 
     def save(self):
         with self.repository.db.get_session_context() as session:
-            r_person = self.record
+#             r_person = self._get_record(session)
+            sources = self.get_sources()
             bioport_id = self.get_bioport_id()
+            r_person = self.record
+#             r_person = self._get_record(session)
             # XXX: is this obsolete?
             if getattr(self, 'remarks', None) is not None:
                 r_person.remarks = self.remarks
-            if getattr(self, 'status', None):
-                r_person.status = self.status
+            if self.record.status is None:
+                r_person.status = STATUS_NEW
 
-            # check if a person with this bioportid alreay exists
-            merged_biography = self.get_merged_biography()
             computed_values = self.computed_values
             r_person.naam = computed_values.naam
             r_person.sort_key = computed_values.sort_key
@@ -187,8 +188,6 @@ class Person(object):
                     tmpinit = coerce_to_ascii(lower.replace(u'\u0133', 'ij').replace(u'ã¼', u'ü').replace(u'\xf8', 'o'))[0]
                 r_person.initial = tmpinit
 
-            sources = self.get_sources()
-
             #     invisible = Column(Boolean) #
             non_portrait_sources = [source for source in sources if source.id != 'bioport' and source.source_type != SOURCE_TYPE_PORTRAITS]
             r_person.invisible = (
@@ -202,13 +201,14 @@ class Person(object):
 #             r_person.foreigner = r_person.status == STATUS_FOREIGNER
             #     orphan = Column(Boolean) # person is orphan when the only sources linking to it is 'bioport'
             """ TODO: test this"""
-            r_person.orphan = len(sources) == 0 or (len(sources) == 1 and sources[0].id == 'bioport')
+            r_person.orphan = bool(len(sources) == 0 or (len(sources) == 1 and sources[0].id == 'bioport'))
 
             # # /BB
             # update categories
             session.query(RelPersonCategory).filter(RelPersonCategory.bioport_id == bioport_id).delete()
 
             done = []
+            merged_biography = self.get_merged_biography()
             for category in merged_biography.get_states(type='category'):
                 category_id = category.get('idno')
                 assert type(category_id) in [type(u''), type('')], category_id
@@ -253,7 +253,14 @@ class Person(object):
             self.repository.db.delete_names(bioport_id=bioport_id)
             self.repository.db.update_name(bioport_id=bioport_id, names=computed_values._names)
 
-            self._update_source()
+            source_ids = [source.id for source in sources]
+
+            # delete existing references
+            session.query(PersonSource).filter(PersonSource.bioport_id == bioport_id).delete()
+            for source_id in source_ids:
+                r = PersonSource(bioport_id=bioport_id, source_id=source_id)
+                session.add(r)
+            session.flush()
 
             if self.get_biography_contradictions():
                 r_person.has_contradictions = True
@@ -266,8 +273,6 @@ class Person(object):
         # XXX: these next two lines somehow guarantee that something does not break - find out why, what, and remove them
         with self.repository.db.get_session_context() as session:
             session.merge(self.record)
-
-        self.repository.db._all_persons[self.bioport_id] = self
 
     def add_biography(self, biography, comment=None):
         biography.set_value('bioport_id', self.get_bioport_id())
@@ -303,7 +308,7 @@ class Person(object):
         return self.bioport_id
 
     def get_sources(self):
-        return [bio.get_source() for bio in self.get_biographies()]
+        return list(set([bio.get_source() for bio in self.get_biographies()]))
 
     def get_quality(self):
         return max([bio.get_quality() for bio in self.get_biographies()])
@@ -494,23 +499,6 @@ class Person(object):
     def update(self):
         # XXX you should call "save" and not "update"
         return self.save()
-
-    def _update_source(self):
-        """update the table person_source and replace the source_ids to the bioport_id"""
-        bioport_id = self.bioport_id
-
-        # BB sometimes there's duplication in source_ids, should this be possible?
-        # BB anyway, put it in a set to remove duplication
-        source_ids = frozenset([b.source_id for b in self.get_biographies()])
-#         print source_ids
-
-        with self.repository.db.get_session_context() as session:
-            # delete existing references
-            session.query(PersonSource).filter(PersonSource.bioport_id == bioport_id).delete()
-            for source_id in source_ids:
-#                 print bioport_id,source_id
-                r = PersonSource(bioport_id=bioport_id, source_id=source_id)
-                session.add(r)
 
     def get_biography_contradictions(self):
         """Iterates over all biographies and checks birth dates and

@@ -113,9 +113,6 @@ class DBRepository:
         self.Session = scoped_session(sessionmaker(bind=self.engine, extension=ZopeTransactionExtension()))
         self.db = self
         self.repository = repository
-        # prime the cache
-#         self.all_persons()
-
 
     @property
     def session(self):
@@ -157,8 +154,8 @@ class DBRepository:
     @instance.clearafter
     def clear_cache(self):
         """clear any cached data"""
-        if hasattr(self.db, '_all_persons'):
-            del self.db._all_persons
+        # this is still usefull, because of the @instance.clearafter decorator
+        pass
 
     @instance.clearafter
     def add_source(self, src):
@@ -242,33 +239,9 @@ class DBRepository:
 
     @instance.clearafter
     def delete_biographies(self, source):  # , biography=None):
-        with self.get_session_context() as session:
-            # delete also all biographies associated with this source
-            session.query(BiographyRecord).filter_by(source_id=source.id).delete()
-            session.execute('delete rel from relbiographyauthor rel left outer join biography b on rel.biography_id = b.id where b.id is null')
-            session.execute('delete a   from author a               left outer join relbiographyauthor rel on rel.author_id = a.id where rel.author_id is null')
-            # delete also all records in person_record table
-            sql = """DELETE  s from person_source s
-                where s.source_id = '%s'""" % source.id
-            session.execute(sql)
-            # delete all persons  that have become 'orphans' (i.e. that have no source anymore)
-            sql = """DELETE  p from person p
-                left outer join person_source s
-                on s.bioport_id = p.bioport_id
-                where s.bioport_id is Null"""
-            session.execute(sql)
-            # delete all orphaned names and soundexes
-            sql = """DELETE  n from person_name n
-                left outer join person p
-                on n.bioport_id = p.bioport_id
-                where n.bioport_id is Null"""
-            session.execute(sql)
-            sql = "delete n   from naam n   where src = '%s'" % source.id
-            session.execute(sql)
-            session.execute('delete s   from soundex s            left outer join naam n  on s.naam_id = n.id where n.id is null')
-
-#            session.expunge_all()
-
+        for biography in self.get_biographies(source=source):
+            self.delete_biography(biography)
+            
     @instance.clearafter
     def delete_biography(self, biography):
         with self.get_session_context() as session:
@@ -276,7 +249,8 @@ class DBRepository:
             session.query(BiographyRecord).filter_by(id=biography.id).delete()
             session.flush()
             # now update the person associated with this biography
-            self.update_person(biography.get_bioport_id())
+        self.update_person(biography.get_bioport_id())
+
 
     @instance.clearafter
     def delete_names(self, bioport_id):
@@ -734,8 +708,6 @@ class DBRepository:
         return ls[0]
 
     def count_persons(self, **args):
-        if not args:
-            return len(self.all_persons())
         qry = self._get_persons_query(**args)
         return qry.count()
 
@@ -754,29 +726,10 @@ class DBRepository:
         if args.get('full_records'):
             del args['full_records']
         query = self._get_persons_query(**args)
+
         ls = query.session.execute(query).fetchall()
         ls = [r[0] for r in ls]
         return PersonList(self.repository, ls)
-
-    def all_persons(self):
-        """return a dictionary with *all* bioport_ids as keys and Person instances as values
-
-        this is cached, takes up some memory, and the query should called once for every instance
-
-        returns a lazy dictionary, initialized with all person IDs"""
-        try:
-            return self._all_persons
-        except AttributeError:
-            # initialize
-            pass
-        logging.info('** fill_all_persons_cache - should happen only @ restart %s' % self)
-        time0 = time.time()
-        qry = self._get_persons_query(full_records=True, hide_invisible=False)
-        # executing the qry.statement directly is MUCH faster than qry.all()
-        ls = self.get_session().execute(qry.statement)
-        self._all_persons = dict((r.bioport_id, Person(bioport_id=r.bioport_id, repository=self.repository)) for r in ls)
-        logging.info('done (filling all_persons cache): %s seconds' % (time.time() - time0))
-        return self._all_persons
 
     def _log_query(self, label, qry):
         if self.LOG_QUERY:
@@ -1248,19 +1201,17 @@ class DBRepository:
         return qry
 
     def get_person(self, bioport_id, repository=None):
-        person = self.all_persons().get(bioport_id)
-        if not person:
-            original_bioport_id = self.redirects_to(bioport_id)
-            if original_bioport_id != bioport_id:
-                person = self.get_person(original_bioport_id)
-            else:
-                person = None
+        if not bioport_id:
+            return
+        if not repository:
+            repository = self.repository
+        bioport_id = self.redirects_to(bioport_id)
 
+        person = Person(bioport_id=bioport_id, repository=repository)
         return person
 
     @instance.clearafter
     def delete_person(self, person):
-        bioport_id = person.bioport_id
         with self.get_session_context() as session:
             try:
                 # BB manual deletion of related records, no ' on delete cascade' ?
@@ -1282,13 +1233,10 @@ class DBRepository:
         with self.get_session_context() as session:
             qry = session.query(CacheSimilarityPersons)
             qry = qry.filter(or_(
-                         CacheSimilarityPersons.bioport_id1 == person.get_bioport_id(),
-                         CacheSimilarityPersons.bioport_id2 == person.get_bioport_id()
-                         ))
+                CacheSimilarityPersons.bioport_id1 == person.get_bioport_id(),
+                CacheSimilarityPersons.bioport_id2 == person.get_bioport_id()
+                ))
             qry.delete()
-
-        # update the cache by deleteing the person from there as well
-        del self._all_persons[bioport_id]
 
     def get_author(self, author_id):
         session = self.get_session()
@@ -2065,7 +2013,27 @@ and b2.redirect_to is null
         new_person.add_biography(biography, comment=comment)
         new_person.save()
         return new_person
-
+    
+    def cleanup_orphaned_records(self):
+        with self.get_session_context() as session:
+            session.execute('delete rel from relbiographyauthor rel left outer join biography b on rel.biography_id = b.id where b.id is null')
+            session.execute('delete a   from author a               left outer join relbiographyauthor rel on rel.author_id = a.id where rel.author_id is null')
+            # delete all persons  that have that have no source anymore
+            sql = """DELETE  p from person p
+                left outer join person_source s
+                on s.bioport_id = p.bioport_id
+                where s.bioport_id is Null"""
+            session.execute(sql)
+            # delete all orphaned names and soundexes
+            sql = """DELETE  n from person_name n
+                left outer join person p
+                on n.bioport_id = p.bioport_id
+                where n.bioport_id is Null"""
+            session.execute(sql)
+            sql = "delete n   from naam n   where src = '%s'" % source.id
+            session.execute(sql)
+            session.execute('delete s   from soundex s            left outer join naam n  on s.naam_id = n.id where n.id is null')
+ 
 
 class PersonList(object):
     """This object tries to behave like a list of Person objects as efficiently as possible
@@ -2094,4 +2062,4 @@ class PersonList(object):
             return new_list
 
         i = int(key)
-        return self.repository.db.all_persons().get(self._bioport_ids[i])
+        return self.repository.get_person(self._bioport_ids[i])

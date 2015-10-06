@@ -265,7 +265,7 @@ class Biography(object, BioDesDoc):
     def get_person(self):
         try:
             return self._person
-        except:
+        except AttributeError:
             bioport_id = self.get_bioport_id()
             self._person = self.repository.get_person(bioport_id=bioport_id)
         return self._person
