@@ -244,6 +244,7 @@ class DBRepository:
             
     @instance.clearafter
     def delete_biography(self, biography):
+        logging.info('deleting biography {biography}'.format(biography=biography))
         with self.get_session_context() as session:
             # delete also all biographies associated with this source
             session.query(BiographyRecord).filter_by(id=biography.id).delete()
