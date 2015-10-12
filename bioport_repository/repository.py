@@ -185,7 +185,7 @@ class Repository(object):
         if self.ENABLE_SVN:
             raise NotImplementedError()
 
-    def save_biography(self, biography, comment):
+    def save_biography(self, biography, comment=''):
         biography.repository = self
         if self.ENABLE_DB:
             biography = self.db.save_biography(biography, user=self.user, comment=comment)
@@ -346,6 +346,7 @@ class Repository(object):
         return self.db.identify(person1, person2)
 
     def identify_persons(self, source_id, min_score):
+        logging.info('Identifying all persons from {source_id} that are similar with a score of at least {min_score}'.format(source_id=source_id, min_score=min_score))
         for _score, person1, person2 in self.get_most_similar_persons(source_id=source_id, min_score=min_score, size=None):
             self.identify(person1, person2)
 

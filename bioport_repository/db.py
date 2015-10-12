@@ -241,9 +241,10 @@ class DBRepository:
     def delete_biographies(self, source):  # , biography=None):
         for biography in self.get_biographies(source=source):
             self.delete_biography(biography)
-            
+
     @instance.clearafter
     def delete_biography(self, biography):
+        logging.info('deleting biography {biography}'.format(biography=biography))
         with self.get_session_context() as session:
             # delete also all biographies associated with this source
             session.query(BiographyRecord).filter_by(id=biography.id).delete()
@@ -1220,11 +1221,11 @@ class DBRepository:
 #                 session.query(PersonSource).filter(PersonSource.bioport_id == person.bioport_id).delete()
 #                 session.query(NaamRecord).filter(NaamRecord.bioport_id == person.bioport_id).delete()
                 session.query(RelPersonCategory).filter(RelPersonCategory.bioport_id == person.bioport_id).delete()
-#                 session.query(RelPersonReligion).filter(RelPersonReligion.bioport_id == person.bioport_id).delete()
+                session.query(RelPersonReligion).filter(RelPersonReligion.bioport_id == person.bioport_id).delete()
 
                 r = session.query(PersonRecord).filter(PersonRecord.bioport_id == person.get_bioport_id()).one()
                 session.delete(r)
-                msg = 'Deleted person %s' % person
+                msg = 'Deleted person %s' % person.bioport_id
                 self.log(msg, r)
             except NoResultFound:
                 pass
@@ -1272,7 +1273,7 @@ class DBRepository:
             i += 1
             try:
                 r_bioportid = qry.one()
-                if  r_bioportid.redirect_to:
+                if r_bioportid.redirect_to:
                     if r_bioportid.redirect_to in chain:
                         break
                     else:
@@ -1510,56 +1511,72 @@ class DBRepository:
         returns:
             a Person instance - representing the identified person
         """
+
+        logging.info('Identifying {person1.bioport_id} and {person2.bioport_id}'.format(person1=person1, person2=person2))
         # we need to merge the two persons, and choose one as the one to "point to"
         # we take the one that uses a biography with the highest trustworthiness
-        trust1 = max([bio.get_source().quality for bio in person1.get_biographies() if bio.get_source().id != 'bioport'] + [0])
-        trust2 = max([bio.get_source().quality for bio in person2.get_biographies() if bio.get_source().id != 'bioport'] + [0])
 
-        if trust1 > trust2:
-            new_person = person1
-            old_person = person2
-        else:
-            new_person = person1
-            old_person = person2
+        with self.get_session_context() as session:
 
-        if new_person.bioport_id == old_person.bioport_id:
-            # these two persons are already identified
-            return new_person
+            # make sure we have fresh records from the db
+            # (they may have been changed by a previous operation when identification happens in batch)
+            person1._fresh_record()
+            person2._fresh_record()
 
-        if new_person.status == STATUS_ONLY_VISIBLE_IF_CONNECTED:
-            new_person.record.status = old_person.status
-            self.save_person(new_person)
+            if person1.bioport_id == person2.bioport_id:
+                # these two persons are already identified
+                return person1
 
-        # create a new 'merged biography' to add to the new person
-        bio1 = self.repository.get_bioport_biography(new_person, create_if_not_exists=False)
-        bio2 = self.repository.get_bioport_biography(old_person, create_if_not_exists=False)
-        if bio1 and bio2:
-            merged_bio = BiographyMerger.merge_biographies(bio1, bio2)
-        else:
-            merged_bio = None
+            trust1 = max([bio.get_source().quality for bio in person1.get_biographies() if bio.get_source().id != 'bioport'] + [0])
+            trust2 = max([bio.get_source().quality for bio in person2.get_biographies() if bio.get_source().id != 'bioport'] + [0])
 
-        # now attach the biographies of old_person to new_person
-        for bio in old_person.get_biographies():
-            new_person.add_biography(bio,
-                comment='Identified %s and %s: added biography %s to %s' % (person1.name(), person2.name(), bio, new_person),
-                )
+            if trust1 > trust2:
+                new_person = person1
+                old_person = person2
+            else:
+                new_person = person1
+                old_person = person2
 
-        if merged_bio:
-            new_person.add_biography(merged_bio,
-                comment='Identified %s and %s: added merged biography to %s' % (person1.name(), person2.name(), new_person)
-                )
+            if new_person.status == STATUS_ONLY_VISIBLE_IF_CONNECTED:
+                new_person.record.status = old_person.status
+                self.save_person(new_person)
 
-        # changhe de bioportid table
-        self.redirect_identifier(old_person.get_bioport_id(), new_person.get_bioport_id())
+            # create a new 'merged biography' to add to the new person
+            bio1 = self.repository.get_bioport_biography(new_person, create_if_not_exists=False)
+            bio2 = self.repository.get_bioport_biography(old_person, create_if_not_exists=False)
+            if bio1 and bio2:
+                merged_bio = BiographyMerger.merge_biographies(bio1, bio2)
+            else:
+                merged_bio = None
 
-        # we identified so we can remove this pair from the deferred list
-        self._remove_from_cache_deferidentification(new_person, old_person)
-        self._remove_from_cache_similarity_persons(old_person)
+            # now attach the biographies of old_person to new_person
+            for bio in old_person.get_biographies():
+                new_person.add_biography(
+                    bio,
+                    comment='Identified %s and %s: added biography %s to %s' % (person1.name(), person2.name(), bio, new_person),
+                    )
 
-        # now delete the old person from the Person table
-        self.delete_person(old_person)
+            if merged_bio:
+                new_person.add_biography(
+                    merged_bio,
+                    comment='Identified %s and %s: added merged biography to %s' % (person1.name(), person2.name(), new_person)
+                    )
 
-        new_person.save()
+            # changhe de bioportid table
+            self.redirect_identifier(old_person.get_bioport_id(), new_person.get_bioport_id())
+
+            # we identified so we can remove this pair from the deferred list
+            self._remove_from_cache_deferidentification(new_person, old_person)
+            self._remove_from_cache_similarity_persons(old_person)
+
+            # now delete the old person from the Person table
+            self.delete_person(old_person)
+
+            new_person.save()
+
+            # now delete the old person from the Person table
+            self.delete_person(old_person)
+            new_person.save()
 
         return new_person
 
@@ -2013,7 +2030,7 @@ and b2.redirect_to is null
         new_person.add_biography(biography, comment=comment)
         new_person.save()
         return new_person
-    
+
     def cleanup_orphaned_records(self):
         with self.get_session_context() as session:
             session.execute('delete rel from relbiographyauthor rel left outer join biography b on rel.biography_id = b.id where b.id is null')
@@ -2033,7 +2050,7 @@ and b2.redirect_to is null
             sql = "delete n   from naam n   where src = '%s'" % source.id
             session.execute(sql)
             session.execute('delete s   from soundex s            left outer join naam n  on s.naam_id = n.id where n.id is null')
- 
+
 
 class PersonList(object):
     """This object tries to behave like a list of Person objects as efficiently as possible
