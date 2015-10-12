@@ -1221,11 +1221,11 @@ class DBRepository:
 #                 session.query(PersonSource).filter(PersonSource.bioport_id == person.bioport_id).delete()
 #                 session.query(NaamRecord).filter(NaamRecord.bioport_id == person.bioport_id).delete()
                 session.query(RelPersonCategory).filter(RelPersonCategory.bioport_id == person.bioport_id).delete()
-#                 session.query(RelPersonReligion).filter(RelPersonReligion.bioport_id == person.bioport_id).delete()
+                session.query(RelPersonReligion).filter(RelPersonReligion.bioport_id == person.bioport_id).delete()
 
                 r = session.query(PersonRecord).filter(PersonRecord.bioport_id == person.get_bioport_id()).one()
                 session.delete(r)
-                msg = 'Deleted person %s' % person
+                msg = 'Deleted person %s' % person.bioport_id
                 self.log(msg, r)
             except NoResultFound:
                 pass

@@ -189,7 +189,14 @@ class DBRepositoryTestCase(CommonTestCase):
         biography.from_args(**defaults)
         # now, saving this biography should raise an exception, because no source was found
         self.assertRaises(Exception, biography.save, u'test')
-
+    
+    def test_delete_person(self):
+        person = self.repo.get_persons()[0]
+        biography = person.get_biographies()[0]
+        biography.set_religion(1)
+        self.repo.save_biography(biography)
+        self.repo.delete_person(person)
+        
     def test_update_soundexes(self):
         self.repo.db.update_soundexes()
 
