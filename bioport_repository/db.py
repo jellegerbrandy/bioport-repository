@@ -241,7 +241,7 @@ class DBRepository:
     def delete_biographies(self, source):  # , biography=None):
         for biography in self.get_biographies(source=source):
             self.delete_biography(biography)
-            
+
     @instance.clearafter
     def delete_biography(self, biography):
         logging.info('deleting biography {biography}'.format(biography=biography))
@@ -1511,6 +1511,8 @@ class DBRepository:
         returns:
             a Person instance - representing the identified person
         """
+
+        logging.info('Identifying {person1} and {person2}'.format(person1=person1, person2=person2))
         # we need to merge the two persons, and choose one as the one to "point to"
         # we take the one that uses a biography with the highest trustworthiness
         trust1 = max([bio.get_source().quality for bio in person1.get_biographies() if bio.get_source().id != 'bioport'] + [0])
@@ -2014,7 +2016,7 @@ and b2.redirect_to is null
         new_person.add_biography(biography, comment=comment)
         new_person.save()
         return new_person
-    
+
     def cleanup_orphaned_records(self):
         with self.get_session_context() as session:
             session.execute('delete rel from relbiographyauthor rel left outer join biography b on rel.biography_id = b.id where b.id is null')
@@ -2034,7 +2036,7 @@ and b2.redirect_to is null
             sql = "delete n   from naam n   where src = '%s'" % source.id
             session.execute(sql)
             session.execute('delete s   from soundex s            left outer join naam n  on s.naam_id = n.id where n.id is null')
- 
+
 
 class PersonList(object):
     """This object tries to behave like a list of Person objects as efficiently as possible
