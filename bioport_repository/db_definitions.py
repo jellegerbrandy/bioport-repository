@@ -230,13 +230,13 @@ class NaamRecord(Base):
     person = relation(PersonRecord, lazy=False,)  # load eagerly
 
 
-class SimilarityCache(Base):
-    __tablename__ = 'cache_similarity'
-    naam1_id = Column(Integer, ForeignKey('naam.id'), index=True, primary_key=True, autoincrement=False)
-    naam2_id = Column(Integer, ForeignKey('naam.id'), index=True, primary_key=True, autoincrement=False)
-    score = Column(Float, index=True)
-SimilarityCache.naam1 = relation(NaamRecord, primaryjoin=NaamRecord.id == SimilarityCache.naam1_id)
-SimilarityCache.naam2 = relation(NaamRecord, primaryjoin=NaamRecord.id == SimilarityCache.naam2_id)
+# class SimilarityCache(Base):
+#     __tablename__ = 'cache_similarity'
+#     naam1_id = Column(Integer, ForeignKey('naam.id'), index=True, primary_key=True, autoincrement=False)
+#     naam2_id = Column(Integer, ForeignKey('naam.id'), index=True, primary_key=True, autoincrement=False)
+#     score = Column(Float, index=True)
+# SimilarityCache.naam1 = relation(NaamRecord, primaryjoin=NaamRecord.id == SimilarityCache.naam1_id)
+# SimilarityCache.naam2 = relation(NaamRecord, primaryjoin=NaamRecord.id == SimilarityCache.naam2_id)
 
 class CacheSimilarityPersons(Base):
     __tablename__ = 'cache_similarity_persons'
