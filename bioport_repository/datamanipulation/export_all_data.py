@@ -50,10 +50,10 @@ def export_data(dsn):
     print 'writing biographies to %s' % DIR_NAME
     persons = repository.get_persons()
     for j, person in enumerate(persons):
-        print 'writing %s/%s (of persons)' % (j, len(persons))
+        print '[%s/%s] persons' % (j, len(persons))
         for i, biography in enumerate(person.get_biographies()):
             fn = '%s_%s.xml' % (biography.get_bioport_id(), str(i + 1).zfill(2))
-            biography.set_idno(biography.source_id, 'source', where='filedesc')
+            biography.set_idno(biography.source_id, 'source')
             codecs.open(os.path.join(DIR_NAME, fn), 'w', 'utf8').write(biography.to_string())
 
 
